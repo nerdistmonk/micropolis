@@ -19,7 +19,11 @@ void Video_RenderFrame(void);
 void Video_SetCamera(int32_t tile_x, int32_t tile_y);
 void Video_GetCamera(int32_t *tile_x, int32_t *tile_y);
 void Video_PanCamera(int32_t delta_x, int32_t delta_y);
+void Video_CenterOnTile(int32_t tile_x, int32_t tile_y);
 bool Video_ScreenToTile(float screen_x, float screen_y, int32_t *tile_x, int32_t *tile_y);
+
+/* Window event callback for resizing */
+void Video_HandleWindowEvent(const SDL_Event *event);
 
 /* Minimap query and interaction */
 SDL_FRect Video_GetMinimapRect(void);

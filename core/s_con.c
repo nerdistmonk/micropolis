@@ -36,6 +36,32 @@ static void NeutralizeRoad(int32_t *tile)
     }
 }
 
+static bool TryAutoBulldozeTile(int32_t x, int32_t y)
+{
+    if (!autoBulldoze || TotalFunds < 1) return false;
+    if (!TestBounds(x, y)) return false;
+
+    uint16_t raw_tile = Map[x][y];
+    if (!(raw_tile & BULLBIT)) return false;
+
+    int32_t tile = raw_tile & LOMASK;
+    NeutralizeRoad(&tile);
+
+    /* Clears trees, woods, rubble, or tiny explosion residue */
+    if (((tile >= TREEBASE && tile <= WOODS5)) ||
+        ((tile >= RUBBLE && tile <= LASTRUBBLE)) ||
+        ((tile >= TINYEXP && tile <= LASTTINYEXP)) ||
+        (tile < 64 && tile != DIRT && tile != RIVER && tile != REDGE && tile != CHANNEL &&
+         (tile < FIRSTRIVEDGE || tile > LASTRIVEDGE))) {
+        Map[x][y] = DIRT;
+        TotalFunds -= 1;
+        MustUpdateFunds = 1;
+        return true;
+    }
+
+    return false;
+}
+
 static void FixSingle(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return;
@@ -174,6 +200,9 @@ bool CheckZoneClear(int32_t x, int32_t y, int16_t size)
 
             if (!TestBounds(tx, ty)) return false;
 
+            /* Auto-bulldoze clearable tiles under the zone footprint */
+            TryAutoBulldozeTile(tx, ty);
+
             uint16_t tile = Map[tx][ty];
             uint16_t low = tile & LOMASK;
 
@@ -253,6 +282,7 @@ bool PlaceZone(int32_t x, int32_t y, int16_t tool_id)
     if (!CheckZoneClear(x, y, size)) return false;
 
     TotalFunds -= cost;
+    MustUpdateFunds = 1;
     SMapX = (int16_t)x;
     SMapY = (int16_t)y;
 
@@ -266,11 +296,14 @@ int32_t LayRoad(int32_t x, int32_t y)
     if (!TestBounds(x, y)) return 0;
     if (TotalFunds < 10) return -2;
 
+    TryAutoBulldozeTile(x, y);
+
     int32_t tile = Map[x][y] & LOMASK;
 
     if (tile == DIRT) {
         Map[x][y] = ROADS | BULLBIT | BURNBIT;
         TotalFunds -= 10;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "road");
         return 1;
@@ -280,6 +313,7 @@ int32_t LayRoad(int32_t x, int32_t y)
         if (TotalFunds < 50) return -2;
         Map[x][y] = HBRIDGE | BULLBIT;
         TotalFunds -= 50;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "road");
         return 1;
@@ -288,6 +322,7 @@ int32_t LayRoad(int32_t x, int32_t y)
     if (tile == LHPOWER || tile == LVPOWER) {
         Map[x][y] = (tile == LHPOWER ? VROADPOWER : HROADPOWER) | CONDBIT | BURNBIT | BULLBIT;
         TotalFunds -= 10;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "road");
         return 1;
@@ -296,6 +331,7 @@ int32_t LayRoad(int32_t x, int32_t y)
     if (tile == LHRAIL || tile == LVRAIL) {
         Map[x][y] = (tile == LHRAIL ? HRAILROAD : VRAILROAD) | BURNBIT | BULLBIT;
         TotalFunds -= 10;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "road");
         return 1;
@@ -309,11 +345,14 @@ int32_t LayRail(int32_t x, int32_t y)
     if (!TestBounds(x, y)) return 0;
     if (TotalFunds < 20) return -2;
 
+    TryAutoBulldozeTile(x, y);
+
     int32_t tile = Map[x][y] & LOMASK;
 
     if (tile == DIRT) {
         Map[x][y] = 226 | BULLBIT | BURNBIT;
         TotalFunds -= 20;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "rail");
         return 1;
@@ -323,6 +362,7 @@ int32_t LayRail(int32_t x, int32_t y)
         if (TotalFunds < 100) return -2;
         Map[x][y] = 224 | BULLBIT;
         TotalFunds -= 100;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "rail");
         return 1;
@@ -331,6 +371,7 @@ int32_t LayRail(int32_t x, int32_t y)
     if (tile >= ROADS && tile <= (ROADS + 1)) {
         Map[x][y] = (tile == ROADS ? 238 : 237) | BURNBIT | BULLBIT;
         TotalFunds -= 20;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "rail");
         return 1;
@@ -339,6 +380,7 @@ int32_t LayRail(int32_t x, int32_t y)
     if (tile == 210 || tile == 211) {
         Map[x][y] = (tile == 210 ? 222 : 221) | CONDBIT | BURNBIT | BULLBIT;
         TotalFunds -= 20;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "rail");
         return 1;
@@ -352,11 +394,14 @@ int32_t LayWire(int32_t x, int32_t y)
     if (!TestBounds(x, y)) return 0;
     if (TotalFunds < 5) return -2;
 
+    TryAutoBulldozeTile(x, y);
+
     int32_t tile = Map[x][y] & LOMASK;
 
     if (tile == DIRT) {
         Map[x][y] = 210 | CONDBIT | BURNBIT | BULLBIT;
         TotalFunds -= 5;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "wire");
         return 1;
@@ -366,6 +411,7 @@ int32_t LayWire(int32_t x, int32_t y)
         if (TotalFunds < 25) return -2;
         Map[x][y] = 208 | CONDBIT | BULLBIT;
         TotalFunds -= 25;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "wire");
         return 1;
@@ -374,6 +420,7 @@ int32_t LayWire(int32_t x, int32_t y)
     if (tile == 66 || tile == 67) {
         Map[x][y] = (tile == 66 ? 77 : 78) | CONDBIT | BURNBIT | BULLBIT;
         TotalFunds -= 5;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "wire");
         return 1;
@@ -382,6 +429,7 @@ int32_t LayWire(int32_t x, int32_t y)
     if (tile == 226 || tile == 227) {
         Map[x][y] = (tile == 226 ? 221 : 222) | CONDBIT | BURNBIT | BULLBIT;
         TotalFunds -= 5;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "wire");
         return 1;
@@ -428,6 +476,7 @@ int32_t LayDoze(int32_t x, int32_t y)
 
         ClearZoneArea(x, y, size);
         TotalFunds -= 1;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "expl-low");
         return 1;
@@ -458,6 +507,7 @@ int32_t LayDoze(int32_t x, int32_t y)
                 if (x >= min_x && x <= max_x && y >= min_y && y <= max_y) {
                     ClearZoneArea(cx, cy, size);
                     TotalFunds -= 1;
+                    MustUpdateFunds = 1;
                     FixZone(cx, cy);
                     Audio_MakeSound("city", "expl-low");
                     return 1;
@@ -477,6 +527,7 @@ int32_t LayDoze(int32_t x, int32_t y)
         }
 
         TotalFunds -= 1;
+        MustUpdateFunds = 1;
         FixZone(x, y);
         Audio_MakeSound("city", "Bulldozer");
         return 1;

@@ -20,6 +20,19 @@ static void OnMessageReceived(int16_t msg_num, int16_t x, int16_t y)
     }
 }
 
+static void OnAutoGoto(int16_t x, int16_t y, const char *msg)
+{
+    (void)msg;
+    if (x > 0 || y > 0) {
+        Video_CenterOnTile((int32_t)x, (int32_t)y);
+    }
+}
+
+static void OnRequestBudget(void)
+{
+    GUI_Dialogs_OpenCityMgmt(CITY_TAB_BUDGET);
+}
+
 int main(int argc, char **argv)
 {
     (void)argc;
@@ -37,11 +50,12 @@ int main(int argc, char **argv)
         .update_funds = NULL,
         .update_date = NULL,
         .show_message = OnMessageReceived,
-        .auto_goto = NULL,
+        .auto_goto = OnAutoGoto,
         .invalidate_maps = NULL,
         .invalidate_editors = NULL,
         .play_sound = Audio_PlaySound,
-        .make_sound = Audio_MakeSound
+        .make_sound = Audio_MakeSound,
+        .request_budget_dialog = OnRequestBudget
     };
     Sim_RegisterCallbacks(&callbacks);
 
@@ -63,6 +77,7 @@ int main(int argc, char **argv)
         /* Sim core tick */
         if (now - last_tick_time >= tick_interval_ms) {
             SimFrame();
+            doMessage();
             MoveObjects();
             last_tick_time = now;
         }

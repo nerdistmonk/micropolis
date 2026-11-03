@@ -373,6 +373,7 @@ typedef struct SimCallbacks {
     void (*invalidate_editors)(void);
     void (*play_sound)(int16_t sound_id, int16_t x, int16_t y);
     void (*make_sound)(const char *channel, const char *sound_name);
+    void (*request_budget_dialog)(void);
 } SimCallbacks;
 
 /* Engine Global Variables */
@@ -586,6 +587,7 @@ bool PlaceZone(int32_t x, int32_t y, int16_t tool_id);
 /* Budget and Evaluation */
 void CollectTax(void);
 void DoBudget(void);
+void ApplyBudgetCommit(void);
 void CityEvaluation(void);
 void EvalInit(void);
 void GetAssValue(void);

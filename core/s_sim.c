@@ -192,110 +192,110 @@ void Simulate(int32_t mod16)
     if (x < 0) x = 0;
 
     switch (mod16) {
-        case 0:
-            if (++Scycle > 1023) {
-                Scycle = 0;
-            }
-            if (DoInitialEval) {
-                DoInitialEval = 0;
-                CityEvaluation();
-            }
-            CityTime++;
-            AvCityTax += CityTax;
+    case 0:
+        if (++Scycle > 1023) {
+            Scycle = 0;
+        }
+        if (DoInitialEval) {
+            DoInitialEval = 0;
+            CityEvaluation();
+        }
+        CityTime++;
+        AvCityTax += CityTax;
 
-            if (!(Scycle & 1)) {
-                SetValves();
-            }
-            ClearCensus();
+        if (!(Scycle & 1)) {
+            SetValves();
+        }
+        ClearCensus();
 
-            if (EngineCallbacks.update_date) {
-                EngineCallbacks.update_date(1900 + (CityTime / 48), (CityTime % 48) / 4);
-            }
-            break;
+        if (EngineCallbacks.update_date) {
+            EngineCallbacks.update_date(1900 + (CityTime / 48), (CityTime % 48) / 4);
+        }
+        break;
 
-        case 1:
-            MapScan(0, (1 * WORLD_X) / 8);
-            break;
-        case 2:
-            MapScan((1 * WORLD_X) / 8, (2 * WORLD_X) / 8);
-            break;
-        case 3:
-            MapScan((2 * WORLD_X) / 8, (3 * WORLD_X) / 8);
-            break;
-        case 4:
-            MapScan((3 * WORLD_X) / 8, (4 * WORLD_X) / 8);
-            break;
-        case 5:
-            MapScan((4 * WORLD_X) / 8, (5 * WORLD_X) / 8);
-            break;
-        case 6:
-            MapScan((5 * WORLD_X) / 8, (6 * WORLD_X) / 8);
-            break;
-        case 7:
-            MapScan((6 * WORLD_X) / 8, (7 * WORLD_X) / 8);
-            break;
-        case 8:
-            MapScan((7 * WORLD_X) / 8, WORLD_X);
-            break;
+    case 1:
+        MapScan(0, (1 * WORLD_X) / 8);
+        break;
+    case 2:
+        MapScan((1 * WORLD_X) / 8, (2 * WORLD_X) / 8);
+        break;
+    case 3:
+        MapScan((2 * WORLD_X) / 8, (3 * WORLD_X) / 8);
+        break;
+    case 4:
+        MapScan((3 * WORLD_X) / 8, (4 * WORLD_X) / 8);
+        break;
+    case 5:
+        MapScan((4 * WORLD_X) / 8, (5 * WORLD_X) / 8);
+        break;
+    case 6:
+        MapScan((5 * WORLD_X) / 8, (6 * WORLD_X) / 8);
+        break;
+    case 7:
+        MapScan((6 * WORLD_X) / 8, (7 * WORLD_X) / 8);
+        break;
+    case 8:
+        MapScan((7 * WORLD_X) / 8, WORLD_X);
+        break;
 
-        case 9:
-            if (!(CityTime % CENSUSRATE)) {
-                TakeCensus();
-            }
-            if (!(CityTime % (CENSUSRATE * 12))) {
-                Take2Census();
-            }
-            if (!(CityTime % TAXFREQ)) {
-                CollectTax();
-                CityEvaluation();
-            }
-            break;
+    case 9:
+        if (!(CityTime % CENSUSRATE)) {
+            TakeCensus();
+        }
+        if (!(CityTime % (CENSUSRATE * 12))) {
+            Take2Census();
+        }
+        if (!(CityTime % TAXFREQ)) {
+            CollectTax();
+            CityEvaluation();
+        }
+        break;
 
-        case 10:
-            if (!(Scycle % 5)) {
-                DecROGMem();
-            }
-            DecTrafficMem();
-            SendMessages();
-            if (EngineCallbacks.invalidate_maps) {
-                EngineCallbacks.invalidate_maps();
-            }
-            break;
+    case 10:
+        if (!(Scycle % 5)) {
+            DecROGMem();
+        }
+        DecTrafficMem();
+        SendMessages();
+        if (EngineCallbacks.invalidate_maps) {
+            EngineCallbacks.invalidate_maps();
+        }
+        break;
 
-        case 11:
-            if (!(Scycle % SpdPwr[x])) {
-                DoPowerScan();
-                NewPower = 1;
-            }
-            break;
+    case 11:
+        if (!(Scycle % SpdPwr[x])) {
+            DoPowerScan();
+            NewPower = 1;
+        }
+        break;
 
-        case 12:
-            if (!(Scycle % SpdPtl[x])) {
-                PTLScan();
-            }
-            break;
+    case 12:
+        if (!(Scycle % SpdPtl[x])) {
+            PTLScan();
+        }
+        break;
 
-        case 13:
-            if (!(Scycle % SpdCri[x])) {
-                CrimeScan();
-            }
-            break;
+    case 13:
+        if (!(Scycle % SpdCri[x])) {
+            CrimeScan();
+        }
+        break;
 
-        case 14:
-            if (!(Scycle % SpdPop[x])) {
-                PopDenScan();
-            }
-            break;
+    case 14:
+        if (!(Scycle % SpdPop[x])) {
+            PopDenScan();
+        }
+        break;
 
-        case 15:
-            if (!(Scycle % SpdFir[x])) {
-                FireAnalysis();
-            }
-            DoDisasters();
-            break;
+    case 15:
+        if (!(Scycle % SpdFir[x])) {
+            FireAnalysis();
+        }
+        DoDisasters();
+        break;
 
-        default:
-            break;
+    default:
+        break;
     }
 }
 
@@ -424,10 +424,10 @@ static void SetValves(void)
 
     temp = 1.0f;
     switch (GameLevel) {
-        case 0: temp = 1.2f; break;
-        case 1: temp = 1.1f; break;
-        case 2: temp = 0.98f; break;
-        default: break;
+    case 0: temp = 1.2f; break;
+    case 1: temp = 1.1f; break;
+    case 2: temp = 0.98f; break;
+    default: break;
     }
 
     PjIndPop = (float)IndPop * LaborBase * temp;
@@ -561,6 +561,22 @@ static void Take2Census(void)
     CensusChanged = 1;
 }
 
+void ApplyBudgetCommit(void)
+{
+    RoadSpend = (int32_t)((float)RoadFund * roadPercent);
+    PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
+    FireSpend = (int32_t)((float)FireFund * firePercent);
+
+    if (TotalPop) {
+        CashFlow = (int16_t)(TaxFund - (PoliceSpend + FireSpend + RoadSpend));
+        DoBudget();
+    } else {
+        RoadEffect = 32;
+        PoliceEffect = 1000;
+        FireEffect = 1000;
+    }
+}
+
 void CollectTax(void)
 {
     static const float RLevels[3] = { 0.7f, 0.9f, 1.2f };
@@ -574,18 +590,17 @@ void CollectTax(void)
         RoadFund = (int32_t)((float)(RoadTotal + (RailTotal * 2)) * RLevels[GameLevel]);
         TaxFund = (int32_t)((((float)TotalPop * (float)LVAverage) / 120.0f) * (float)CityTax * FLevels[GameLevel]);
 
-        /* Sync expenditures to current budget percentages */
         RoadSpend = (int32_t)((float)RoadFund * roadPercent);
         PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
         FireSpend = (int32_t)((float)FireFund * firePercent);
 
-        if (TotalPop) {
-            CashFlow = (int16_t)(TaxFund - (PoliceSpend + FireSpend + RoadSpend));
-            DoBudget();
+        if (!autoBudget) {
+            SetSimSpeed(0);
+            if (EngineCallbacks.request_budget_dialog) {
+                EngineCallbacks.request_budget_dialog();
+            }
         } else {
-            RoadEffect = 32;
-            PoliceEffect = 1000;
-            FireEffect = 1000;
+            ApplyBudgetCommit();
         }
     }
 }
@@ -827,25 +842,24 @@ static int32_t DoBridge(void)
                         }
                     }
                 }
-                return TRUE;
             }
-            return FALSE;
-        } else {
-            if (SMapY > 0 && Map[SMapX][SMapY - 1] == CHANNEL) {
-                for (z = 0; z < 7; z++) {
-                    x = SMapX + HDx[z];
-                    y = SMapY + HDy[z];
-                    if (TestBounds(x, y)) {
-                        MPtem = Map[x][y];
-                        if (((MPtem & 15) == (HBRTAB2[z] & 15)) || (MPtem == CHANNEL)) {
-                            Map[x][y] = HBRTAB[z];
-                        }
+            return TRUE;
+        }
+        return FALSE;
+    } else {
+        if (SMapY > 0 && Map[SMapX][SMapY - 1] == CHANNEL) {
+            for (z = 0; z < 7; z++) {
+                x = SMapX + HDx[z];
+                y = SMapY + HDy[z];
+                if (TestBounds(x, y)) {
+                    MPtem = Map[x][y];
+                    if (((MPtem & 15) == (HBRTAB2[z] & 15)) || (MPtem == CHANNEL)) {
+                        Map[x][y] = HBRTAB[z];
                     }
                 }
-                return TRUE;
             }
-            return FALSE;
         }
+        return TRUE;
     }
     return FALSE;
 }
@@ -956,93 +970,93 @@ void DoSPZone(int16_t pwron)
     int16_t z;
 
     switch (CChr9) {
-        case POWERPLANT:
-            CoalPop++;
-            if (!(CityTime & 7)) {
-                RepairZone(POWERPLANT, 4);
-            }
-            PushPowerStack();
-            CoalSmoke(SMapX, SMapY);
-            return;
+    case POWERPLANT:
+        CoalPop++;
+        if (!(CityTime & 7)) {
+            RepairZone(POWERPLANT, 4);
+        }
+        PushPowerStack();
+        CoalSmoke(SMapX, SMapY);
+        return;
 
-        case NUCLEAR:
-            if (!NoDisasters && !Rand(MltdwnTab[GameLevel])) {
-                DoMeltdown(SMapX, SMapY);
-                return;
-            }
-            NuclearPop++;
-            if (!(CityTime & 7)) {
-                RepairZone(NUCLEAR, 4);
-            }
-            PushPowerStack();
+    case NUCLEAR:
+        if (!NoDisasters && !Rand(MltdwnTab[GameLevel])) {
+            DoMeltdown(SMapX, SMapY);
             return;
+        }
+        NuclearPop++;
+        if (!(CityTime & 7)) {
+            RepairZone(NUCLEAR, 4);
+        }
+        PushPowerStack();
+        return;
 
-        case FIRESTATION:
-            FireStPop++;
-            if (!(CityTime & 7)) {
-                RepairZone(FIRESTATION, 3);
-            }
-            z = pwron ? FireEffect : (FireEffect >> 1);
-            if (!FindPRoad()) z >>= 1;
-            FireStMap[SMapX >> 3][SMapY >> 3] += z;
-            return;
+    case FIRESTATION:
+        FireStPop++;
+        if (!(CityTime & 7)) {
+            RepairZone(FIRESTATION, 3);
+        }
+        z = pwron ? FireEffect : (FireEffect >> 1);
+        if (!FindPRoad()) z >>= 1;
+        FireStMap[SMapX >> 3][SMapY >> 3] += z;
+        return;
 
-        case POLICESTATION:
-            PolicePop++;
-            if (!(CityTime & 7)) {
-                RepairZone(POLICESTATION, 3);
-            }
-            z = pwron ? PoliceEffect : (PoliceEffect >> 1);
-            if (!FindPRoad()) z >>= 1;
-            PoliceMap[SMapX >> 3][SMapY >> 3] += z;
-            return;
+    case POLICESTATION:
+        PolicePop++;
+        if (!(CityTime & 7)) {
+            RepairZone(POLICESTATION, 3);
+        }
+        z = pwron ? PoliceEffect : (PoliceEffect >> 1);
+        if (!FindPRoad()) z >>= 1;
+        PoliceMap[SMapX >> 3][SMapY >> 3] += z;
+        return;
 
-        case STADIUM:
-            StadiumPop++;
-            if (!(CityTime & 15)) {
-                RepairZone(STADIUM, 4);
-            }
-            if (pwron && !((CityTime + SMapX + SMapY) & 31)) {
-                DrawStadium(FULLSTADIUM);
-                Map[SMapX + 1][SMapY] = FOOTBALLGAME1 + ANIMBIT;
-                Map[SMapX + 1][SMapY + 1] = FOOTBALLGAME2 + ANIMBIT;
-            }
-            return;
+    case STADIUM:
+        StadiumPop++;
+        if (!(CityTime & 15)) {
+            RepairZone(STADIUM, 4);
+        }
+        if (pwron && !((CityTime + SMapX + SMapY) & 31)) {
+            DrawStadium(FULLSTADIUM);
+            Map[SMapX + 1][SMapY] = FOOTBALLGAME1 + ANIMBIT;
+            Map[SMapX + 1][SMapY + 1] = FOOTBALLGAME2 + ANIMBIT;
+        }
+        return;
 
-        case FULLSTADIUM:
-            StadiumPop++;
-            if (!((CityTime + SMapX + SMapY) & 7)) {
-                DrawStadium(STADIUM);
-            }
-            return;
+    case FULLSTADIUM:
+        StadiumPop++;
+        if (!((CityTime + SMapX + SMapY) & 7)) {
+            DrawStadium(STADIUM);
+        }
+        return;
 
-        case AIRPORT:
-            APortPop++;
-            if (!(CityTime & 7)) {
-                RepairZone(AIRPORT, 6);
+    case AIRPORT:
+        APortPop++;
+        if (!(CityTime & 7)) {
+            RepairZone(AIRPORT, 6);
+        }
+        if (pwron) {
+            if ((Map[SMapX + 1][SMapY - 1] & LOMASK) == RADAR) {
+                Map[SMapX + 1][SMapY - 1] = RADAR + ANIMBIT + CONDBIT + BURNBIT;
             }
-            if (pwron) {
-                if ((Map[SMapX + 1][SMapY - 1] & LOMASK) == RADAR) {
-                    Map[SMapX + 1][SMapY - 1] = RADAR + ANIMBIT + CONDBIT + BURNBIT;
-                }
-                DoAirport();
-            } else {
-                Map[SMapX + 1][SMapY - 1] = RADAR + CONDBIT + BURNBIT;
-            }
-            return;
+            DoAirport();
+        } else {
+            Map[SMapX + 1][SMapY - 1] = RADAR + CONDBIT + BURNBIT;
+        }
+        return;
 
-        case PORT:
-            PortPop++;
-            if ((CityTime & 15) == 0) {
-                RepairZone(PORT, 4);
-            }
-            if (pwron) {
-                GenerateShip();
-            }
-            return;
+    case PORT:
+        PortPop++;
+        if ((CityTime & 15) == 0) {
+            RepairZone(PORT, 4);
+        }
+        if (pwron) {
+            GenerateShip();
+        }
+        return;
 
-        default:
-            break;
+    default:
+        break;
     }
 }
 
