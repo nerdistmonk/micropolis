@@ -26,6 +26,7 @@ bool GUI_HandleTextInput(const char *text);
 bool GUI_IsModalOpen(void);
 void GUI_OpenCityMgmtModal(CityMgmtTab initial_tab);
 void GUI_OpenOverlaysModal(void);
+void GUI_OpenFileModal(FileDialogTab initial_tab);
 void GUI_CloseModal(void);
 
 /* Overlay mode query */

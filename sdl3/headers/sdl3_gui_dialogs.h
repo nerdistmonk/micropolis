@@ -8,33 +8,41 @@
 #include <SDL3/SDL.h>
 
 typedef enum {
-    GUI_MODAL_NONE = 0,
-    GUI_MODAL_CITY_MGMT,
-    GUI_MODAL_OVERLAYS,
-    GUI_MODAL_SCENARIO_RESULT
+  GUI_MODAL_NONE = 0,
+  GUI_MODAL_CITY_MGMT,
+  GUI_MODAL_OVERLAYS,
+  GUI_MODAL_SCENARIO_RESULT,
+  GUI_MODAL_FILE
 } GuiModalId;
 
 typedef enum {
-    CITY_TAB_BUDGET = 0,
-    CITY_TAB_TAXES,
-    CITY_TAB_EVALUATION,
-    CITY_TAB_CITY_INFO,
-    CITY_TAB_COUNT
+  CITY_TAB_BUDGET = 0,
+  CITY_TAB_TAXES,
+  CITY_TAB_EVALUATION,
+  CITY_TAB_CITY_INFO,
+  CITY_TAB_COUNT
 } CityMgmtTab;
 
 typedef enum {
-    OVERLAY_VIEW_NORMAL = 0,
-    OVERLAY_VIEW_POWER,
-    OVERLAY_VIEW_TRAFFIC,
-    OVERLAY_VIEW_POLLUTION,
-    OVERLAY_VIEW_CRIME,
-    OVERLAY_VIEW_LAND_VALUE,
-    OVERLAY_VIEW_POP_DENSITY
+  FILE_TAB_SAVE_LOAD = 0,
+  FILE_TAB_SCENARIOS,
+  FILE_TAB_COUNT
+} FileDialogTab;
+
+typedef enum {
+  OVERLAY_VIEW_NORMAL = 0,
+  OVERLAY_VIEW_POWER,
+  OVERLAY_VIEW_TRAFFIC,
+  OVERLAY_VIEW_POLLUTION,
+  OVERLAY_VIEW_CRIME,
+  OVERLAY_VIEW_LAND_VALUE,
+  OVERLAY_VIEW_POP_DENSITY
 } OverlayViewMode;
 
 bool GUI_Dialogs_IsModalOpen(void);
 void GUI_Dialogs_OpenCityMgmt(CityMgmtTab initial_tab);
 void GUI_Dialogs_OpenOverlays(void);
+void GUI_Dialogs_OpenFile(FileDialogTab initial_tab);
 void GUI_Dialogs_ShowScenarioResult(bool won, const char *msg);
 void GUI_Dialogs_Close(void);
 
