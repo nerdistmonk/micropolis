@@ -1,0 +1,38 @@
+/* sdl3_gui.h: HUD, tool palette, dialog windows, overlays, and tooltip subsystem.
+ */
+
+#ifndef SDL3_GUI_H
+#define SDL3_GUI_H
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <SDL3/SDL.h>
+#include "sdl3_gui_dialogs.h"
+
+#define STATUS_BAR_HEIGHT 28
+#define TOOLBAR_WIDTH 108
+
+bool GUI_Init(void);
+void GUI_Shutdown(void);
+void GUI_Render(SDL_Renderer *renderer);
+
+/* Event handling hooks */
+bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button);
+void GUI_HandleMotion(float mouse_x, float mouse_y);
+bool GUI_HandleKeyDown(SDL_Keycode key);
+bool GUI_HandleTextInput(const char *text);
+
+/* Dialog control functions */
+bool GUI_IsModalOpen(void);
+void GUI_OpenCityMgmtModal(CityMgmtTab initial_tab);
+void GUI_OpenOverlaysModal(void);
+void GUI_CloseModal(void);
+
+/* Overlay mode query */
+OverlayViewMode GUI_GetActiveOverlayMode(void);
+void GUI_SetActiveOverlayMode(OverlayViewMode mode);
+
+/* Helper to render simple text onto SDL_Renderer */
+void GUI_DrawText(SDL_Renderer *renderer, int x, int y, const char *text, SDL_Color color);
+
+#endif /* SDL3_GUI_H */

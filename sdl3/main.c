@@ -1,0 +1,86 @@
+/* main.c: Application entry point and orchestrator for Micropolis SDL3.
+ */
+
+#include "sim.h"
+#include "sdl3_video.h"
+#include "sdl3_input.h"
+#include "sdl3_audio.h"
+#include "sdl3_gui.h"
+#include "sdl3_gui_dialogs.h"
+#include <SDL3/SDL.h>
+
+static void OnMessageReceived(int16_t msg_num, int16_t x, int16_t y)
+{
+    (void)x;
+    (void)y;
+    if (msg_num == -100) {
+        GUI_Dialogs_ShowScenarioResult(true, "Congratulations, Mayor! You fulfilled the city charter.");
+    } else if (msg_num == -200) {
+        GUI_Dialogs_ShowScenarioResult(false, "You have been recalled! City charter objectives were not met.");
+    }
+}
+
+int main(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+
+    if (!Video_Init(WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT)) {
+        return 1;
+    }
+
+    Audio_Init();
+    Input_Init();
+    GUI_Init();
+
+    SimCallbacks callbacks = {
+        .update_funds = NULL,
+        .update_date = NULL,
+        .show_message = OnMessageReceived,
+        .auto_goto = NULL,
+        .invalidate_maps = NULL,
+        .invalidate_editors = NULL,
+        .play_sound = Audio_PlaySound,
+        .make_sound = Audio_MakeSound
+    };
+    Sim_RegisterCallbacks(&callbacks);
+
+    Sim_InitEngine();
+    GenerateMap(1337);
+    SetSimSpeed(3);
+
+    bool running = true;
+    uint64_t last_tick_time = SDL_GetTicks();
+    uint64_t last_anim_time = SDL_GetTicks();
+    const uint64_t tick_interval_ms = 40;
+    const uint64_t anim_interval_ms = 120;
+
+    while (running) {
+        Input_ProcessEvents(&running);
+
+        uint64_t now = SDL_GetTicks();
+
+        /* Sim core tick */
+        if (now - last_tick_time >= tick_interval_ms) {
+            SimFrame();
+            MoveObjects();
+            last_tick_time = now;
+        }
+
+        /* Tile animation tick */
+        if (now - last_anim_time >= anim_interval_ms) {
+            AnimateTiles();
+            last_anim_time = now;
+        }
+
+        Video_RenderFrame();
+        SDL_Delay(8);
+    }
+
+    GUI_Shutdown();
+    Audio_Shutdown();
+    Video_Shutdown();
+    FreeMapBuffers();
+
+    return 0;
+}
