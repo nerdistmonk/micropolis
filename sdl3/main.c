@@ -19,7 +19,9 @@ static void OnMessageReceived(int16_t msg_num, int16_t x, int16_t y)
     } else if (msg_num == -200) {
         GUI_Dialogs_ShowScenarioResult(false, "You have been recalled! City charter objectives were not met.");
     } else if (msg_num < 0) {
-        GUI_Dialogs_ShowNotice((int16_t)-msg_num, (int32_t)x, (int32_t)y);
+        if (DoNotices) {
+            GUI_Dialogs_ShowNotice((int16_t)-msg_num, (int32_t)x, (int32_t)y);
+        }
     }
 }
 

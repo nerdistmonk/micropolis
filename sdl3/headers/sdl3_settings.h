@@ -19,6 +19,13 @@ void Settings_Load(void);
 bool Settings_GetEdgeScroll(void);
 void Settings_ToggleEdgeScroll(void);
 
+bool Settings_GetTileAnimation(void);
+void Settings_ToggleTileAnimation(void);
+bool Settings_GetStatusMessages(void);
+void Settings_ToggleStatusMessages(void);
+bool Settings_GetPictureNotices(void);
+void Settings_TogglePictureNotices(void);
+
 SoundLevel Settings_GetSoundLevel(void);
 void Settings_CycleSoundLevel(void);
 float Settings_GetSoundGain(void);

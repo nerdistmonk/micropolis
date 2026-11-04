@@ -340,7 +340,7 @@ static void DoAutoGoto(int16_t x, int16_t y, const char *msg)
 
 void SetMessageField(const char *str)
 {
-    if (!str) return;
+    if (!str || !DoMessages) return;
 
     if (!HaveLastMessage || strcmp(LastMessage, str) != 0) {
         strncpy(LastMessage, str, sizeof(LastMessage) - 1);

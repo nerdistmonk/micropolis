@@ -147,6 +147,8 @@ void SetNewCityLevel(int16_t level)
 
 void AnimateTiles(void)
 {
+    if (!DoAnimation) return;
+
     if (++flagBlink > 30) {
         flagBlink = -30;
     }

@@ -239,9 +239,33 @@ bool Dialog_File_HandleClick(float mx, float my)
             Audio_ApplySoundLevel();
             return true;
         }
+        if (mx >= opt_x && mx <= opt_x + 90.0f && my >= opt_y + 245.0f && my <= opt_y + 271.0f) {
+            Settings_ToggleTileAnimation();
+            return true;
+        }
+        if (mx >= opt_x && mx <= opt_x + 90.0f && my >= opt_y + 280.0f && my <= opt_y + 306.0f) {
+            Settings_ToggleStatusMessages();
+            return true;
+        }
+        if (mx >= opt_x && mx <= opt_x + 90.0f && my >= opt_y + 315.0f && my <= opt_y + 341.0f) {
+            Settings_TogglePictureNotices();
+            return true;
+        }
     }
 
     return true;
+}
+
+static void DrawOptionRow(SDL_Renderer *renderer, int cx, float opt_x, int row_y, const char *label, bool on)
+{
+    GUI_DrawText(renderer, cx + 10, row_y + 4, label, col_white);
+
+    SDL_FRect btn = { opt_x, (float)row_y, 90.0f, 26.0f };
+    SDL_SetRenderDrawColor(renderer, on ? 30 : 45, on ? 70 : 25, on ? 40 : 25, 255);
+    SDL_RenderFillRect(renderer, &btn);
+    SDL_SetRenderDrawColor(renderer, on ? 80 : 180, on ? 220 : 60, on ? 100 : 60, 255);
+    SDL_RenderRect(renderer, &btn);
+    GUI_DrawText(renderer, (int)btn.x + 18, (int)btn.y + 5, on ? "[ ON ]" : "[ OFF ]", on ? col_green : col_red);
 }
 
 void Dialog_File_Render(SDL_Renderer *renderer)
@@ -249,7 +273,7 @@ void Dialog_File_Render(SDL_Renderer *renderer)
     float dx = 240.0f;
     float dy = 120.0f;
     float dw = 540.0f;
-    float dh = 400.0f;
+    float dh = 480.0f;
 
     SDL_FRect scrim = { 0.0f, 0.0f, (float)WINDOW_DEFAULT_WIDTH, (float)WINDOW_DEFAULT_HEIGHT };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
@@ -421,5 +445,9 @@ void Dialog_File_Render(SDL_Renderer *renderer)
         SDL_SetRenderDrawColor(renderer, 120, 150, 220, 255);
         SDL_RenderRect(renderer, &level_btn);
         GUI_DrawText(renderer, (int)level_btn.x + 8, (int)level_btn.y + 5, Settings_GetSoundLevelName(), col_white);
+
+        DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 245, "Tile Animation (Map Blinking)", Settings_GetTileAnimation());
+        DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 280, "Status Messages (Ticker)", Settings_GetStatusMessages());
+        DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 315, "Picture Notices (Pop-ups)", Settings_GetPictureNotices());
     }
 }
