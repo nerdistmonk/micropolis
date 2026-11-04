@@ -186,18 +186,31 @@ void Audio_MakeSound(const char *channel, const char *sound_name)
         last_tool_sound_time = now;
     }
 
-    const char *stem = sound_name;
-    if (SDL_strcasecmp(sound_name, "Explosion-High") == 0) stem = "expl-hi";
-    else if (SDL_strcasecmp(sound_name, "Explosion-Low") == 0) stem = "expl-low";
-    else if (SDL_strcasecmp(sound_name, "HonkHonk-High") == 0) stem = "honk-hi";
-    else if (SDL_strcasecmp(sound_name, "HonkHonk-Low") == 0) stem = "honk-low";
-    else if (SDL_strcasecmp(sound_name, "HonkHonk-Med") == 0) stem = "honk-med";
-    else if (SDL_strcasecmp(sound_name, "HeavyTraffic") == 0) stem = "traffic";
-    else if (SDL_strcasecmp(sound_name, "Bulldozer") == 0) stem = "bulldoze";
+    char base_name[64];
+    int32_t speed = 100;
+    const char *speed_tag = strstr(sound_name, " -speed ");
+    if (speed_tag) {
+        speed = atoi(speed_tag + 8);
+        if (speed <= 0) speed = 100;
+        snprintf(base_name, sizeof(base_name), "%.*s", (int)(speed_tag - sound_name), sound_name);
+    } else {
+        snprintf(base_name, sizeof(base_name), "%s", sound_name);
+    }
+
+    const char *stem = base_name;
+    if (SDL_strcasecmp(base_name, "Explosion-High") == 0) stem = "expl-hi";
+    else if (SDL_strcasecmp(base_name, "Explosion-Low") == 0) stem = "expl-low";
+    else if (SDL_strcasecmp(base_name, "HonkHonk-High") == 0) stem = "honk-hi";
+    else if (SDL_strcasecmp(base_name, "HonkHonk-Low") == 0) stem = "honk-low";
+    else if (SDL_strcasecmp(base_name, "HonkHonk-Med") == 0) stem = "honk-med";
+    else if (SDL_strcasecmp(base_name, "HeavyTraffic") == 0) stem = "traffic";
+    else if (SDL_strcasecmp(base_name, "Bulldozer") == 0) stem = "bulldoze";
 
     SoundSample *s = GetOrLoadSound(stem);
     if (s && s->audio_buf) {
-        PlayPcmData(s->audio_buf, s->audio_len, &s->spec);
+        SDL_AudioSpec spec = s->spec;
+        if (speed != 100) spec.freq = (int)((int64_t)spec.freq * speed / 100);
+        PlayPcmData(s->audio_buf, s->audio_len, &spec);
     } else {
         if (strstr(sound_name, "expl") || strstr(sound_name, "bulldoze")) {
             PlaySyntheticTone(100, 150);

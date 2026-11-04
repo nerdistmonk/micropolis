@@ -545,7 +545,13 @@ static void StepShip(SimSprite *s)
 
     if (s->sound_count > 0) s->sound_count--;
     if (s->sound_count == 0) {
-        if ((Rand16() & 3) == 1) Audio_MakeSound("city", "HonkHonk-Low");
+        if ((Rand16() & 3) == 1) {
+            if (ScenarioID == 2 && Rand(10) < 5) {
+                Audio_MakeSound("city", "HonkHonk-Low -speed 80");
+            } else {
+                Audio_MakeSound("city", "HonkHonk-Low");
+            }
+        }
         s->sound_count = 200;
     }
 
