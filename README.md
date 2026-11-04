@@ -10,6 +10,5 @@ Notes:
 
 TODO:
 -Go on two bug hunts, one to correct modern era bugs, the other to correct bugs on the 1989 bugs file that were never fixed.
--Decide whether the Park palette label ($20) or the Park cost ($10) is correct.
 
 ![Alt text](shot.png)
