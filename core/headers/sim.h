@@ -409,6 +409,8 @@ extern int16_t PolicePop, FireStPop;
 extern int16_t CoalPop, NuclearPop, PortPop, APortPop;
 extern int16_t NeedHosp, NeedChurch;
 extern int16_t CrimeAverage, PolluteAverage, LVAverage;
+extern int16_t CrimeRamp, PolluteRamp, AvCityTax;
+extern float EMarket;
 
 extern char *MicropolisVersion;
 extern char CityName[64];

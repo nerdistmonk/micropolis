@@ -128,6 +128,33 @@ static int32_t LoadFileInternal(const char *filename)
     return 1;
 }
 
+static void RestoreSimState(void)
+{
+    EMarket = (float)MiscHis[1];
+    if (!EMarket) EMarket = 4.0f;
+    ResPop = MiscHis[2];
+    ComPop = MiscHis[3];
+    IndPop = MiscHis[4];
+    RValve = MiscHis[5];
+    CValve = MiscHis[6];
+    IValve = MiscHis[7];
+    CrimeRamp = MiscHis[10];
+    PolluteRamp = MiscHis[11];
+    LVAverage = MiscHis[12];
+    CrimeAverage = MiscHis[13];
+    PolluteAverage = MiscHis[14];
+
+    CityClass = MiscHis[16];
+    if (CityClass > 5 || CityClass < 0) CityClass = 0;
+    CityScore = MiscHis[17];
+    if (CityScore > 999 || CityScore < 1) CityScore = 500;
+
+    ResCap = 0;
+    ComCap = 0;
+    IndCap = 0;
+    AvCityTax = (CityTime % 48) * 7;
+}
+
 int32_t LoadCity(const char *filename)
 {
     if (!filename) return 0;
@@ -175,6 +202,8 @@ int32_t LoadCity(const char *filename)
     int16_t level = MiscHis[15];
     if (level < 0 || level > 2) level = 0;
     SetGameLevel(level);
+
+    RestoreSimState();
 
     ScenarioID = 0;
     DisasterEvent = 0;
@@ -440,6 +469,7 @@ int32_t LoadScenario(int16_t s)
     ScoreWait = score_wait;
     CityTime = (int32_t)(((start_year - 1900) * 48) + 2);
     TotalFunds = initial_funds;
+    RestoreSimState();
 
     strncpy(CityName, name, sizeof(CityName) - 1);
     CityName[sizeof(CityName) - 1] = '\0';
