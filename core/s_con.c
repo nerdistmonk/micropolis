@@ -71,6 +71,25 @@ static bool TryAutoBulldozeTile(int32_t x, int32_t y)
     return false;
 }
 
+/* Unix ConnecTile autodoze for road, rail, and wire: clears only explosion debris and tiles below 64. */
+static void AutoDozeForConnect(int32_t x, int32_t y)
+{
+    if (!autoBulldoze || TotalFunds <= 0) return;
+
+    uint16_t raw_tile = Map[x][y];
+    if (!(raw_tile & BULLBIT)) return;
+
+    int32_t tile = raw_tile & LOMASK;
+    NeutralizeRoad(&tile);
+
+    if ((tile >= TINYEXP && tile <= LASTTINYEXP) || (tile < 64 && tile != DIRT)) {
+        Map[x][y] = DIRT;
+        TotalFunds -= 1;
+        MustUpdateFunds = 1;
+        FixZone(x, y);
+    }
+}
+
 static void FixSingle(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return;
@@ -437,9 +456,8 @@ static int32_t WaterWireFor(int32_t x, int32_t y)
 int32_t LayRoad(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return 0;
+    AutoDozeForConnect(x, y);
     if (TotalFunds < 10) return -2;
-
-    TryAutoBulldozeTile(x, y);
 
     int32_t tile = Map[x][y] & LOMASK;
 
@@ -488,9 +506,8 @@ int32_t LayRoad(int32_t x, int32_t y)
 int32_t LayRail(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return 0;
+    AutoDozeForConnect(x, y);
     if (TotalFunds < 20) return -2;
-
-    TryAutoBulldozeTile(x, y);
 
     int32_t tile = Map[x][y] & LOMASK;
     NeutralizeRoad(&tile);
@@ -540,9 +557,8 @@ int32_t LayRail(int32_t x, int32_t y)
 int32_t LayWire(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return 0;
+    AutoDozeForConnect(x, y);
     if (TotalFunds < 5) return -2;
-
-    TryAutoBulldozeTile(x, y);
 
     int32_t tile = Map[x][y] & LOMASK;
     NeutralizeRoad(&tile);
