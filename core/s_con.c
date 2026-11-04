@@ -626,7 +626,10 @@ int32_t LayDoze(int32_t x, int32_t y)
 
     /* 1. Zone center demolition */
     if (raw_tile & ZONEBIT) {
-        if (!has_funds) return 1;
+        if (!has_funds) {
+            Audio_MakeSound("city", "Bulldozer");
+            return 1;
+        }
         int16_t size = 3;
         if ((tile >= PORTBASE && tile <= LASTPORT) ||
             (tile >= COALBASE && tile <= LASTPOWERPLANT) ||
@@ -668,7 +671,10 @@ int32_t LayDoze(int32_t x, int32_t y)
                 int32_t max_y = min_y + size - 1;
 
                 if (x >= min_x && x <= max_x && y >= min_y && y <= max_y) {
-                    if (!has_funds) return 1;
+                    if (!has_funds) {
+                        Audio_MakeSound("city", "Bulldozer");
+                        return 1;
+                    }
                     ClearZoneArea(cx, cy, size);
                     TotalFunds -= 1;
                     MustUpdateFunds = 1;
