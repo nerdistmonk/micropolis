@@ -85,6 +85,7 @@ int main(int argc, char **argv)
         Input_ProcessEvents(&running);
 
         uint64_t now = SDL_GetTicks();
+        GUI_Dialogs_UpdateNotice(now);
 
         /* Sim core tick - suspended while modal dialogs are open */
         if (!GUI_Dialogs_IsModalOpen()) {

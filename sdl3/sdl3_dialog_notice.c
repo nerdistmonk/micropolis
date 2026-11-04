@@ -13,6 +13,7 @@
 #define NOTICE_BTN_H 28.0f
 #define NOTICE_MAX_LINES 24
 #define NOTICE_LINE_LEN 160
+#define NOTICE_AUTO_CLEAR_MS 15000
 
 typedef struct {
     int16_t id;
@@ -63,6 +64,7 @@ static int32_t notice_tile_x = 0;
 static int32_t notice_tile_y = 0;
 static char notice_lines[NOTICE_MAX_LINES][NOTICE_LINE_LEN];
 static int notice_line_count = 0;
+static uint64_t notice_shown_at = 0;
 
 static const NoticeEntry *FindNotice(int16_t id)
 {
@@ -175,7 +177,25 @@ void Dialog_Notice_Show(int16_t picture_id, int32_t tile_x, int32_t tile_y)
     notice_tile_y = tile_y;
     notice_has_target = (tile_x > 0 || tile_y > 0);
     WrapNoticeBody(entry->body, (int)(NOTICE_W - 2.0f * NOTICE_PAD));
+    notice_shown_at = SDL_GetTicks();
     notice_active = true;
+}
+
+void Dialog_Notice_Update(uint64_t now)
+{
+    if (notice_active && now - notice_shown_at >= NOTICE_AUTO_CLEAR_MS) {
+        notice_active = false;
+    }
+}
+
+bool Dialog_Notice_HandleKeyDown(SDL_Keycode key)
+{
+    if (!notice_active) return false;
+    if (key == SDLK_ESCAPE || key == SDLK_RETURN || key == SDLK_KP_ENTER) {
+        notice_active = false;
+        return true;
+    }
+    return false;
 }
 
 bool Dialog_Notice_HandleClick(float mx, float my)

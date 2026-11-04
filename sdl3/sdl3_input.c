@@ -4,6 +4,7 @@
 #include "sdl3_input.h"
 #include "sdl3_video.h"
 #include "sdl3_gui.h"
+#include "sdl3_gui_dialogs.h"
 #include "sim.h"
 #include <SDL3/SDL.h>
 
@@ -103,6 +104,9 @@ void Input_ProcessEvents(bool *running)
                 GUI_HandleKeyDown(event.key.key);
                 break;
             }
+
+            /* Escape dismisses an open notice before it can quit */
+            if (GUI_Dialogs_HandleNoticeKey(event.key.key)) break;
 
             switch (event.key.key) {
             case SDLK_ESCAPE:

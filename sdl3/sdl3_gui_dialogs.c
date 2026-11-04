@@ -63,6 +63,16 @@ void GUI_Dialogs_ShowNotice(int16_t picture_id, int32_t tile_x, int32_t tile_y)
     Dialog_Notice_Show(picture_id, tile_x, tile_y);
 }
 
+bool GUI_Dialogs_HandleNoticeKey(SDL_Keycode key)
+{
+    return Dialog_Notice_HandleKeyDown(key);
+}
+
+void GUI_Dialogs_UpdateNotice(uint64_t now)
+{
+    Dialog_Notice_Update(now);
+}
+
 void GUI_Dialogs_Close(void)
 {
     if (active_modal == GUI_MODAL_CITY_MGMT) {

@@ -55,6 +55,8 @@ void GUI_Dialogs_OpenDisasters(void);
 void GUI_Dialogs_ShowScenarioResult(bool won, const char *msg);
 void GUI_Dialogs_ShowQueryInspector(int32_t tile_x, int32_t tile_y);
 void GUI_Dialogs_ShowNotice(int16_t picture_id, int32_t tile_x, int32_t tile_y);
+bool GUI_Dialogs_HandleNoticeKey(SDL_Keycode key);
+void GUI_Dialogs_UpdateNotice(uint64_t now);
 void GUI_Dialogs_Close(void);
 
 OverlayViewMode GUI_Dialogs_GetActiveOverlay(void);
