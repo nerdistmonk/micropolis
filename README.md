@@ -1,14 +1,37 @@
-Early, under development port of Micropolis to GNU/Linux using SDL3 for the frontend.
+# Micropolis
 
-Originally based off the 1989 Unix source code, refactored from 1989 C to 2011 C language.
+Micropolis is a city simulation game. You build and manage a city by zoning land, laying roads, rail, and power lines, and providing services such as police, fire protection, and parks. The simulation reacts to your decisions with growth, traffic, pollution, and disasters.
 
-Feature parity with the 1989 Unix port has been audited: map views, tools, overlays, disasters, speeds, scenarios, options, and the City, Budget, and Graphs windows are all wired up. Cities can be saved and loaded from the File dialog.
+This is a port of the original Micropolis Unix source, refactored from 1989 C to modern C. The simulation engine is kept separate from the frontend, which uses SDL3 on GNU/Linux.
 
-Notes:
--Chalk and Eraser are no-op tools in the Unix port too, so they are not implemented here.
--The Dynamic Filter (Frob-O-Matic) and pie menus are intentionally out of scope.
+![Micropolis gameplay](shot.png)
 
-TODO:
--Go on two bug hunts, one to correct modern era bugs, the other to correct bugs on the 1989 bugs file that were never fixed.
+## Controls
 
-![Alt text](shot.png)
+### Keyboard
+
+| Key | Action |
+| --- | --- |
+| Space | Pause or resume the simulation |
+| 1, 2, 3 | Set simulation speed |
+| X / Z | Next / previous tool |
+| B | Hold for bulldozer (release to return to the previous tool) |
+| R | Hold for road (release to return to the previous tool) |
+| P | Hold for power line (release to return to the previous tool) |
+| T | Hold for rail (release to return to the previous tool) |
+| Arrow keys, or A / E / , / O | Scroll the map |
+| F1 | Toggle help mode |
+| F7 | Quick save to `quicksave.cty` |
+| F8 | Quick load from `quicksave.cty` |
+| Esc | Quit (asks for confirmation); closes an open notice |
+
+### Mouse
+
+| Input | Action |
+| --- | --- |
+| Left click | Use the selected tool on a tile |
+| Left drag | Use the selected tool along a line |
+| Right drag | Pan the map |
+| Shift + right click | Bulldoze the tile |
+
+Tools are selected from the palette on the left side of the window.
