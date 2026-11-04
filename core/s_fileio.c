@@ -244,9 +244,9 @@ int32_t LoadCity(const char *filename)
     FireFund = FireStPop * 100;
     FireSpend = (int32_t)((float)FireFund * firePercent);
 
-    RoadEffect = (int16_t)(roadPercent * 32.0f);
-    PoliceEffect = (int16_t)(policePercent * 1000.0f);
-    FireEffect = (int16_t)(firePercent * 1000.0f);
+    RoadEffect = 32;
+    PoliceEffect = 1000;
+    FireEffect = 1000;
 
     DoPowerScan();
     DoNilPower();
@@ -515,9 +515,9 @@ int32_t LoadScenario(int16_t s)
     FireFund = FireStPop * 100;
     FireSpend = (int32_t)((float)FireFund * firePercent);
 
-    RoadEffect = (int16_t)(roadPercent * 32.0f);
-    PoliceEffect = (int16_t)(policePercent * 1000.0f);
-    FireEffect = (int16_t)(firePercent * 1000.0f);
+    RoadEffect = 32;
+    PoliceEffect = 1000;
+    FireEffect = 1000;
 
     DoPowerScan();
     DoNilPower();
