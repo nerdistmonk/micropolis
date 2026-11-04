@@ -349,7 +349,7 @@ static void DoIndIn(int32_t pop, int32_t value)
 
 static void IncROG(int32_t amount)
 {
-    RateOGMem[SMapX >> 3][SMapY >> 3] += (int16_t)(amount << 2);
+    RateOGMem[SMapX >> 3][SMapY >> 3] += (int16_t)(amount * 4);
 }
 
 static void DoResOut(int32_t pop, int32_t value)
