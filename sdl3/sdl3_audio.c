@@ -58,8 +58,7 @@ static SoundSample *LoadWavFile(const char *stem)
     }
 
     SoundSample *s = &sound_cache[num_cached++];
-    strncpy(s->name, stem, sizeof(s->name) - 1);
-    s->name[sizeof(s->name) - 1] = '\0';
+    snprintf(s->name, sizeof(s->name), "%s", stem);
     s->audio_buf = buf;
     s->audio_len = len;
     s->spec = spec;
