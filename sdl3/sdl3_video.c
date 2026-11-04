@@ -297,7 +297,7 @@ bool Video_Init(int width, int height)
 
   FitWindowToDisplay(&win_w, &win_h);
 
-  video_window = SDL_CreateWindow("Micropolis SDL3 (Arch Linux)", win_w, win_h, SDL_WINDOW_RESIZABLE);
+  video_window = SDL_CreateWindow("Micropolis SDL3", win_w, win_h, SDL_WINDOW_RESIZABLE);
   if (!video_window) return false;
 
   video_renderer = SDL_CreateRenderer(video_window, NULL);
