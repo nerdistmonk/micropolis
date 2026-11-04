@@ -48,6 +48,36 @@ static SDL_FRect ScenarioGridRect(size_t i)
     return r;
 }
 
+#define TERRAIN_OPT_COUNT 4
+#define TERRAIN_OPT_VALUES 4
+
+static const char *const terrain_opt_names[TERRAIN_OPT_COUNT] = { "Trees", "Lakes", "Rivers", "Island" };
+static const char *const terrain_opt_labels[TERRAIN_OPT_COUNT][TERRAIN_OPT_VALUES] = {
+    { "Random", "None", "Sparse", "Dense" },
+    { "Random", "None", "Few", "Many" },
+    { "Random", "None", "Straight", "Curvy" },
+    { "Random", "Never", "Always", NULL }
+};
+static const int32_t terrain_opt_values[TERRAIN_OPT_COUNT][TERRAIN_OPT_VALUES] = {
+    { -1, 0, 10, 100 },
+    { -1, 0, 4, 20 },
+    { -1, 0, 1, 100 },
+    { -1, 0, 1, 0 }
+};
+static const int terrain_opt_count[TERRAIN_OPT_COUNT] = { 4, 4, 4, 3 };
+static int terrain_opt_index[TERRAIN_OPT_COUNT] = { 0, 0, 0, 0 };
+
+static SDL_FRect TerrainOptRect(int i)
+{
+    SDL_FRect r = {
+        240.0f + 60.0f + (float)(i % 2) * 210.0f,
+        120.0f + 370.0f + (float)(i / 2) * 36.0f,
+        200.0f,
+        28.0f
+    };
+    return r;
+}
+
 void Dialog_File_Open(FileDialogTab tab)
 {
     active_file_tab = tab;
@@ -58,6 +88,13 @@ void Dialog_File_Open(FileDialogTab tab)
 static void NewCityConfirmed(int32_t level)
 {
     Sim_InitEngine();
+    for (int i = 0; i < TERRAIN_OPT_COUNT; i++) {
+        int32_t value = terrain_opt_values[i][terrain_opt_index[i]];
+        if (i == 0) TreeLevel = value;
+        else if (i == 1) LakeLevel = value;
+        else if (i == 2) CurveLevel = value;
+        else CreateIsland = value;
+    }
     GenerateMap((uint32_t)SDL_GetTicks());
     SetNewCityLevel((int16_t)level);
     SetSimSpeed(3);
@@ -260,6 +297,14 @@ bool Dialog_File_HandleClick(float mx, float my)
                 return true;
             }
         }
+
+        for (int i = 0; i < TERRAIN_OPT_COUNT; i++) {
+            SDL_FRect opt = TerrainOptRect(i);
+            if (mx >= opt.x && mx <= opt.x + opt.w && my >= opt.y && my <= opt.y + opt.h) {
+                terrain_opt_index[i] = (terrain_opt_index[i] + 1) % terrain_opt_count[i];
+                return true;
+            }
+        }
     } else if (active_file_tab == FILE_TAB_SCENARIOS) {
         for (size_t i = 0; i < SCENARIO_GRID_COUNT; i++) {
             SDL_FRect r = ScenarioGridRect(i);
@@ -422,6 +467,19 @@ void Dialog_File_Render(SDL_Renderer *renderer)
             SDL_SetRenderDrawColor(renderer, selected ? 255 : 70, selected ? 215 : 90, selected ? 0 : 130, 255);
             SDL_RenderRect(renderer, &diff_btn);
             GUI_DrawText(renderer, (int)diff_btn.x + 34, (int)diff_btn.y + 6, NewCityLevelNames[i], selected ? col_gold : col_white);
+        }
+
+        GUI_DrawText(renderer, (int)dx + 60, (int)dy + 352, "New city terrain:", col_white);
+        for (int i = 0; i < TERRAIN_OPT_COUNT; i++) {
+            SDL_FRect opt = TerrainOptRect(i);
+            bool changed = (terrain_opt_index[i] != 0);
+            SDL_SetRenderDrawColor(renderer, changed ? 70 : 35, changed ? 55 : 45, changed ? 25 : 62, 255);
+            SDL_RenderFillRect(renderer, &opt);
+            SDL_SetRenderDrawColor(renderer, changed ? 255 : 70, changed ? 215 : 90, changed ? 0 : 130, 255);
+            SDL_RenderRect(renderer, &opt);
+            char opt_buf[48];
+            snprintf(opt_buf, sizeof(opt_buf), "%s: %s", terrain_opt_names[i], terrain_opt_labels[i][terrain_opt_index[i]]);
+            GUI_DrawText(renderer, (int)opt.x + 10, (int)opt.y + 6, opt_buf, changed ? col_gold : col_white);
         }
 
         if (file_status_message[0]) {

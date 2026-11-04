@@ -645,6 +645,12 @@ int32_t LoadCity(const char *filename);
 int32_t SaveCity(const char *filename);
 int32_t LoadScenario(int16_t s);
 
+/* Terrain generation levels (< 0 selects the random default; see GenerateMap) */
+extern int32_t TreeLevel;
+extern int32_t LakeLevel;
+extern int32_t CurveLevel;
+extern int32_t CreateIsland;
+
 /* Memory Allocation */
 void AllocateMapBuffers(void);
 void FreeMapBuffers(void);
