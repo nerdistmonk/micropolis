@@ -621,6 +621,7 @@ void DoFlood(void);
 void MakeTornado(void);
 void MakeEarthquake(void);
 void MakeMonster(void);
+int16_t MonsterSpeed(void);
 void MakeMeltdown(void);
 void FireBomb(void);
 void MakeExplosion(int32_t x, int32_t y);

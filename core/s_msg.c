@@ -301,21 +301,52 @@ int32_t SendMes(int16_t mnum)
     return 0;
 }
 
-static void PlayTrafficHonk(void)
+static void PlayMessageSound(int16_t mnum)
 {
-    if (Rand(5) == 1) {
-        Audio_MakeSound("city", "HonkHonk-Med");
-    } else if (Rand(5) == 1) {
-        Audio_MakeSound("city", "HonkHonk-Low");
-    } else if (Rand(5) == 1) {
-        Audio_MakeSound("city", "HonkHonk-High");
+    switch (mnum < 0 ? -mnum : mnum) {
+    case 12:
+        if (Rand(5) == 1) {
+            Audio_MakeSound("city", "HonkHonk-Med");
+        } else if (Rand(5) == 1) {
+            Audio_MakeSound("city", "HonkHonk-Low");
+        } else if (Rand(5) == 1) {
+            Audio_MakeSound("city", "HonkHonk-High");
+        }
+        break;
+    case 11:
+    case 20:
+    case 22:
+    case 23:
+    case 24:
+    case 25:
+    case 26:
+    case 27:
+    case 44:
+        Audio_MakeSound("city", "siren");
+        break;
+    case 21: {
+        char sound[64];
+        snprintf(sound, sizeof(sound), "monster -speed %d", (int)MonsterSpeed());
+        Audio_MakeSound("city", sound);
+        break;
+    }
+    case 30:
+        Audio_MakeSound("city", "Explosion-Low");
+        Audio_MakeSound("city", "siren");
+        break;
+    case 43:
+        Audio_MakeSound("city", "Explosion-High");
+        Audio_MakeSound("city", "Explosion-Low");
+        Audio_MakeSound("city", "siren");
+        break;
+    default:
+        break;
     }
 }
 
 void SendMesAt(int16_t mnum, int16_t x, int16_t y)
 {
     if (SendMes(mnum)) {
-        if (mnum == 12 || mnum == -12) PlayTrafficHonk();
         MesX = x;
         MesY = y;
         if (EngineCallbacks.show_message) {
@@ -327,10 +358,12 @@ void SendMesAt(int16_t mnum, int16_t x, int16_t y)
 void doMessage(void)
 {
     const char *text;
+    bool first_time = false;
 
     if (MessagePort) {
         MesNum = MessagePort;
         MessagePort = 0;
+        first_time = true;
     } else {
         if (MesNum == 0) return;
         if (MesNum < 0) {
@@ -340,6 +373,7 @@ void doMessage(void)
 
     if (MesNum == 0) return;
 
+    if (first_time) PlayMessageSound(MesNum);
     text = GetMessageText(MesNum);
     SetMessageField(text);
 

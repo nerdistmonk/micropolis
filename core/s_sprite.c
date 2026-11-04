@@ -231,6 +231,11 @@ void MakeExplosionAt(int32_t x, int32_t y)
     s->y_hot = 16;
 }
 
+int16_t MonsterSpeed(void)
+{
+    return (int16_t)(Rand(40) + 70);
+}
+
 void MakeMonster(void)
 {
     SimSprite *s = &active_sprites[GOD];
@@ -272,7 +277,11 @@ void MakeMonster(void)
 
     ClearMes();
     SendMesAt(-21, s->x >> 4, s->y >> 4);
-    Audio_MakeSound("city", "monster");
+    {
+        char sound[64];
+        snprintf(sound, sizeof(sound), "monster -speed %d", (int)MonsterSpeed());
+        Audio_MakeSound("city", sound);
+    }
 }
 
 void MakeTornado(void)
