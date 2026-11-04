@@ -458,13 +458,14 @@ static void RenderSprites(SDL_Renderer *renderer)
   }
 }
 
-static bool IsZoneOverlay(OverlayViewMode mode)
+static bool IsTileFilterOverlay(OverlayViewMode mode)
 {
-  return mode == OVERLAY_VIEW_RES_ZONE || mode == OVERLAY_VIEW_COM_ZONE || mode == OVERLAY_VIEW_IND_ZONE;
+  return mode == OVERLAY_VIEW_RES_ZONE || mode == OVERLAY_VIEW_COM_ZONE ||
+         mode == OVERLAY_VIEW_IND_ZONE || mode == OVERLAY_VIEW_TRANSPORT;
 }
 
-/* Tile ranges match the Unix g_smmaps.c drawRes/drawCom/drawInd; hidden tiles render as DIRT. */
-static bool ZoneViewHidesTile(OverlayViewMode mode, uint16_t raw_tile)
+/* Tile ranges match the Unix g_smmaps.c drawRes/drawCom/drawInd/drawLilTransMap; hidden tiles render as DIRT. */
+static bool FilterViewHidesTile(OverlayViewMode mode, uint16_t raw_tile)
 {
   uint16_t tile = raw_tile & LOMASK;
   if (tile >= TILE_COUNT) tile -= TILE_COUNT;
@@ -477,6 +478,8 @@ static bool ZoneViewHidesTile(OverlayViewMode mode, uint16_t raw_tile)
   case OVERLAY_VIEW_IND_ZONE:
     return (tile >= 240 && tile <= 611) || (tile >= 693 && tile <= 851) ||
            (tile >= 860 && tile <= 883) || (tile >= 932);
+  case OVERLAY_VIEW_TRANSPORT:
+    return (tile >= 240) || (tile >= 207 && tile <= 220) || (tile == 223);
   default:
     return false;
   }
@@ -764,8 +767,8 @@ void Video_RenderFrame(void)
       if (tx >= 0 && tx < WORLD_X && ty >= 0 && ty < WORLD_Y) {
         uint16_t raw_tile = Map[tx][ty];
 
-        if (IsZoneOverlay(overlay_mode)) {
-          if (ZoneViewHidesTile(overlay_mode, raw_tile)) {
+        if (IsTileFilterOverlay(overlay_mode)) {
+          if (FilterViewHidesTile(overlay_mode, raw_tile)) {
             raw_tile = DIRT;
           }
         } else if (show_bolt && (raw_tile & ZONEBIT) && !(raw_tile & PWRBIT)) {

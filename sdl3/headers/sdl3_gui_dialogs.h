@@ -47,7 +47,8 @@ typedef enum {
     OVERLAY_VIEW_POLICE_COVERAGE,
     OVERLAY_VIEW_RES_ZONE,
     OVERLAY_VIEW_COM_ZONE,
-    OVERLAY_VIEW_IND_ZONE
+    OVERLAY_VIEW_IND_ZONE,
+    OVERLAY_VIEW_TRANSPORT
 } OverlayViewMode;
 
 bool GUI_Dialogs_IsModalOpen(void);
