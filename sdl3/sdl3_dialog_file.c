@@ -14,6 +14,7 @@ static SDL_Color file_status_color = { 245, 245, 250, 255 };
 static int new_city_level = 0;
 static const char *const NewCityLevelNames[3] = { "Easy", "Medium", "Hard" };
 static Uint32 native_result_event = 0;
+static bool native_pending = false;
 
 typedef struct {
     NativeFileRequest request;
@@ -221,10 +222,17 @@ static const char *CitiesDir(void)
     return dir;
 }
 
+bool Dialog_File_NativePending(void)
+{
+    return native_pending;
+}
+
 void Dialog_File_RequestNative(NativeFileRequest req)
 {
     static const SDL_DialogFileFilter save_filters[] = { { "Micropolis city", "cty" } };
     static const SDL_DialogFileFilter load_filters[] = { { "Micropolis city", "cty;snro" } };
+
+    if (native_pending) return;
 
     if (!native_result_event) native_result_event = SDL_RegisterEvents(1);
     if (!native_result_event) {
@@ -233,6 +241,7 @@ void Dialog_File_RequestNative(NativeFileRequest req)
         return;
     }
 
+    native_pending = true;
     SDL_Window *window = Video_GetWindow();
     void *userdata = (void *)(uintptr_t)req;
     const char *dir = CitiesDir();
@@ -250,6 +259,7 @@ bool Dialog_File_HandleNativeEvent(const SDL_Event *event)
     if (!native_result_event || event->type != native_result_event) return false;
 
     NativeFileResult *r = (NativeFileResult *)event->user.data1;
+    native_pending = false;
     ApplyNativeResult(r);
     SDL_free(r->path);
     SDL_free(r);

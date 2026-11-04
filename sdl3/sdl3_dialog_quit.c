@@ -39,6 +39,9 @@ bool Dialog_Quit_TakeConfirmed(void)
 
 bool Dialog_Quit_HandleClick(float mx, float my)
 {
+    /* Buttons stay inert while a native save dialog is open, so Cancel can't be overtaken by a pending save-and-quit. */
+    if (Dialog_File_NativePending()) return true;
+
     for (int i = 0; i < QUIT_BTN_COUNT; i++) {
         SDL_FRect r = QuitButtonRect(i);
         if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) continue;

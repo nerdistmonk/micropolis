@@ -139,6 +139,8 @@ bool GUI_Dialogs_HandleKeyDown(SDL_Keycode key)
 {
     if (active_modal == GUI_MODAL_NONE) return false;
 
+    if (active_modal == GUI_MODAL_QUIT_CONFIRM && Dialog_File_NativePending()) return true;
+
     if (key == SDLK_ESCAPE) {
         GUI_Dialogs_Close();
         return true;

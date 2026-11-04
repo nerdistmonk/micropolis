@@ -45,6 +45,7 @@ bool Dialog_File_HandleClick(float mx, float my);
 void Dialog_File_Render(SDL_Renderer *renderer);
 void Dialog_File_RequestNative(NativeFileRequest req);
 bool Dialog_File_HandleNativeEvent(const SDL_Event *event);
+bool Dialog_File_NativePending(void);
 
 /* Map Overlays */
 void Dialog_Overlays_Open(void);
