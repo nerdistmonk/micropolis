@@ -17,7 +17,6 @@ static int16_t LastPicNum = 0;
 static void CheckGrowth(void);
 static void DoScenarioScore(int32_t type);
 static void DoAutoGoto(int16_t x, int16_t y, const char *msg);
-static void SetMessageField(const char *str);
 static const char *GetMessageText(int16_t id);
 
 /* Static Message String Resource (replaces stri.301 resource loader) */
@@ -339,7 +338,7 @@ static void DoAutoGoto(int16_t x, int16_t y, const char *msg)
     }
 }
 
-static void SetMessageField(const char *str)
+void SetMessageField(const char *str)
 {
     if (!str) return;
 

@@ -27,6 +27,8 @@ bool GUI_IsModalOpen(void);
 void GUI_OpenCityMgmtModal(CityMgmtTab initial_tab);
 void GUI_OpenOverlaysModal(void);
 void GUI_OpenFileModal(FileDialogTab initial_tab);
+void GUI_ShowStatus(const char *text);
+bool GUI_LoadScenarioWithStatus(int16_t id);
 void GUI_OpenDisastersModal(void);
 void GUI_CloseModal(void);
 

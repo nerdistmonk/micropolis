@@ -2,12 +2,15 @@
  */
 
 #include "sdl3_dialog_common.h"
+#include "sdl3_gui.h"
 
 static FileDialogTab active_file_tab = FILE_TAB_SAVE_LOAD;
 static bool is_editing_filename = false;
 static char file_name_input_buffer[64] = "mycity.cty";
 static char file_status_message[128] = {0};
 static SDL_Color file_status_color = { 245, 245, 250, 255 };
+static int new_city_level = 0;
+static const char *const NewCityLevelNames[3] = { "Easy", "Medium", "Hard" };
 
 void Dialog_File_Open(FileDialogTab tab)
 {
@@ -122,6 +125,9 @@ bool Dialog_File_HandleClick(float mx, float my)
                     snprintf(file_status_message, sizeof(file_status_message), "Failed to load %s", file_name_input_buffer);
                     file_status_color = col_red;
                 }
+            } else {
+                snprintf(file_status_message, sizeof(file_status_message), "Error: Filename cannot be empty");
+                file_status_color = col_red;
             }
             return true;
         }
@@ -131,10 +137,20 @@ bool Dialog_File_HandleClick(float mx, float my)
             my >= new_btn.y && my <= new_btn.y + new_btn.h) {
             Sim_InitEngine();
             GenerateMap((uint32_t)SDL_GetTicks());
+            SetNewCityLevel((int16_t)new_city_level);
             SetSimSpeed(3);
-            snprintf(file_status_message, sizeof(file_status_message), "New virgin map generated!");
+            snprintf(file_status_message, sizeof(file_status_message), "New %s city generated!", NewCityLevelNames[GameLevel]);
             file_status_color = col_cyan;
             return true;
+        }
+
+        for (int i = 0; i < 3; i++) {
+            SDL_FRect diff_btn = { dx + 60.0f + (float)i * 140.0f, dy + 318.0f, 120.0f, 28.0f };
+            if (mx >= diff_btn.x && mx <= diff_btn.x + diff_btn.w &&
+                my >= diff_btn.y && my <= diff_btn.y + diff_btn.h) {
+                new_city_level = i;
+                return true;
+            }
         }
     } else if (active_file_tab == FILE_TAB_SCENARIOS) {
         struct {
@@ -153,7 +169,7 @@ bool Dialog_File_HandleClick(float mx, float my)
         for (size_t i = 0; i < sizeof(sc_buttons) / sizeof(sc_buttons[0]); i++) {
             SDL_FRect r = sc_buttons[i].rect;
             if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
-                LoadScenario(sc_buttons[i].id);
+                GUI_LoadScenarioWithStatus((int16_t)sc_buttons[i].id);
                 GUI_Dialogs_Close();
                 return true;
             }
@@ -283,6 +299,17 @@ void Dialog_File_Render(SDL_Renderer *renderer)
         SDL_SetRenderDrawColor(renderer, 200, 140, 50, 255);
         SDL_RenderRect(renderer, &new_btn);
         GUI_DrawText(renderer, (int)new_btn.x + 36, (int)new_btn.y + 8, "New City Map", col_gold);
+
+        GUI_DrawText(renderer, (int)dx + 60, (int)dy + 298, "New city difficulty:", col_white);
+        for (int i = 0; i < 3; i++) {
+            SDL_FRect diff_btn = { dx + 60.0f + (float)i * 140.0f, dy + 318.0f, 120.0f, 28.0f };
+            bool selected = (new_city_level == i);
+            SDL_SetRenderDrawColor(renderer, selected ? 70 : 35, selected ? 55 : 45, selected ? 25 : 62, 255);
+            SDL_RenderFillRect(renderer, &diff_btn);
+            SDL_SetRenderDrawColor(renderer, selected ? 255 : 70, selected ? 215 : 90, selected ? 0 : 130, 255);
+            SDL_RenderRect(renderer, &diff_btn);
+            GUI_DrawText(renderer, (int)diff_btn.x + 34, (int)diff_btn.y + 6, NewCityLevelNames[i], selected ? col_gold : col_white);
+        }
 
         if (file_status_message[0]) {
             GUI_DrawText(renderer, cx, cy + 180, file_status_message, file_status_color);

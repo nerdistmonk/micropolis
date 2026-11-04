@@ -116,12 +116,12 @@ void Input_ProcessEvents(bool *running)
             case SDLK_3: SetSimSpeed(3); break;
 
             /* Scenarios */
-            case SDLK_4: LoadScenario(5); break; /* Tokyo 1957 (Monster) */
-            case SDLK_5: LoadScenario(2); break; /* San Francisco 1906 (Earthquake) */
-            case SDLK_6: LoadScenario(3); break; /* Hamburg 1944 (Firestorm) */
-            case SDLK_7: LoadScenario(4); break; /* Bern 1965 (Traffic) */
-            case SDLK_8: LoadScenario(6); break; /* Detroit 1972 (Crime) */
-            case SDLK_9: LoadScenario(7); break; /* Boston 2010 (Meltdown) */
+            case SDLK_4: GUI_LoadScenarioWithStatus(5); break; /* Tokyo 1957 (Monster) */
+            case SDLK_5: GUI_LoadScenarioWithStatus(2); break; /* San Francisco 1906 (Earthquake) */
+            case SDLK_6: GUI_LoadScenarioWithStatus(3); break; /* Hamburg 1944 (Firestorm) */
+            case SDLK_7: GUI_LoadScenarioWithStatus(4); break; /* Bern 1965 (Traffic) */
+            case SDLK_8: GUI_LoadScenarioWithStatus(6); break; /* Detroit 1972 (Crime) */
+            case SDLK_9: GUI_LoadScenarioWithStatus(7); break; /* Boston 2010 (Meltdown) */
 
             case SDLK_Q: active_tool = queryState; break;
             case SDLK_R: active_tool = residentialState; break;
@@ -142,8 +142,12 @@ void Input_ProcessEvents(bool *running)
             case SDLK_F6: MakeMeltdown(); break;
 
             /* Persistence Hotkeys */
-            case SDLK_F7: SaveCity("quicksave.cty"); break;
-            case SDLK_F8: LoadCity("quicksave.cty"); break;
+            case SDLK_F7:
+                GUI_ShowStatus(SaveCity("quicksave.cty") ? "Quicksaved to quicksave.cty" : "Quicksave failed");
+                break;
+            case SDLK_F8:
+                GUI_ShowStatus(LoadCity("quicksave.cty") ? "Quickloaded quicksave.cty" : "Quickload failed: quicksave.cty missing or unreadable");
+                break;
 
             /* Scenario Evaluation Test Hotkeys */
             case SDLK_F9:

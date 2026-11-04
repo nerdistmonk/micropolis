@@ -518,6 +518,8 @@ void SimFrame(void);
 void Simulate(int32_t mod16);
 void SetSimSpeed(int16_t speed);
 void SetGameLevel(int16_t level);
+void SetNewCityLevel(int16_t level);
+void SetMessageField(const char *str);
 int32_t CalcRoadFund(int16_t level);
 void InitWillStuff(void);
 void ResetMapState(void);

@@ -60,6 +60,26 @@ static char ticker_dismissed_message[256] = {0};
 static SDL_FRect rect_ticker_box     = { 280.0f, 34.0f, 464.0f, 26.0f };
 static SDL_FRect rect_ticker_dismiss = { 722.0f, 37.0f,  18.0f, 20.0f };
 
+void GUI_ShowStatus(const char *text)
+{
+  SetMessageField(text);
+  ticker_dismissed_message[0] = '\0';
+  cached_last_message[0] = '\0';
+  ticker_start_time = 0;
+}
+
+bool GUI_LoadScenarioWithStatus(int16_t id)
+{
+  if (!LoadScenario(id)) {
+    GUI_ShowStatus("Scenario files not found");
+    return false;
+  }
+  char buf[160];
+  snprintf(buf, sizeof(buf), "Loaded scenario: %s", CityName);
+  GUI_ShowStatus(buf);
+  return true;
+}
+
 #define TICKER_DURATION_MS 12000
 #define TICKER_FADE_MS     3000
 

@@ -129,6 +129,14 @@ void SetGameLevel(int16_t level)
     GameLevel = level;
 }
 
+static const int32_t NewCityFunds[3] = { 20000, 10000, 5000 };
+
+void SetNewCityLevel(int16_t level)
+{
+    SetGameLevel(level);
+    TotalFunds = NewCityFunds[GameLevel];
+}
+
 void AnimateTiles(void)
 {
     if (++flagBlink > 30) {
