@@ -1164,6 +1164,7 @@ static void SetCommonInits(void)
 void Sim_InitEngine(void)
 {
     AllocateMapBuffers();
+    InitAnimTiles();
 
     Fcycle = 0;
     Scycle = 0;
