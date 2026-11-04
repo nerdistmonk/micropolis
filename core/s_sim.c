@@ -633,24 +633,15 @@ void DoBudget(void)
 
 static void UpdateFundEffects(void)
 {
-    /* Always honor roadPercent even before first tax collection cycle */
-    if (RoadFund > 0 && RoadSpend > 0) {
-        RoadEffect = (int16_t)(((float)RoadSpend / (float)RoadFund) * 32.0f);
-    } else {
-        RoadEffect = (int16_t)(roadPercent * 32.0f);
-    }
-
-    if (PoliceFund > 0 && PoliceSpend > 0) {
-        PoliceEffect = (int16_t)(((float)PoliceSpend / (float)PoliceFund) * 1000.0f);
-    } else {
-        PoliceEffect = (int16_t)(policePercent * 1000.0f);
-    }
-
-    if (FireFund > 0 && FireSpend > 0) {
-        FireEffect = (int16_t)(((float)FireSpend / (float)FireFund) * 1000.0f);
-    } else {
-        FireEffect = (int16_t)(firePercent * 1000.0f);
-    }
+    RoadEffect = RoadFund > 0
+        ? (int16_t)(((float)RoadSpend / (float)RoadFund) * 32.0f)
+        : 32;
+    PoliceEffect = PoliceFund > 0
+        ? (int16_t)(((float)PoliceSpend / (float)PoliceFund) * 1000.0f)
+        : 1000;
+    FireEffect = FireFund > 0
+        ? (int16_t)(((float)FireSpend / (float)FireFund) * 1000.0f)
+        : 1000;
 }
 
 static void MapScan(int32_t x1, int32_t x2)
