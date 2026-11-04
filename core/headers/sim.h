@@ -626,6 +626,5 @@ int32_t LoadScenario(int16_t s);
 /* Memory Allocation */
 void AllocateMapBuffers(void);
 void FreeMapBuffers(void);
-void InitAnimTiles(void);
 
 #endif /* SIM_H */

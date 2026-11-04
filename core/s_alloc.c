@@ -7,6 +7,7 @@
  */
 
 #include "sim.h"
+#include "animtab.h"
 
 /* Simulation Coordinate State */
 int16_t SMapX = 0;
@@ -137,8 +138,6 @@ int16_t toolOffset[] = {
 
 /* Graphical Synchronization and Animation Tables */
 uint8_t tileSynch = 0x01;
-int16_t aniTile[1024];
-uint8_t aniSynch[1024];
 int32_t TilesAnimated = 0;
 int32_t DoAnimation = 1;
 int32_t DoMessages = 1;
@@ -281,25 +280,4 @@ void FreeMapBuffers(void)
 
     if (PowerMap) { free(PowerMap); PowerMap = NULL; }
     if (CityFileName) { free(CityFileName); CityFileName = NULL; }
-}
-
-void InitAnimTiles(void)
-{
-    for (int32_t i = 0; i < 1024; i++) {
-        aniTile[i] = (int16_t)i;
-        aniSynch[i] = 0;
-    }
-
-    /* Fire cycle: 56..63 */
-    for (int32_t i = FIREBASE; i <= LASTFIRE; i++) {
-        aniTile[i] = (int16_t)(FIREBASE + ((i - FIREBASE + 1) & 7));
-    }
-
-    /* Radiation flicker: 52 */
-    aniTile[RADTILE] = RADTILE;
-
-    /* Flashing radar: 711..715 */
-    for (int32_t i = RADAR; i <= (RADAR + 4); i++) {
-        aniTile[i] = (int16_t)(RADAR + ((i - RADAR + 1) % 5));
-    }
 }
