@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
 
 static SDL_AudioStream *audio_stream = NULL;
@@ -76,6 +77,30 @@ static SoundSample *GetOrLoadSound(const char *stem)
     if (num_cached >= MAX_CACHED_SOUNDS) return NULL;
 
     return LoadWavFile(stem);
+}
+
+typedef struct {
+    const char *name;
+    const char *stem;
+} SoundAlias;
+
+/* Unix sound names (res/sound.tcl) and core shorthand mapped to WAV stems in sounds/ */
+static const SoundAlias sound_aliases[] = {
+    { "Explosion-High", "explosion-hi" },
+    { "Explosion-Low", "explosion-low" },
+    { "HonkHonk-High", "honkhonk-hi" },
+    { "HonkHonk-Low", "honkhonk-low" },
+    { "HonkHonk-Med", "honkhonk-med" },
+    { "HeavyTraffic", "heavytraffic" },
+    { "Bulldozer", "bulldozer" },
+    { "traffic", "heavytraffic" },
+    { "expl-hi", "explosion-hi" },
+    { "expl-low", "explosion-low" },
+};
+
+static bool ContainsNoCase(const char *haystack, const char *needle)
+{
+    return SDL_strcasestr(haystack, needle) != NULL;
 }
 
 static void PlayPcmData(const uint8_t *data, uint32_t len, const SDL_AudioSpec *spec)
@@ -174,10 +199,10 @@ void Audio_MakeSound(const char *channel, const char *sound_name)
 
     /* Throttle repetitive drag-tool audio to prevent rapid fire stutter */
     uint64_t now = SDL_GetTicks();
-    bool is_tool_sound = (strstr(sound_name, "bulldoze") != NULL ||
-                          strstr(sound_name, "build") != NULL ||
-                          strstr(sound_name, "road") != NULL ||
-                          strstr(sound_name, "wire") != NULL);
+    bool is_tool_sound = (ContainsNoCase(sound_name, "bulldoze") ||
+                          ContainsNoCase(sound_name, "build") ||
+                          ContainsNoCase(sound_name, "road") ||
+                          ContainsNoCase(sound_name, "wire"));
 
     if (is_tool_sound && (now - last_tool_sound_time < 90)) {
         return;
@@ -196,15 +221,15 @@ void Audio_MakeSound(const char *channel, const char *sound_name)
     } else {
         snprintf(base_name, sizeof(base_name), "%s", sound_name);
     }
+    for (char *p = base_name; *p; p++) *p = (char)tolower((unsigned char)*p);
 
     const char *stem = base_name;
-    if (SDL_strcasecmp(base_name, "Explosion-High") == 0) stem = "expl-hi";
-    else if (SDL_strcasecmp(base_name, "Explosion-Low") == 0) stem = "expl-low";
-    else if (SDL_strcasecmp(base_name, "HonkHonk-High") == 0) stem = "honk-hi";
-    else if (SDL_strcasecmp(base_name, "HonkHonk-Low") == 0) stem = "honk-low";
-    else if (SDL_strcasecmp(base_name, "HonkHonk-Med") == 0) stem = "honk-med";
-    else if (SDL_strcasecmp(base_name, "HeavyTraffic") == 0) stem = "traffic";
-    else if (SDL_strcasecmp(base_name, "Bulldozer") == 0) stem = "bulldoze";
+    for (size_t i = 0; i < sizeof(sound_aliases) / sizeof(sound_aliases[0]); i++) {
+        if (SDL_strcasecmp(base_name, sound_aliases[i].name) == 0) {
+            stem = sound_aliases[i].stem;
+            break;
+        }
+    }
 
     SoundSample *s = GetOrLoadSound(stem);
     if (s && s->audio_buf) {
@@ -212,9 +237,9 @@ void Audio_MakeSound(const char *channel, const char *sound_name)
         if (speed != 100) spec.freq = (int)((int64_t)spec.freq * speed / 100);
         PlayPcmData(s->audio_buf, s->audio_len, &spec);
     } else {
-        if (strstr(sound_name, "expl") || strstr(sound_name, "bulldoze")) {
+        if (ContainsNoCase(sound_name, "expl") || ContainsNoCase(sound_name, "bulldoze")) {
             PlaySyntheticTone(100, 150);
-        } else if (strstr(sound_name, "siren") || strstr(sound_name, "police")) {
+        } else if (ContainsNoCase(sound_name, "siren") || ContainsNoCase(sound_name, "police")) {
             PlaySyntheticTone(880, 250);
         } else {
             PlaySyntheticTone(440, 80);
