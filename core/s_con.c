@@ -350,6 +350,34 @@ bool PlaceZone(int32_t x, int32_t y, int16_t tool_id)
     return true;
 }
 
+/* Picks the bridge orientation for water from an adjacent road/rail, in historic order (E, W, S, N). Returns 0 if none. */
+static int32_t WaterBridgeFor(int32_t x, int32_t y)
+{
+    int32_t t;
+
+    if (x < WORLD_X - 1) {
+        t = Map[x + 1][y] & LOMASK;
+        NeutralizeRoad(&t);
+        if (t == VRAILROAD || t == HBRIDGE || (t >= ROADS && t <= HROADPOWER)) return HBRIDGE;
+    }
+    if (x > 0) {
+        t = Map[x - 1][y] & LOMASK;
+        NeutralizeRoad(&t);
+        if (t == VRAILROAD || t == HBRIDGE || (t >= ROADS && t <= INTERSECTION)) return HBRIDGE;
+    }
+    if (y < WORLD_Y - 1) {
+        t = Map[x][y + 1] & LOMASK;
+        NeutralizeRoad(&t);
+        if (t == HRAILROAD || t == VROADPOWER || (t >= VBRIDGE && t <= INTERSECTION)) return VBRIDGE;
+    }
+    if (y > 0) {
+        t = Map[x][y - 1] & LOMASK;
+        NeutralizeRoad(&t);
+        if (t == HRAILROAD || t == VROADPOWER || (t >= VBRIDGE && t <= INTERSECTION)) return VBRIDGE;
+    }
+    return 0;
+}
+
 int32_t LayRoad(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return 0;
@@ -370,7 +398,9 @@ int32_t LayRoad(int32_t x, int32_t y)
 
     if (tile == RIVER || tile == REDGE || tile == CHANNEL) {
         if (TotalFunds < 50) return -2;
-        Map[x][y] = HBRIDGE | BULLBIT;
+        int32_t bridge = WaterBridgeFor(x, y);
+        if (!bridge) return 0;
+        Map[x][y] = bridge | BULLBIT;
         TotalFunds -= 50;
         MustUpdateFunds = 1;
         FixZone(x, y);
