@@ -30,9 +30,6 @@ void MakeExplosion(int32_t x, int32_t y)
     if (TestBounds(x, y)) {
         MakeExplosionAt((x << 4) + 8, (y << 4) + 8);
     }
-    if (EngineCallbacks.play_sound) {
-        EngineCallbacks.play_sound(EXP, (int16_t)x, (int16_t)y);
-    }
 }
 
 void SetFire(void)

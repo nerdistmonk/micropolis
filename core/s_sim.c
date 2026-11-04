@@ -883,8 +883,8 @@ static int32_t GetBoatDis(void)
     for (int32_t i = 0; i < OBJN; i++) {
         SimSprite *sprite = GlobalSprites[i];
         if (sprite && (sprite->type == SHI) && (sprite->frame != 0)) {
-            int32_t dx = sprite->x + sprite->x_offset - mx;
-            int32_t dy = sprite->y + sprite->y_offset - my;
+            int32_t dx = sprite->x + sprite->x_hot - mx;
+            int32_t dy = sprite->y + sprite->y_hot - my;
             if (dx < 0) dx = -dx;
             if (dy < 0) dy = -dy;
             int32_t total = dx + dy;

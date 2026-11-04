@@ -154,6 +154,7 @@ typedef int32_t QUAD;
 #define EXP 7
 #define BUS 8
 #define OBJN 9
+#define EXP_SLOTS 64
 
 /* Graph History Indexes */
 #define RES_HIST 0
@@ -347,12 +348,14 @@ typedef struct SimSprite {
     int32_t height;
     int32_t x_offset;
     int32_t y_offset;
+    int32_t x_hot;
+    int32_t y_hot;
     int32_t orig_x;
     int32_t orig_y;
     int32_t dest_x;
     int32_t dest_y;
     int32_t count;
-    int32_t sound;
+    int32_t sound_count;
     int32_t dir;
     int32_t new_dir;
     int32_t step;
@@ -574,6 +577,7 @@ void GeneratePlane(int16_t x, int16_t y);
 void GenerateCopter(int16_t x, int16_t y);
 void MakeExplosionAt(int32_t x, int32_t y);
 SimSprite *GetSprite(int32_t type);
+SimSprite *GetSpriteSlot(int32_t type, int32_t index);
 void MoveObjects(void);
 
 /* Scans & Overlays */

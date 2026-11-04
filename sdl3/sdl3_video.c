@@ -427,6 +427,29 @@ bool Video_HandleMinimapClick(float screen_x, float screen_y)
   return true;
 }
 
+static void DrawSpriteSlot(SDL_Renderer *renderer, const SimSprite *s, int32_t cam_pixel_x, int32_t cam_pixel_y)
+{
+  float sx = (float)(s->x + s->x_offset - cam_pixel_x);
+  float sy = (float)(s->y + s->y_offset - cam_pixel_y);
+
+  if (sx + 48.0f < 0 || sx > (float)WINDOW_DEFAULT_WIDTH ||
+      sy + 48.0f < 0 || sy > (float)WINDOW_DEFAULT_HEIGHT) {
+    return;
+  }
+
+  int frame_idx = s->frame - 1;
+  if (frame_idx < 0) frame_idx = 0;
+
+  if (sprite_textures[s->type][frame_idx]) {
+    SDL_FRect dst = {
+      sx, sy,
+      (float)sprite_w[s->type][frame_idx],
+      (float)sprite_h[s->type][frame_idx]
+    };
+    SDL_RenderTexture(renderer, sprite_textures[s->type][frame_idx], NULL, &dst);
+  }
+}
+
 static void RenderSprites(SDL_Renderer *renderer)
 {
   int32_t cam_pixel_x = cam_x * TILE_PIXEL_SIZE;
@@ -435,26 +458,13 @@ static void RenderSprites(SDL_Renderer *renderer)
   for (int32_t i = 1; i < OBJN; i++) {
     SimSprite *s = GetSprite(i);
     if (!s || s->frame == 0) continue;
+    DrawSpriteSlot(renderer, s, cam_pixel_x, cam_pixel_y);
+  }
 
-    float sx = (float)(s->x + s->x_offset - cam_pixel_x);
-    float sy = (float)(s->y + s->y_offset - cam_pixel_y);
-
-    if (sx + 48.0f < 0 || sx > (float)WINDOW_DEFAULT_WIDTH ||
-        sy + 48.0f < 0 || sy > (float)WINDOW_DEFAULT_HEIGHT) {
-      continue;
-    }
-
-    int frame_idx = s->frame - 1;
-    if (frame_idx < 0) frame_idx = 0;
-
-    if (sprite_textures[s->type][frame_idx]) {
-      SDL_FRect dst = {
-        sx, sy,
-        (float)sprite_w[s->type][frame_idx],
-        (float)sprite_h[s->type][frame_idx]
-      };
-      SDL_RenderTexture(renderer, sprite_textures[s->type][frame_idx], NULL, &dst);
-    }
+  for (int32_t i = 0; i < EXP_SLOTS; i++) {
+    SimSprite *s = GetSpriteSlot(EXP, i);
+    if (!s || s->frame == 0) continue;
+    DrawSpriteSlot(renderer, s, cam_pixel_x, cam_pixel_y);
   }
 }
 
