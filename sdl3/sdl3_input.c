@@ -58,6 +58,9 @@ static void ApplyTool(int32_t tx, int32_t ty)
     case dozeState:
         LayDoze(tx, ty);
         break;
+    case parkState:
+        LayPark(tx, ty);
+        break;
     case roadState:
         LayRoad(tx, ty);
         break;

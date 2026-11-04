@@ -584,6 +584,7 @@ int32_t LayRoad(int32_t x, int32_t y);
 int32_t LayRail(int32_t x, int32_t y);
 int32_t LayWire(int32_t x, int32_t y);
 int32_t LayDoze(int32_t x, int32_t y);
+int32_t LayPark(int32_t x, int32_t y);
 bool CheckZoneClear(int32_t x, int32_t y, int16_t size);
 bool PlaceZone(int32_t x, int32_t y, int16_t tool_id);
 

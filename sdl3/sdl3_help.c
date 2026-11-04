@@ -44,7 +44,8 @@ static const HelpEntry help_entries[HELP_TOPIC_COUNT] = {
     [HELP_TOOL_NUCLEAR] = { "Nuclear Power Plant", "Generates power with little pollution. Carries a meltdown risk." },
     [HELP_TOOL_STADIUM] = { "Sports Stadium", "Adds entertainment and jobs to nearby areas." },
     [HELP_TOOL_SEAPORT] = { "Seaport", "Adds shipping and jobs." },
-    [HELP_TOOL_AIRPORT] = { "Municipal Airport", "Adds air travel and jobs." }
+    [HELP_TOOL_AIRPORT] = { "Municipal Airport", "Adds air travel and jobs." },
+    [HELP_TOOL_PARK] = { "Park", "Plants a fountain or a patch of woods on empty land." }
 };
 
 static const SDL_Color help_title_color = { 255, 215, 90, 255 };

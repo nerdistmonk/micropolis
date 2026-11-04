@@ -497,6 +497,30 @@ int32_t LayWire(int32_t x, int32_t y)
     return 0;
 }
 
+int32_t LayPark(int32_t x, int32_t y)
+{
+    if (!TestBounds(x, y)) return 0;
+    if (TotalFunds < CostOf[parkState]) return -2;
+
+    TryAutoBulldozeTile(x, y);
+
+    if ((Map[x][y] & LOMASK) != DIRT) return 0;
+    if (TotalFunds < CostOf[parkState]) return -2;
+
+    /* Rand(4) yields 0..4; the 4 roll places a fountain, the rest woods. */
+    int16_t roll = Rand(4);
+    if (roll == 4) {
+        Map[x][y] = FOUNTAIN | BURNBIT | BULLBIT | ANIMBIT;
+    } else {
+        Map[x][y] = (uint16_t)((WOODS2 + roll) | BURNBIT | BULLBIT);
+    }
+
+    TotalFunds -= CostOf[parkState];
+    MustUpdateFunds = 1;
+    Audio_MakeSound("city", "park");
+    return 1;
+}
+
 static void ClearZoneArea(int32_t center_x, int32_t center_y, int16_t size)
 {
     int32_t start_x = center_x - 1;

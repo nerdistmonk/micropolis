@@ -35,7 +35,8 @@ static GuiToolButton tool_buttons[] = {
   { nuclearState,     "Nuclear Power Plant", "icnuc", 5000, { 6.0f, 284.0f, 46.0f, 46.0f }, NULL, NULL },
   { stadiumState,     "Sports Stadium",   "icstad", 5000, { 56.0f, 284.0f, 46.0f, 46.0f }, NULL, NULL },
   { seaportState,     "Seaport",          "icseap", 3000, { 6.0f, 334.0f, 46.0f, 46.0f }, NULL, NULL },
-  { airportState,     "Municipal Airport", "icairp", 10000, { 56.0f, 334.0f, 46.0f, 46.0f }, NULL, NULL }
+  { airportState,     "Municipal Airport", "icairp", 10000, { 56.0f, 334.0f, 46.0f, 46.0f }, NULL, NULL },
+  { parkState,        "Park",             "icpark", 10, { 6.0f, 384.0f, 46.0f, 46.0f }, NULL, NULL }
 };
 
 #define NUM_TOOL_BUTTONS (sizeof(tool_buttons) / sizeof(tool_buttons[0]))

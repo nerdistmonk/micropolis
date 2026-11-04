@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <SDL3/SDL.h>
 
-/* HELP_TOOL_RESIDENTIAL..HELP_TOOL_AIRPORT must stay in the same order as tool_buttons in sdl3_gui.c */
+/* HELP_TOOL_RESIDENTIAL..HELP_TOOL_PARK must stay in the same order as tool_buttons in sdl3_gui.c */
 typedef enum {
     HELP_NONE = 0,
     HELP_MAP,
@@ -35,6 +35,7 @@ typedef enum {
     HELP_TOOL_STADIUM,
     HELP_TOOL_SEAPORT,
     HELP_TOOL_AIRPORT,
+    HELP_TOOL_PARK,
     HELP_TOPIC_COUNT
 } HelpTopic;
 
