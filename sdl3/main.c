@@ -11,12 +11,12 @@
 
 static void OnMessageReceived(int16_t msg_num, int16_t x, int16_t y)
 {
-    (void)x;
-    (void)y;
     if (msg_num == -100) {
         GUI_Dialogs_ShowScenarioResult(true, "Congratulations, Mayor! You fulfilled the city charter.");
     } else if (msg_num == -200) {
         GUI_Dialogs_ShowScenarioResult(false, "You have been recalled! City charter objectives were not met.");
+    } else if (msg_num < 0) {
+        GUI_Dialogs_ShowNotice((int16_t)-msg_num, (int32_t)x, (int32_t)y);
     }
 }
 

@@ -61,4 +61,9 @@ void Dialog_Inspector_Show(int32_t tx, int32_t ty);
 bool Dialog_Inspector_HandleClick(float mx, float my);
 void Dialog_Inspector_Render(SDL_Renderer *renderer);
 
+/* Picture Notice (non-modal) */
+void Dialog_Notice_Show(int16_t picture_id, int32_t tile_x, int32_t tile_y);
+bool Dialog_Notice_HandleClick(float mx, float my);
+void Dialog_Notice_Render(SDL_Renderer *renderer);
+
 #endif /* SDL3_DIALOG_COMMON_H */

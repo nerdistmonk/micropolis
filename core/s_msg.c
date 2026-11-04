@@ -156,12 +156,12 @@ void SendMessages(void)
         break;
     case 35:
         if (PolluteAverage > 60) {
-            SendMes(-10);
+            SendMesAt(-10, 0, 0);
         }
         break;
     case 42:
         if (CrimeAverage > 100) {
-            SendMes(-11);
+            SendMesAt(-11, 0, 0);
         }
         break;
     case 45:
@@ -196,7 +196,7 @@ void SendMessages(void)
         break;
     case 63:
         if (TrafficAverage > 60) {
-            SendMes(-12);
+            SendMesAt(-12, 0, 0);
         }
         break;
     default:
@@ -222,7 +222,7 @@ static void CheckGrowth(void)
         }
 
         if (z && (z != LastCategory)) {
-            SendMes((int16_t)(-z));
+            SendMesAt((int16_t)(-z), 0, 0);
             LastCategory = z;
         }
         LastCityPop = this_city_pop;

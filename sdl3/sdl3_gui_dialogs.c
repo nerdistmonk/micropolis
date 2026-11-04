@@ -58,6 +58,11 @@ void GUI_Dialogs_ShowQueryInspector(int32_t tile_x, int32_t tile_y)
     Dialog_Inspector_Show(tile_x, tile_y);
 }
 
+void GUI_Dialogs_ShowNotice(int16_t picture_id, int32_t tile_x, int32_t tile_y)
+{
+    Dialog_Notice_Show(picture_id, tile_x, tile_y);
+}
+
 void GUI_Dialogs_Close(void)
 {
     if (active_modal == GUI_MODAL_CITY_MGMT) {
@@ -137,12 +142,14 @@ bool GUI_Dialogs_HandleClick(float mx, float my)
     case GUI_MODAL_QUERY_INSPECTOR:
         return Dialog_Inspector_HandleClick(mx, my);
     default:
-        return false;
+        return Dialog_Notice_HandleClick(mx, my);
     }
 }
 
 void GUI_Dialogs_Render(SDL_Renderer *renderer)
 {
+    Dialog_Notice_Render(renderer);
+
     switch (active_modal) {
     case GUI_MODAL_CITY_MGMT:
         Dialog_City_Render(renderer);
