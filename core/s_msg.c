@@ -8,6 +8,8 @@
 
 #include "sim.h"
 
+extern void Audio_MakeSound(const char *channel, const char *sound_name);
+
 /* Internal Message State Tracking */
 static QUAD    LastCityPop = 0;
 static int16_t LastCategory = 0;
@@ -299,9 +301,21 @@ int32_t SendMes(int16_t mnum)
     return 0;
 }
 
+static void PlayTrafficHonk(void)
+{
+    if (Rand(5) == 1) {
+        Audio_MakeSound("city", "HonkHonk-Med");
+    } else if (Rand(5) == 1) {
+        Audio_MakeSound("city", "HonkHonk-Low");
+    } else if (Rand(5) == 1) {
+        Audio_MakeSound("city", "HonkHonk-High");
+    }
+}
+
 void SendMesAt(int16_t mnum, int16_t x, int16_t y)
 {
     if (SendMes(mnum)) {
+        if (mnum == 12 || mnum == -12) PlayTrafficHonk();
         MesX = x;
         MesY = y;
         if (EngineCallbacks.show_message) {
