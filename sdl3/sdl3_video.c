@@ -751,6 +751,12 @@ static void UpdateAndRenderMinimap(SDL_Renderer *renderer, OverlayViewMode mode)
   SDL_RenderRect(renderer, &cam_rect);
 }
 
+/* Unix StopEarthquake timer: the shake ends 3000 ms after the most recent quake */
+#define QUAKE_SHAKE_MS 3000
+
+static int16_t shake_seen_quakes = 0;
+static uint64_t shake_deadline_ms = 0;
+
 void Video_RenderFrame(void)
 {
   if (!frame_buffer || !video_renderer || !stream_texture) return;
@@ -808,9 +814,18 @@ void Video_RenderFrame(void)
   SDL_SetRenderDrawColor(video_renderer, 0, 0, 0, 255);
   SDL_RenderClear(video_renderer);
 
+  uint64_t now_ms = SDL_GetTicks();
+  if (ShakeNow != shake_seen_quakes) {
+    shake_seen_quakes = ShakeNow;
+    shake_deadline_ms = now_ms + QUAKE_SHAKE_MS;
+  }
+  if (ShakeNow > 0 && now_ms >= shake_deadline_ms) {
+    ShakeNow = 0;
+    shake_seen_quakes = 0;
+  }
+
   SDL_FRect map_dest = { 0.0f, 0.0f, (float)WINDOW_DEFAULT_WIDTH, (float)WINDOW_DEFAULT_HEIGHT };
   if (ShakeNow > 0) {
-    ShakeNow--;
     map_dest.x += (float)(Rand(9) - 4);
     map_dest.y += (float)(Rand(9) - 4);
   }

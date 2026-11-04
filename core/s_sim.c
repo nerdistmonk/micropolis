@@ -482,12 +482,13 @@ static void SetValves(void)
     Cratio = ((Cratio - 1.0f) * 600.0f) + (float)TaxTable[z];
     Iratio = ((Iratio - 1.0f) * 600.0f) + (float)TaxTable[z];
 
-    if (Rratio > 0.0f && RValve < 2000) RValve += (int16_t)Rratio;
-    if (Rratio < 0.0f && RValve > -2000) RValve += (int16_t)Rratio;
-    if (Cratio > 0.0f && CValve < 1500) CValve += (int16_t)Cratio;
-    if (Cratio < 0.0f && CValve > -1500) CValve += (int16_t)Cratio;
-    if (Iratio > 0.0f && IValve < 1500) IValve += (int16_t)Iratio;
-    if (Iratio < 0.0f && IValve > -1500) IValve += (int16_t)Iratio;
+    /* Unix stores (short)(valve + ratio), so truncation applies to the sum */
+    if (Rratio > 0.0f && RValve < 2000) RValve = (int16_t)(RValve + Rratio);
+    if (Rratio < 0.0f && RValve > -2000) RValve = (int16_t)(RValve + Rratio);
+    if (Cratio > 0.0f && CValve < 1500) CValve = (int16_t)(CValve + Cratio);
+    if (Cratio < 0.0f && CValve > -1500) CValve = (int16_t)(CValve + Cratio);
+    if (Iratio > 0.0f && IValve < 1500) IValve = (int16_t)(IValve + Iratio);
+    if (Iratio < 0.0f && IValve > -1500) IValve = (int16_t)(IValve + Iratio);
 
     if (RValve > 2000) RValve = 2000;
     if (RValve < -2000) RValve = -2000;

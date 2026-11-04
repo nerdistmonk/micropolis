@@ -135,7 +135,7 @@ void DoFlood(void)
 
 void MakeEarthquake(void)
 {
-    ShakeNow = 40; /* Viewport tremors */
+    ShakeNow++; /* Viewport tremors; the frontend clears this 3000 ms after the last quake */
 
     SendMesAt(-23, CCx, CCy);
     Audio_MakeSound("city", "Explosion-Low");

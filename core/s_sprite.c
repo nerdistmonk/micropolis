@@ -29,8 +29,9 @@ static int16_t TurnTo(int16_t current, int16_t target)
 }
 
 /* Unix GetDir: 8-way heading (1=N, 2=NE, 4=SE, 5=S, 6=SW, 8=NW) toward the destination.
- * abs_dist receives the Manhattan distance. */
-static int16_t GetDir(int32_t orgX, int32_t orgY, int32_t desX, int32_t desY, int32_t *abs_dist)
+ * Sets the global absDist to the Manhattan distance, as Unix does; callers read it
+ * even when it was computed on an earlier call. */
+static int16_t GetDir(int32_t orgX, int32_t orgY, int32_t desX, int32_t desY)
 {
     static const int16_t Gdtab[13] = { 0, 3, 2, 1, 3, 4, 5, 7, 6, 5, 7, 8, 1 };
     int32_t dispX = desX - orgX;
@@ -46,7 +47,7 @@ static int16_t GetDir(int32_t orgX, int32_t orgY, int32_t desX, int32_t desY, in
     if (dispX < 0) dispX = -dispX;
     if (dispY < 0) dispY = -dispY;
 
-    *abs_dist = dispX + dispY;
+    absDist = (int32_t)(dispX + dispY);
 
     if ((dispX << 1) < dispY) z++;
 
@@ -71,40 +72,16 @@ static int16_t GetChar(int32_t px, int32_t py)
     return (int16_t)(Map[tx][ty] & LOMASK);
 }
 
-static void DestroyTile(int32_t tx, int32_t ty)
-{
-    if (!TestBounds(tx, ty)) return;
-
-    uint16_t tile = Map[tx][ty];
-    uint16_t low = tile & LOMASK;
-
-    /* Leave water untouched */
-    if (low == RIVER || low == REDGE || low == CHANNEL ||
-        (low >= FIRSTRIVEDGE && low <= LASTRIVEDGE)) {
-        return;
-    }
-
-    /* Water crossings: revert to pure water */
-    if (low == HBRIDGE || low == VBRIDGE || low == BRWH || low == BRWV ||
-        low == HPOWER || low == VPOWER || low == HRAIL || low == VRAIL) {
-        Map[tx][ty] = RIVER;
-        return;
-    }
-
-    if (low > DIRT) {
-        Map[tx][ty] = (uint16_t)((RUBBLE + (Rand16() & 3)) | BULLBIT);
-    }
-}
-
 void GenerateTrain(int16_t x, int16_t y)
 {
     SimSprite *s = &active_sprites[TRA];
     if (TotalPop <= 20 || s->frame != 0 || Rand(25) != 0) return;
 
+    /* Unix TRA_GROOVE (-39, +6) converted to core logical space with the TRA shift (40, -8). */
     s->type = TRA;
     s->frame = 1;
-    s->x = (x << 4);
-    s->y = (y << 4);
+    s->x = (x << 4) + 1;
+    s->y = (y << 4) - 2;
     s->width = 32;
     s->height = 32;
     s->x_offset = -8;
@@ -144,19 +121,34 @@ void GeneratePlane(int16_t x, int16_t y)
     SimSprite *s = &active_sprites[AIR];
     if (s->frame != 0) return;
 
+    /* Unix InitSprite(AIR) in Unix logical space (shift to core is +40, +16). A plane
+     * spawned near the east edge flies west from frame 7; otherwise it takes off east from frame 11. */
+    int32_t ux = (x << 4) + 48;
+    int32_t uy = (y << 4) + 12;
+    int16_t frame;
+    int32_t dest_ux;
+    if (ux > ((WORLD_X - 20) << 4)) {
+        ux -= 100 + 48;
+        dest_ux = ux - 200;
+        frame = 7;
+    } else {
+        dest_ux = ux + 200;
+        frame = 11;
+    }
+
     s->type = AIR;
-    s->frame = 1;
-    s->x = (x << 4);
-    s->y = (y << 4);
+    s->frame = frame;
+    s->x = (int16_t)(ux + 40);
+    s->y = (int16_t)(uy + 16);
     s->width = 48;
     s->height = 48;
     s->x_offset = -16;
     s->y_offset = -16;
     s->x_hot = 8;
     s->y_hot = 0;
-    s->dest_x = (Rand(WORLD_X) << 4);
-    s->dest_y = (Rand(WORLD_Y) << 4);
-    s->count = 1000;
+    s->dest_x = (int16_t)(dest_ux + 40);
+    s->dest_y = s->y;
+    s->count = 0;
 }
 
 static void SpawnShip(int32_t x, int32_t y, int16_t frame, int16_t dir)
@@ -450,9 +442,8 @@ static void DestroyAt(int32_t px, int32_t py)
 
 static void StepCopter(SimSprite *s)
 {
-    static const int16_t CDx[9] = { 0, 0, 2, 3, 2, 0, -2, -3, -2 };
-    static const int16_t CDy[9] = { 0, -3, -2, 0, 2, 3, 2, 0, -2 };
-    int32_t abs_dist = 0;
+    static const int16_t CDx[9] = { 0, 0, 3, 5, 3, 0, -3, -5, -3 };
+    static const int16_t CDy[9] = { 0, -5, -3, 0, 3, 5, 3, 0, -3 };
 
     if (s->sound_count > 0) s->sound_count--;
 
@@ -471,8 +462,8 @@ static void StepCopter(SimSprite *s)
             s->dest_y = s->orig_y;
         }
 
-        GetDir(s->x, s->y, s->orig_x, s->orig_y, &abs_dist);
-        if (abs_dist < 30) {
+        GetDir(s->x, s->y, s->orig_x, s->orig_y);
+        if (absDist < 30) {
             s->frame = 0;
             return;
         }
@@ -491,7 +482,7 @@ static void StepCopter(SimSprite *s)
     }
 
     if (!(Cycle & 3)) {
-        int16_t target_dir = GetDir(s->x, s->y, s->dest_x, s->dest_y, &abs_dist);
+        int16_t target_dir = GetDir(s->x, s->y, s->dest_x, s->dest_y);
         s->frame = TurnTo(s->frame, target_dir);
     }
 
@@ -506,13 +497,24 @@ static void StepCopter(SimSprite *s)
 
 static void StepPlane(SimSprite *s)
 {
-    static const int16_t CDx[9] = { 0, 0, 3, 4, 3, 0, -3, -4, -3 };
-    static const int16_t CDy[9] = { 0, -4, -3, 0, 3, 4, 3, 0, -3 };
-    int32_t abs_dist = 0;
+    static const int16_t CDx[12] = { 0, 0, 6, 8, 6, 0, -6, -8, -6, 8, 8, 8 };
+    static const int16_t CDy[12] = { 0, -8, -6, 0, 6, 8, 6, 0, -6, 0, 0, 0 };
 
-    if (!(Cycle & 3)) {
-        int16_t target_dir = GetDir(s->x, s->y, s->dest_x, s->dest_y, &abs_dist);
-        s->frame = TurnTo(s->frame, target_dir);
+    if (!(Cycle % 5)) {
+        if (s->frame > 8) {
+            /* Takeoff: frames 9-11 fly straight east, then settle into heading 3 */
+            s->frame--;
+            if (s->frame < 9) s->frame = 3;
+        } else {
+            int16_t target_dir = GetDir(s->x, s->y, s->dest_x, s->dest_y);
+            s->frame = TurnTo(s->frame, target_dir);
+        }
+    }
+
+    /* Unix tests the absDist left by the last GetDir call, so this can use a stale value */
+    if (absDist < 50) {
+        s->dest_x = (Rand(WORLD_X * 16 + 100) - 50) + 40;
+        s->dest_y = (Rand(WORLD_Y * 16 + 100) - 50) + 16;
     }
 
     if (!NoDisasters && CheckSpriteCollision(s, &active_sprites[COP])) {
@@ -524,11 +526,6 @@ static void StepPlane(SimSprite *s)
     s->x += CDx[s->frame];
     s->y += CDy[s->frame];
 
-    if (abs(s->dest_x - s->x) < 32 && abs(s->dest_y - s->y) < 32) {
-        s->dest_x = (Rand(WORLD_X) << 4);
-        s->dest_y = (Rand(WORLD_Y) << 4);
-    }
-    if (--s->count <= 0) s->frame = 0;
     if (SpriteNotInBounds(s)) s->frame = 0;
 }
 
@@ -559,6 +556,15 @@ static void StepShip(SimSprite *s)
     /* Keep within bounds */
     if (s->x < 0 || s->x >= (WORLD_X << 4) || s->y < 0 || s->y >= (WORLD_Y << 4)) {
         s->frame = 0;
+        return;
+    }
+
+    /* Unix explodes a ship that is off the waterway and calls Destroy at its position.
+     * Approximation: Unix tests the last tile probed by its turn search; this checks the hotspot tile. */
+    int16_t under = GetChar(s->x, s->y);
+    if (under != RIVER && under != CHANNEL && !IsWetTile(under)) {
+        ExplodeSprite(s);
+        DestroyAt(s->x, s->y);
     }
 }
 
@@ -609,7 +615,8 @@ static void StepMonster(SimSprite *s)
 
     s->frame = 1 + s->dir * 3 + z;
 
-    DestroyTile((s->x + 24) >> 4, (s->y + 24) >> 4);
+    /* Unix Destroy(x+48, y+16) in Unix logical space; core monster shift is (40, 16) */
+    DestroyAt(s->x + 8, s->y);
 
     if (abs(s->dest_x - s->x) < 16 && abs(s->dest_y - s->y) < 16) {
         s->dest_x = (Rand(WORLD_X) << 4);
