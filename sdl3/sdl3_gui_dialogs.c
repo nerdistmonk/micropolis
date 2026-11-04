@@ -73,6 +73,19 @@ void GUI_Dialogs_UpdateNotice(uint64_t now)
     Dialog_Notice_Update(now);
 }
 
+void GUI_Dialogs_OpenQuitConfirm(void)
+{
+    if (active_modal == GUI_MODAL_QUIT_CONFIRM) return;
+    GUI_Dialogs_Close();
+    active_modal = GUI_MODAL_QUIT_CONFIRM;
+    Dialog_Quit_Show();
+}
+
+bool GUI_Dialogs_TakeQuitConfirmed(void)
+{
+    return Dialog_Quit_TakeConfirmed();
+}
+
 void GUI_Dialogs_Close(void)
 {
     if (active_modal == GUI_MODAL_CITY_MGMT) {
@@ -119,7 +132,8 @@ bool GUI_Dialogs_HandleKeyDown(SDL_Keycode key)
         return true;
     }
 
-    if (active_modal == GUI_MODAL_SCENARIO_RESULT || active_modal == GUI_MODAL_QUERY_INSPECTOR) {
+    if (active_modal == GUI_MODAL_SCENARIO_RESULT || active_modal == GUI_MODAL_QUERY_INSPECTOR ||
+        active_modal == GUI_MODAL_QUIT_CONFIRM) {
         if (key == SDLK_RETURN || key == SDLK_SPACE || key == SDLK_KP_ENTER) {
             GUI_Dialogs_Close();
             return true;
@@ -151,6 +165,8 @@ bool GUI_Dialogs_HandleClick(float mx, float my)
         return Dialog_Scenario_HandleClick(mx, my);
     case GUI_MODAL_QUERY_INSPECTOR:
         return Dialog_Inspector_HandleClick(mx, my);
+    case GUI_MODAL_QUIT_CONFIRM:
+        return Dialog_Quit_HandleClick(mx, my);
     default:
         return Dialog_Notice_HandleClick(mx, my);
     }
@@ -178,6 +194,9 @@ void GUI_Dialogs_Render(SDL_Renderer *renderer)
         break;
     case GUI_MODAL_QUERY_INSPECTOR:
         Dialog_Inspector_Render(renderer);
+        break;
+    case GUI_MODAL_QUIT_CONFIRM:
+        Dialog_Quit_Render(renderer);
         break;
     default:
         break;

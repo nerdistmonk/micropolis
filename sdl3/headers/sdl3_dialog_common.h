@@ -36,6 +36,7 @@ void Dialog_City_Render(SDL_Renderer *renderer);
 /* File, Scenario & Options Manager */
 void Dialog_File_Open(FileDialogTab tab);
 void Dialog_File_Reset(void);
+const char *Dialog_File_GetSaveName(void);
 bool Dialog_File_HandleClick(float mx, float my);
 bool Dialog_File_HandleKeyDown(SDL_Keycode key);
 bool Dialog_File_HandleTextInput(const char *text);
@@ -67,5 +68,11 @@ bool Dialog_Notice_HandleClick(float mx, float my);
 bool Dialog_Notice_HandleKeyDown(SDL_Keycode key);
 void Dialog_Notice_Update(uint64_t now);
 void Dialog_Notice_Render(SDL_Renderer *renderer);
+
+/* Quit confirmation */
+void Dialog_Quit_Show(void);
+bool Dialog_Quit_HandleClick(float mx, float my);
+bool Dialog_Quit_TakeConfirmed(void);
+void Dialog_Quit_Render(SDL_Renderer *renderer);
 
 #endif /* SDL3_DIALOG_COMMON_H */

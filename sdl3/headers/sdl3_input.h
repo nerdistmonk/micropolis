@@ -9,7 +9,7 @@
 #include <SDL3/SDL.h>
 
 void Input_Init(void);
-void Input_ProcessEvents(bool *running);
+void Input_ProcessEvents(void);
 int16_t Input_GetActiveTool(void);
 void Input_SetActiveTool(int16_t tool);
 

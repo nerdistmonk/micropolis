@@ -14,7 +14,8 @@ typedef enum {
     GUI_MODAL_SCENARIO_RESULT,
     GUI_MODAL_FILE,
     GUI_MODAL_DISASTERS,
-    GUI_MODAL_QUERY_INSPECTOR
+    GUI_MODAL_QUERY_INSPECTOR,
+    GUI_MODAL_QUIT_CONFIRM
 } GuiModalId;
 
 typedef enum {
@@ -57,6 +58,8 @@ void GUI_Dialogs_ShowQueryInspector(int32_t tile_x, int32_t tile_y);
 void GUI_Dialogs_ShowNotice(int16_t picture_id, int32_t tile_x, int32_t tile_y);
 bool GUI_Dialogs_HandleNoticeKey(SDL_Keycode key);
 void GUI_Dialogs_UpdateNotice(uint64_t now);
+void GUI_Dialogs_OpenQuitConfirm(void);
+bool GUI_Dialogs_TakeQuitConfirmed(void);
 void GUI_Dialogs_Close(void);
 
 OverlayViewMode GUI_Dialogs_GetActiveOverlay(void);

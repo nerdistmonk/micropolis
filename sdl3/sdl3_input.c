@@ -76,7 +76,7 @@ void Input_SetActiveTool(int16_t tool)
     active_tool = tool;
 }
 
-void Input_ProcessEvents(bool *running)
+void Input_ProcessEvents(void)
 {
     SDL_Event event;
     SDL_Renderer *renderer = Video_GetRenderer();
@@ -90,7 +90,7 @@ void Input_ProcessEvents(bool *running)
 
         switch (event.type) {
         case SDL_EVENT_QUIT:
-            if (running) *running = false;
+            GUI_Dialogs_OpenQuitConfirm();
             break;
 
         case SDL_EVENT_TEXT_INPUT:
@@ -110,7 +110,7 @@ void Input_ProcessEvents(bool *running)
 
             switch (event.key.key) {
             case SDLK_ESCAPE:
-                if (running) *running = false;
+                GUI_Dialogs_OpenQuitConfirm();
                 break;
             case SDLK_SPACE:
                 SetSimSpeed(SimSpeed == 0 ? GetLastRunSpeed() : 0);

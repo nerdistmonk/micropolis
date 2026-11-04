@@ -57,6 +57,11 @@ void Dialog_File_Reset(void)
     }
 }
 
+const char *Dialog_File_GetSaveName(void)
+{
+    return file_name_input_buffer;
+}
+
 bool Dialog_File_HandleTextInput(const char *text)
 {
     if (!text || !is_editing_filename) return false;

@@ -82,7 +82,8 @@ int main(int argc, char **argv)
     const uint64_t anim_interval_ms = 120;
 
     while (running) {
-        Input_ProcessEvents(&running);
+        Input_ProcessEvents();
+        if (GUI_Dialogs_TakeQuitConfirmed()) running = false;
 
         uint64_t now = SDL_GetTicks();
         GUI_Dialogs_UpdateNotice(now);
