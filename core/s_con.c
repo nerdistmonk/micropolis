@@ -615,7 +615,9 @@ static void ClearZoneArea(int32_t center_x, int32_t center_y, int16_t size)
             int32_t tx = start_x + dx;
             int32_t ty = start_y + dy;
             if (TestBounds(tx, ty)) {
-                Map[tx][ty] = (uint16_t)((RUBBLE + (Rand16() & 3)) | BULLBIT);
+                uint16_t old = Map[tx][ty] & LOMASK;
+                if (old == RADTILE || old == 0) continue;
+                Map[tx][ty] = (uint16_t)((DoAnimation ? (TINYEXP + Rand(2)) : SOMETINYEXP) | ANIMBIT | BULLBIT);
             }
         }
     }
