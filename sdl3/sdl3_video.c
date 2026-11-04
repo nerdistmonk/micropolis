@@ -458,6 +458,30 @@ static void RenderSprites(SDL_Renderer *renderer)
   }
 }
 
+static bool IsZoneOverlay(OverlayViewMode mode)
+{
+  return mode == OVERLAY_VIEW_RES_ZONE || mode == OVERLAY_VIEW_COM_ZONE || mode == OVERLAY_VIEW_IND_ZONE;
+}
+
+/* Tile ranges match the Unix g_smmaps.c drawRes/drawCom/drawInd; hidden tiles render as DIRT. */
+static bool ZoneViewHidesTile(OverlayViewMode mode, uint16_t raw_tile)
+{
+  uint16_t tile = raw_tile & LOMASK;
+  if (tile >= TILE_COUNT) tile -= TILE_COUNT;
+
+  switch (mode) {
+  case OVERLAY_VIEW_RES_ZONE:
+    return tile > 422;
+  case OVERLAY_VIEW_COM_ZONE:
+    return (tile > 609) || (tile >= 232 && tile < 423);
+  case OVERLAY_VIEW_IND_ZONE:
+    return (tile >= 240 && tile <= 611) || (tile >= 693 && tile <= 851) ||
+           (tile >= 860 && tile <= 883) || (tile >= 932);
+  default:
+    return false;
+  }
+}
+
 static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty)
 {
   int32_t hx = tx >> 1;
@@ -740,7 +764,11 @@ void Video_RenderFrame(void)
       if (tx >= 0 && tx < WORLD_X && ty >= 0 && ty < WORLD_Y) {
         uint16_t raw_tile = Map[tx][ty];
 
-        if (show_bolt && (raw_tile & ZONEBIT) && !(raw_tile & PWRBIT)) {
+        if (IsZoneOverlay(overlay_mode)) {
+          if (ZoneViewHidesTile(overlay_mode, raw_tile)) {
+            raw_tile = DIRT;
+          }
+        } else if (show_bolt && (raw_tile & ZONEBIT) && !(raw_tile & PWRBIT)) {
           raw_tile = LIGHTNINGBOLT;
         }
 

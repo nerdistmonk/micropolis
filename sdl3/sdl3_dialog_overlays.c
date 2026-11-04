@@ -18,7 +18,10 @@ static const struct {
     { OVERLAY_VIEW_POP_DENSITY, "Pop Density" },
     { OVERLAY_VIEW_RATE_OF_GROWTH, "Growth Rate" },
     { OVERLAY_VIEW_FIRE_COVERAGE, "Fire Coverage" },
-    { OVERLAY_VIEW_POLICE_COVERAGE, "Police Coverage" }
+    { OVERLAY_VIEW_POLICE_COVERAGE, "Police Coverage" },
+    { OVERLAY_VIEW_RES_ZONE, "Residential Zone" },
+    { OVERLAY_VIEW_COM_ZONE, "Commercial Zone" },
+    { OVERLAY_VIEW_IND_ZONE, "Industrial Zone" }
 };
 
 #define OVERLAY_CHOICE_COUNT (sizeof(overlay_choices) / sizeof(overlay_choices[0]))
@@ -75,7 +78,7 @@ void Dialog_Overlays_Render(SDL_Renderer *renderer)
     float dx = 280.0f;
     float dy = 150.0f;
     float dw = 460.0f;
-    float dh = 360.0f;
+    float dh = 400.0f;
 
     SDL_FRect scrim = { 0.0f, 0.0f, (float)WINDOW_DEFAULT_WIDTH, (float)WINDOW_DEFAULT_HEIGHT };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
@@ -120,5 +123,5 @@ void Dialog_Overlays_Render(SDL_Renderer *renderer)
 
     char buf[128];
     snprintf(buf, sizeof(buf), "Active Layer: [%s]", OverlayName(active_overlay));
-    GUI_DrawText(renderer, (int)dx + 30, (int)dy + 300, buf, col_cyan);
+    GUI_DrawText(renderer, (int)dx + 30, (int)dy + 378, buf, col_cyan);
 }
