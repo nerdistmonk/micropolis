@@ -286,8 +286,16 @@ bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
       return true;
     }
     if (mouse_x >= rect_speed_btn.x && mouse_x <= (rect_speed_btn.x + rect_speed_btn.w)) {
-      int16_t next_spd = (SimSpeed + 1) % 4;
-      SetSimSpeed(next_spd);
+      static const int16_t speed_cycle[] = {
+        SIM_SPEED_PAUSED, SIM_SPEED_SUPER_SLOW, SIM_SPEED_SLOW,
+        SIM_SPEED_MED, SIM_SPEED_FAST, SIM_SPEED_SUPER_FAST
+      };
+      size_t cycle_len = sizeof(speed_cycle) / sizeof(speed_cycle[0]);
+      size_t cur = 0;
+      for (size_t i = 0; i < cycle_len; i++) {
+        if (speed_cycle[i] == SimSpeed) cur = i;
+      }
+      SetSimSpeed(speed_cycle[(cur + 1) % cycle_len]);
       return true;
     }
     return true;
@@ -499,9 +507,11 @@ void GUI_Render(SDL_Renderer *renderer)
 
   /* Speed indicator */
   const char *spd_label = "Speed: [Paused]";
-  if (SimSpeed == 1) spd_label = "Speed: [Slow]";
-  else if (SimSpeed == 2) spd_label = "Speed: [Med]";
-  else if (SimSpeed == 3) spd_label = "Speed: [Fast]";
+  if (SimSpeed == SIM_SPEED_SUPER_SLOW) spd_label = "Speed: [S.Slow]";
+  else if (SimSpeed == SIM_SPEED_SLOW) spd_label = "Speed: [Slow]";
+  else if (SimSpeed == SIM_SPEED_MED) spd_label = "Speed: [Med]";
+  else if (SimSpeed == SIM_SPEED_FAST) spd_label = "Speed: [Fast]";
+  else if (SimSpeed == SIM_SPEED_SUPER_FAST) spd_label = "Speed: [S.Fast]";
 
   SDL_SetRenderDrawColor(renderer, 36, 44, 60, 255);
   SDL_RenderFillRect(renderer, &rect_speed_btn);

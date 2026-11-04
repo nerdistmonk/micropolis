@@ -443,6 +443,15 @@ extern int32_t DoAnimation;
 extern int32_t DoMessages;
 extern int32_t DoNotices;
 
+/* Saved in MiscHis[57], so new codes must be appended, never renumbered. */
+#define SIM_SPEED_PAUSED 0
+#define SIM_SPEED_SLOW 1
+#define SIM_SPEED_MED 2
+#define SIM_SPEED_FAST 3
+#define SIM_SPEED_SUPER_FAST 4
+#define SIM_SPEED_SUPER_SLOW 5
+#define SIM_SPEED_MAX 5
+
 extern int16_t SimSpeed;
 extern int16_t NoDisasters;
 extern int16_t autoBulldoze;

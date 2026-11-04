@@ -165,7 +165,7 @@ int32_t LoadCity(const char *filename)
 
     if (CityTime < 0) CityTime = 0;
     if (CityTax > 20 || CityTax < 0) CityTax = 7;
-    if (SimSpeed < 0 || SimSpeed > 3) SimSpeed = 3;
+    if (SimSpeed < 0 || SimSpeed > SIM_SPEED_MAX) SimSpeed = SIM_SPEED_FAST;
     if (roadPercent <= 0.0f || roadPercent > 1.0f) roadPercent = 1.0f;
     if (policePercent <= 0.0f || policePercent > 1.0f) policePercent = 1.0f;
     if (firePercent <= 0.0f || firePercent > 1.0f) firePercent = 1.0f;

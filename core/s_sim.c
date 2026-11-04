@@ -120,7 +120,7 @@ static int16_t last_run_speed = 3;
 void SetSimSpeed(int16_t speed)
 {
     if (speed < 0) speed = 0;
-    if (speed > 3) speed = 3;
+    if (speed > SIM_SPEED_MAX) speed = SIM_SPEED_MAX;
     SimSpeed = speed;
     if (speed > 0) last_run_speed = speed;
 }
@@ -172,9 +172,12 @@ void AnimateTiles(void)
     }
 }
 
+/* Ticks between Simulate steps per SimSpeed; the main loop calls SimFrame every 40 ms. */
+static const int32_t SpdTickInterval[SIM_SPEED_MAX + 1] = { 1, 5, 3, 1, 1, 12 };
+
 void SimFrame(void)
 {
-    if (SimSpeed == 0) {
+    if (SimSpeed == SIM_SPEED_PAUSED) {
         return;
     }
 
@@ -182,19 +185,17 @@ void SimFrame(void)
         Spdcycle = 0;
     }
 
-    if (SimSpeed == 1 && (Spdcycle % 5)) {
+    if (Spdcycle % SpdTickInterval[SimSpeed]) {
         return;
     }
 
-    if (SimSpeed == 2 && (Spdcycle % 3)) {
-        return;
+    int32_t steps = (SimSpeed == SIM_SPEED_SUPER_FAST) ? 4 : 1;
+    for (int32_t i = 0; i < steps; i++) {
+        if (++Fcycle > 1023) {
+            Fcycle = 0;
+        }
+        Simulate(Fcycle & 15);
     }
-
-    if (++Fcycle > 1023) {
-        Fcycle = 0;
-    }
-
-    Simulate(Fcycle & 15);
 }
 
 void Simulate(int32_t mod16)
@@ -205,9 +206,9 @@ void Simulate(int32_t mod16)
     static const int16_t SpdPop[4] = { 1, 1, 9, 19 };
     static const int16_t SpdFir[4] = { 1, 1, 10, 20 };
 
-    int16_t x = SimSpeed;
-    if (x > 3) x = 3;
-    if (x < 0) x = 0;
+    /* Per-step work level: Super Slow reuses Slow's budget, Super Fast reuses Fast's. */
+    static const int16_t SpdWorkLevel[SIM_SPEED_MAX + 1] = { 0, 1, 2, 3, 3, 1 };
+    int16_t x = SpdWorkLevel[SimSpeed];
 
     switch (mod16) {
     case 0:
