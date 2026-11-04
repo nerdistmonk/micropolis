@@ -598,7 +598,8 @@ void CollectTax(void)
         PoliceFund = PolicePop * 100;
         FireFund = FireStPop * 100;
         RoadFund = CalcRoadFund(GameLevel);
-        TaxFund = (int32_t)((((float)TotalPop * (float)LVAverage) / 120.0f) * (float)CityTax * FLevels[GameLevel]);
+        int32_t taxBase = ((int32_t)TotalPop * (int32_t)LVAverage) / 120;
+        TaxFund = (int32_t)((float)(taxBase * (int32_t)CityTax) * FLevels[GameLevel]);
 
         RoadSpend = (int32_t)((float)RoadFund * roadPercent);
         PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
