@@ -324,8 +324,9 @@ static void StepTrain(SimSprite *s)
     static const int16_t Cy[4] = { -16, 0, 16, 0 };
     static const int16_t Dx[5] = { 0, 4, 0, -4, 0 };
     static const int16_t Dy[5] = { -4, 0, 4, 0, 0 };
-    static const int16_t TrainPic[5] = { 1, 2, 1, 2, 1 };
+    static const int16_t TrainPic2[5] = { 1, 2, 1, 2, 5 };
 
+    if (s->frame == 3 || s->frame == 4) s->frame = TrainPic2[s->dir];
     s->x += Dx[s->dir];
     s->y += Dy[s->dir];
 
@@ -341,8 +342,14 @@ static void StepTrain(SimSprite *s)
             int16_t c = GetChar(s->x + Cx[dir2] + 8, s->y + Cy[dir2] + 8);
             if (((c >= RAILBASE) && (c <= LASTRAIL)) ||
                 (c == RAILVPOWERH) || (c == RAILHPOWERV)) {
+                if (s->dir != dir2 && s->dir != 4) {
+                    s->frame = (s->dir + dir2 == 3) ? 3 : 4;
+                } else {
+                    s->frame = TrainPic2[dir2];
+                }
+
+                if (c == RAILBASE || c == RAILBASE + 1) s->frame = 5;
                 s->dir = dir2;
-                s->frame = TrainPic[dir2];
                 return;
             }
         }
