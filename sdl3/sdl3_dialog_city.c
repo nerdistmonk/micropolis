@@ -9,9 +9,83 @@ static bool graph_metric_visible[HISTORIES] = { true, true, true, true, true, tr
 static bool is_editing_city_name = false;
 static char city_name_input_buffer[64] = {0};
 
+#define GRAPH_POINTS 120
+
+static float budget_snap_road_percent;
+static float budget_snap_police_percent;
+static float budget_snap_fire_percent;
+static int16_t budget_snap_road_effect;
+static int16_t budget_snap_police_effect;
+static int16_t budget_snap_fire_effect;
+static int16_t budget_snap_city_tax;
+
+static bool CityRectHit(const SDL_FRect *r, float x, float y)
+{
+    return x >= r->x && x <= r->x + r->w && y >= r->y && y <= r->y + r->h;
+}
+
+static SDL_FRect BudgetCancelRect(float dx, float dy)
+{
+    SDL_FRect r = { dx + 130.0f, dy + 370.0f, 150.0f, 32.0f };
+    return r;
+}
+
+static SDL_FRect BudgetApplyRect(float dx, float dy)
+{
+    SDL_FRect r = { dx + 300.0f, dy + 370.0f, 150.0f, 32.0f };
+    return r;
+}
+
+static SDL_FRect TaxButtonRect(float dx, float dy, bool up)
+{
+    SDL_FRect r = { dx + (up ? 300.0f : 240.0f), dy + 125.0f, 40.0f, 28.0f };
+    return r;
+}
+
+static SDL_FRect GraphModeRect(float dx, float dy, bool is_120)
+{
+    SDL_FRect r = { dx + 30.0f + (is_120 ? 104.0f : 0.0f), dy + 88.0f, 96.0f, 26.0f };
+    return r;
+}
+
+static SDL_FRect GraphLegendRect(float dx, float dy, int m)
+{
+    SDL_FRect r = { dx + 444.0f, dy + 124.0f + ((float)m * 28.0f), 110.0f, 24.0f };
+    return r;
+}
+
+static SDL_FRect CityNameRect(float dx, float dy)
+{
+    SDL_FRect r = { dx + 130.0f, dy + 115.0f, 260.0f, 28.0f };
+    return r;
+}
+
+static void SnapshotBudgetState(void)
+{
+    budget_snap_road_percent = roadPercent;
+    budget_snap_police_percent = policePercent;
+    budget_snap_fire_percent = firePercent;
+    budget_snap_road_effect = RoadEffect;
+    budget_snap_police_effect = PoliceEffect;
+    budget_snap_fire_effect = FireEffect;
+    budget_snap_city_tax = CityTax;
+}
+
+static void RestoreBudgetState(void)
+{
+    roadPercent = budget_snap_road_percent;
+    policePercent = budget_snap_police_percent;
+    firePercent = budget_snap_fire_percent;
+    RoadEffect = budget_snap_road_effect;
+    PoliceEffect = budget_snap_police_effect;
+    FireEffect = budget_snap_fire_effect;
+    CityTax = budget_snap_city_tax;
+}
+
 void Dialog_City_Open(CityMgmtTab tab)
 {
     active_city_tab = tab;
+    SnapshotBudgetState();
     Dialog_City_Reset();
 }
 
@@ -127,47 +201,48 @@ bool Dialog_City_HandleClick(float mx, float my)
             }
         }
 
-        SDL_FRect commit_btn = { dx + 215.0f, dy + 370.0f, 150.0f, 32.0f };
-        if (mx >= commit_btn.x && mx <= commit_btn.x + commit_btn.w &&
-            my >= commit_btn.y && my <= commit_btn.y + commit_btn.h) {
+        SDL_FRect cancel_btn = BudgetCancelRect(dx, dy);
+        if (CityRectHit(&cancel_btn, mx, my)) {
+            RestoreBudgetState();
+            GUI_Dialogs_Close();
+            return true;
+        }
+        SDL_FRect apply_btn = BudgetApplyRect(dx, dy);
+        if (CityRectHit(&apply_btn, mx, my)) {
             GUI_Dialogs_Close();
             return true;
         }
     }
 
     if (active_city_tab == CITY_TAB_TAXES) {
-        if (my >= dy + 125.0f && my <= dy + 155.0f) {
-            if (mx >= dx + 240.0f && mx <= dx + 280.0f) {
-                if (CityTax > 0) CityTax--;
-                return true;
-            } else if (mx >= dx + 300.0f && mx <= dx + 340.0f) {
-                if (CityTax < 20) CityTax++;
-                return true;
-            }
+        SDL_FRect tax_dn = TaxButtonRect(dx, dy, false);
+        SDL_FRect tax_up = TaxButtonRect(dx, dy, true);
+        if (CityRectHit(&tax_dn, mx, my)) {
+            if (CityTax > 0) CityTax--;
+            return true;
+        }
+        if (CityRectHit(&tax_up, mx, my)) {
+            if (CityTax < 20) CityTax++;
+            return true;
         }
     }
 
     if (active_city_tab == CITY_TAB_GRAPHS) {
-        SDL_FRect btn_10y = { dx + 26.0f, dy + 88.0f, 96.0f, 26.0f };
-        SDL_FRect btn_120y = { dx + 130.0f, dy + 88.0f, 96.0f, 26.0f };
+        SDL_FRect btn_10y = GraphModeRect(dx, dy, false);
+        SDL_FRect btn_120y = GraphModeRect(dx, dy, true);
 
-        if (mx >= btn_10y.x && mx <= btn_10y.x + btn_10y.w &&
-            my >= btn_10y.y && my <= btn_10y.y + btn_10y.h) {
+        if (CityRectHit(&btn_10y, mx, my)) {
             graph_120_year_mode = false;
             return true;
         }
-        if (mx >= btn_120y.x && mx <= btn_120y.x + btn_120y.w &&
-            my >= btn_120y.y && my <= btn_120y.y + btn_120y.h) {
+        if (CityRectHit(&btn_120y, mx, my)) {
             graph_120_year_mode = true;
             return true;
         }
 
-        float leg_x = dx + 444.0f;
-        float leg_y = dy + 124.0f;
         for (int m = 0; m < HISTORIES; m++) {
-            SDL_FRect m_btn = { leg_x, leg_y + (m * 28.0f), 110.0f, 24.0f };
-            if (mx >= m_btn.x && mx <= m_btn.x + m_btn.w &&
-                my >= m_btn.y && my <= m_btn.y + m_btn.h) {
+            SDL_FRect m_btn = GraphLegendRect(dx, dy, m);
+            if (CityRectHit(&m_btn, mx, my)) {
                 graph_metric_visible[m] = !graph_metric_visible[m];
                 return true;
             }
@@ -175,12 +250,9 @@ bool Dialog_City_HandleClick(float mx, float my)
     }
 
     if (active_city_tab == CITY_TAB_CITY_INFO) {
-        float input_x = dx + 130.0f;
-        float input_y = dy + 115.0f;
-        float input_w = 260.0f;
-        float input_h = 30.0f;
+        SDL_FRect name_rect = CityNameRect(dx, dy);
 
-        if (mx >= input_x && mx <= input_x + input_w && my >= input_y && my <= input_y + input_h) {
+        if (CityRectHit(&name_rect, mx, my)) {
             if (!is_editing_city_name) {
                 is_editing_city_name = true;
                 strncpy(city_name_input_buffer, CityName, sizeof(city_name_input_buffer) - 1);
@@ -206,11 +278,10 @@ static void RenderGraphsTab(SDL_Renderer *renderer, float dx, float dy, float dw
 {
     (void)dw;
     (void)dh;
-    int cx = (int)dx + 30;
-    int cy = (int)dy + 88;
-
-    SDL_FRect btn_10y = { (float)cx, (float)cy, 96.0f, 26.0f };
-    SDL_FRect btn_120y = { (float)cx + 104.0f, (float)cy, 96.0f, 26.0f };
+    SDL_FRect btn_10y = GraphModeRect(dx, dy, false);
+    SDL_FRect btn_120y = GraphModeRect(dx, dy, true);
+    int cx = (int)btn_10y.x;
+    int cy = (int)btn_10y.y;
 
     SDL_SetRenderDrawColor(renderer, !graph_120_year_mode ? 48 : 28, !graph_120_year_mode ? 85 : 36, !graph_120_year_mode ? 140 : 48, 255);
     SDL_RenderFillRect(renderer, &btn_10y);
@@ -257,38 +328,45 @@ static void RenderGraphsTab(SDL_Renderer *renderer, float dx, float dy, float dw
         { 180, 100, 240, 255 }
     };
 
-    int num_points = graph_120_year_mode ? MISCHISTLEN : (HISTLEN / 4);
-    if (num_points < 10) num_points = 120;
+    const int base = graph_120_year_mode ? 120 : 0;
+    const int16_t *series[HISTORIES] = { ResHis, ComHis, IndHis, MoneyHis, CrimeHis, PollutionHis };
+
+    int16_t people_peak = 0;
+    for (int m = 0; m < 3; m++) {
+        if (!series[m]) continue;
+        for (int i = 0; i < GRAPH_POINTS; i++) {
+            if (series[m][base + i] > people_peak) people_peak = series[m][base + i];
+        }
+    }
+    float people_scale = (people_peak > 128) ? 128.0f / (float)people_peak : 1.0f;
 
     for (int m = 0; m < HISTORIES; m++) {
-        if (!graph_metric_visible[m]) continue;
+        if (!graph_metric_visible[m] || !series[m]) continue;
 
-        uint8_t *h_buf = graph_120_year_mode ? History120[m] : History10[m];
-        if (!h_buf) continue;
-
+        float scale = (m < 3) ? people_scale : 1.0f;
         SDL_SetRenderDrawColor(renderer, metric_colors[m].r, metric_colors[m].g, metric_colors[m].b, metric_colors[m].a);
 
         float prev_px = gx;
-        float prev_py = gy + gh - ((float)h_buf[0] / 255.0f * gh);
+        float prev_py = gy + gh;
 
-        for (int p = 1; p < num_points; p++) {
-            float cur_px = gx + (((float)p / (float)(num_points - 1)) * gw);
-            float cur_val = (float)h_buf[p];
-            float cur_py = gy + gh - ((cur_val / 255.0f) * gh);
-            if (cur_py < gy) cur_py = gy;
-            if (cur_py > gy + gh) cur_py = gy + gh;
+        for (int p = 0; p < GRAPH_POINTS; p++) {
+            float v = (float)series[m][base + (GRAPH_POINTS - 1 - p)] * scale;
+            if (v < 0.0f) v = 0.0f;
+            if (v > 255.0f) v = 255.0f;
 
-            SDL_RenderLine(renderer, prev_px, prev_py, cur_px, cur_py);
+            float cur_px = gx + ((float)p / (float)(GRAPH_POINTS - 1)) * gw;
+            float cur_py = gy + gh - (v / 255.0f) * gh;
+
+            if (p > 0) SDL_RenderLine(renderer, prev_px, prev_py, cur_px, cur_py);
             prev_px = cur_px;
             prev_py = cur_py;
         }
     }
 
     float leg_x = dx + 444.0f;
-    float leg_y = dy + 124.0f;
 
     for (int m = 0; m < HISTORIES; m++) {
-        SDL_FRect m_btn = { leg_x, leg_y + (m * 28.0f), 110.0f, 24.0f };
+        SDL_FRect m_btn = GraphLegendRect(dx, dy, m);
         bool on = graph_metric_visible[m];
 
         SDL_SetRenderDrawColor(renderer, on ? 34 : 20, on ? 42 : 24, on ? 58 : 30, 255);
@@ -304,7 +382,7 @@ static void RenderGraphsTab(SDL_Renderer *renderer, float dx, float dy, float dw
         GUI_DrawText(renderer, (int)leg_x + 22, (int)m_btn.y + 4, metric_labels[m], on ? col_white : col_gray);
     }
 
-    GUI_DrawText(renderer, (int)gx, (int)gy + (int)gh + 8, "Range: Year 0 to present | Scale normalized (0 - 255)", col_gray);
+    GUI_DrawText(renderer, (int)gx, (int)gy + (int)gh + 8, "Res/Com/Ind share one scale (peak at half height if above 128). Others 0-255.", col_gray);
 }
 
 void Dialog_City_Render(SDL_Renderer *renderer)
@@ -369,7 +447,7 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         char buf[128];
         GUI_DrawText(renderer, cx, cy, "ANNUAL BUDGET & DEPARTMENT FUNDING", col_gold);
 
-        snprintf(buf, sizeof(buf), "Roads: %3d%% Cost: $%d", (int)(roadPercent * 100.0f), (int)(RoadTotal * 5 * roadPercent));
+        snprintf(buf, sizeof(buf), "Roads: %3d%% Cost: $%d", (int)(roadPercent * 100.0f), (int)((float)CalcRoadFund(GameLevel) * roadPercent));
         GUI_DrawText(renderer, cx, cy + 30, buf, col_white);
         SDL_FRect r_dn = { dx + 400.0f, dy + 115.0f, 30.0f, 22.0f };
         SDL_FRect r_up = { dx + 440.0f, dy + 115.0f, 30.0f, 22.0f };
@@ -399,17 +477,24 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         GUI_DrawText(renderer, (int)f_dn.x + 10, (int)f_dn.y + 3, "-", col_white);
         GUI_DrawText(renderer, (int)f_up.x + 10, (int)f_up.y + 3, "+", col_white);
 
-        int32_t expenses = (int32_t)((RoadTotal * 5 * roadPercent) + (PolicePop * 100 * policePercent) + (FireStPop * 100 * firePercent));
+        int32_t expenses = (int32_t)(((float)CalcRoadFund(GameLevel) * roadPercent) + (PolicePop * 100 * policePercent) + (FireStPop * 100 * firePercent));
         int32_t net = TaxFund - expenses;
         snprintf(buf, sizeof(buf), "Tax Revenue: $%d Expenses: $%d Net: $%d", TaxFund, expenses, net);
         GUI_DrawText(renderer, cx, cy + 195, buf, (net >= 0) ? col_green : col_red);
 
-        SDL_FRect commit_btn = { dx + 215.0f, dy + 370.0f, 150.0f, 32.0f };
+        SDL_FRect cancel_btn = BudgetCancelRect(dx, dy);
+        SDL_SetRenderDrawColor(renderer, 60, 40, 40, 255);
+        SDL_RenderFillRect(renderer, &cancel_btn);
+        SDL_SetRenderDrawColor(renderer, 180, 90, 90, 255);
+        SDL_RenderRect(renderer, &cancel_btn);
+        GUI_DrawText(renderer, (int)cancel_btn.x + 42, (int)cancel_btn.y + 8, "Cancel", col_white);
+
+        SDL_FRect apply_btn = BudgetApplyRect(dx, dy);
         SDL_SetRenderDrawColor(renderer, 40, 90, 70, 255);
-        SDL_RenderFillRect(renderer, &commit_btn);
+        SDL_RenderFillRect(renderer, &apply_btn);
         SDL_SetRenderDrawColor(renderer, 70, 180, 120, 255);
-        SDL_RenderRect(renderer, &commit_btn);
-        GUI_DrawText(renderer, (int)commit_btn.x + 18, (int)commit_btn.y + 8, "Apply & Close", col_white);
+        SDL_RenderRect(renderer, &apply_btn);
+        GUI_DrawText(renderer, (int)apply_btn.x + 18, (int)apply_btn.y + 8, "Apply & Close", col_white);
 
     } else if (active_city_tab == CITY_TAB_TAXES) {
         char buf[128];
@@ -470,7 +555,7 @@ void Dialog_City_Render(SDL_Renderer *renderer)
 
         GUI_DrawText(renderer, cx, cy + 35, "City Name:", col_white);
 
-        SDL_FRect input_rect = { dx + 130.0f, dy + 115.0f, 260.0f, 28.0f };
+        SDL_FRect input_rect = CityNameRect(dx, dy);
         SDL_SetRenderDrawColor(renderer, is_editing_city_name ? 30 : 20, is_editing_city_name ? 40 : 25, is_editing_city_name ? 60 : 35, 255);
         SDL_RenderFillRect(renderer, &input_rect);
 
@@ -499,7 +584,7 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         snprintf(buf, sizeof(buf), "Classification: %s", classes[cl]);
         GUI_DrawText(renderer, cx, cy + 105, buf, col_cyan);
 
-        snprintf(buf, sizeof(buf), "Population: %d citizens", (int)CityPop);
+        snprintf(buf, sizeof(buf), "Population: %d citizens", (int)GUI_CityPopDisplay());
         GUI_DrawText(renderer, cx, cy + 130, buf, col_white);
 
         snprintf(buf, sizeof(buf), "Assessed Value: $%d", CityAssValue);

@@ -115,11 +115,19 @@ int16_t Rand16Signed(void)
     return (int16_t)i;
 }
 
+static int16_t last_run_speed = 3;
+
 void SetSimSpeed(int16_t speed)
 {
     if (speed < 0) speed = 0;
     if (speed > 3) speed = 3;
     SimSpeed = speed;
+    if (speed > 0) last_run_speed = speed;
+}
+
+int16_t GetLastRunSpeed(void)
+{
+    return last_run_speed;
 }
 
 void SetGameLevel(int16_t level)
@@ -494,22 +502,14 @@ static void SetValves(void)
 
 static void TakeCensus(void)
 {
-    ResHisMax = 0;
-    ComHisMax = 0;
-    IndHisMax = 0;
-
     for (int16_t x = 118; x >= 0; x--) {
-        if ((ResHis[x + 1] = ResHis[x]) > ResHisMax) ResHisMax = ResHis[x];
-        if ((ComHis[x + 1] = ComHis[x]) > ComHisMax) ComHisMax = ComHis[x];
-        if ((IndHis[x + 1] = IndHis[x]) > IndHisMax) IndHisMax = IndHis[x];
+        ResHis[x + 1] = ResHis[x];
+        ComHis[x + 1] = ComHis[x];
+        IndHis[x + 1] = IndHis[x];
         CrimeHis[x + 1] = CrimeHis[x];
         PollutionHis[x + 1] = PollutionHis[x];
         MoneyHis[x + 1] = MoneyHis[x];
     }
-
-    Graph10Max = ResHisMax;
-    if (ComHisMax > Graph10Max) Graph10Max = ComHisMax;
-    if (IndHisMax > Graph10Max) Graph10Max = IndHisMax;
 
     ResHis[0] = ResPop / 8;
     ComHis[0] = ComPop;
@@ -542,22 +542,14 @@ static void TakeCensus(void)
 
 static void Take2Census(void)
 {
-    Res2HisMax = 0;
-    Com2HisMax = 0;
-    Ind2HisMax = 0;
-
     for (int16_t x = 238; x >= 120; x--) {
-        if ((ResHis[x + 1] = ResHis[x]) > Res2HisMax) Res2HisMax = ResHis[x];
-        if ((ComHis[x + 1] = ComHis[x]) > Com2HisMax) Com2HisMax = ComHis[x];
-        if ((IndHis[x + 1] = IndHis[x]) > Ind2HisMax) Ind2HisMax = IndHis[x];
+        ResHis[x + 1] = ResHis[x];
+        ComHis[x + 1] = ComHis[x];
+        IndHis[x + 1] = IndHis[x];
         CrimeHis[x + 1] = CrimeHis[x];
         PollutionHis[x + 1] = PollutionHis[x];
         MoneyHis[x + 1] = MoneyHis[x];
     }
-
-    Graph120Max = Res2HisMax;
-    if (Com2HisMax > Graph120Max) Graph120Max = Com2HisMax;
-    if (Ind2HisMax > Graph120Max) Graph120Max = Ind2HisMax;
 
     ResHis[120] = ResPop / 8;
     ComHis[120] = ComPop;

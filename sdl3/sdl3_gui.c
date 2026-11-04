@@ -47,6 +47,7 @@ static float cursor_y = 0.0f;
 /* Status bar buttons */
 static const SDL_FRect rect_funds_btn     = { 135.0f, 2.0f, 150.0f, 24.0f };
 static const SDL_FRect rect_city_btn      = { 290.0f, 2.0f, 260.0f, 24.0f };
+static const SDL_FRect rect_overlays_btn  = { 560.0f, 2.0f, 110.0f, 24.0f };
 static const SDL_FRect rect_disasters_btn = { 680.0f, 2.0f,  96.0f, 24.0f };
 static const SDL_FRect rect_file_btn      = { 784.0f, 2.0f,  84.0f, 24.0f };
 static const SDL_FRect rect_speed_btn     = { 876.0f, 2.0f, 140.0f, 24.0f };
@@ -59,6 +60,11 @@ static char ticker_dismissed_message[256] = {0};
 /* Floating Ticker positioned directly beneath status bar */
 static SDL_FRect rect_ticker_box     = { 280.0f, 34.0f, 464.0f, 26.0f };
 static SDL_FRect rect_ticker_dismiss = { 722.0f, 37.0f,  18.0f, 20.0f };
+
+int32_t GUI_CityPopDisplay(void)
+{
+  return (CityPop < 0) ? 0 : CityPop;
+}
 
 void GUI_ShowStatus(const char *text)
 {
@@ -256,6 +262,10 @@ bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
       return true;
     }
     if (mouse_x >= rect_city_btn.x && mouse_x <= (rect_city_btn.x + rect_city_btn.w)) {
+      GUI_OpenCityMgmtModal(CITY_TAB_CITY_INFO);
+      return true;
+    }
+    if (mouse_x >= rect_overlays_btn.x && mouse_x <= (rect_overlays_btn.x + rect_overlays_btn.w)) {
       GUI_OpenOverlaysModal();
       return true;
     }
@@ -451,12 +461,19 @@ void GUI_Render(SDL_Renderer *renderer)
 
   /* City Name & Pop */
   char city_buf[96];
-  snprintf(city_buf, sizeof(city_buf), "%s | Pop: %d", CityName, (int)TotalPop * 10);
+  snprintf(city_buf, sizeof(city_buf), "%s | Pop: %d", CityName, GUI_CityPopDisplay());
   SDL_SetRenderDrawColor(renderer, 36, 44, 60, 255);
   SDL_RenderFillRect(renderer, &rect_city_btn);
   SDL_SetRenderDrawColor(renderer, 70, 85, 115, 255);
   SDL_RenderRect(renderer, &rect_city_btn);
   GUI_DrawText(renderer, (int)rect_city_btn.x + 8, (int)rect_city_btn.y + 4, city_buf, col_cyan);
+
+  /* Overlays Button */
+  SDL_SetRenderDrawColor(renderer, 36, 44, 60, 255);
+  SDL_RenderFillRect(renderer, &rect_overlays_btn);
+  SDL_SetRenderDrawColor(renderer, 70, 85, 115, 255);
+  SDL_RenderRect(renderer, &rect_overlays_btn);
+  GUI_DrawText(renderer, (int)rect_overlays_btn.x + 14, (int)rect_overlays_btn.y + 4, "Overlays", col_white);
 
   /* Disasters Button */
   SDL_SetRenderDrawColor(renderer, 48, 30, 36, 255);

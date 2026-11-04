@@ -60,16 +60,6 @@ char *CityFileName = NULL;
 uint16_t *Map[WORLD_X];
 
 /* Historical Census Data */
-int16_t ResHisMax = 0;
-int16_t Res2HisMax = 0;
-int16_t ComHisMax = 0;
-int16_t Com2HisMax = 0;
-int16_t IndHisMax = 0;
-int16_t Ind2HisMax = 0;
-int16_t Graph10Max = 0;
-int16_t Graph120Max = 0;
-uint8_t *History10[HISTORIES];
-uint8_t *History120[HISTORIES];
 int32_t CensusChanged = 0;
 
 int16_t *ResHis = NULL;
@@ -265,11 +255,6 @@ void AllocateMapBuffers(void)
     CrimeHis = (int16_t *)calloc(HISTLEN, sizeof(int16_t));
     MiscHis = (int16_t *)calloc(MISCHISTLEN, sizeof(int16_t));
 
-    for (int32_t h = 0; h < HISTORIES; h++) {
-        History10[h] = (uint8_t *)calloc(HISTLEN, sizeof(uint8_t));
-        History120[h] = (uint8_t *)calloc(HISTLEN, sizeof(uint8_t));
-    }
-
     PowerMap = (uint16_t *)calloc(PWRMAPSIZE, sizeof(uint16_t));
 }
 
@@ -293,11 +278,6 @@ void FreeMapBuffers(void)
     if (PollutionHis) { free(PollutionHis); PollutionHis = NULL; }
     if (CrimeHis) { free(CrimeHis); CrimeHis = NULL; }
     if (MiscHis) { free(MiscHis); MiscHis = NULL; }
-
-    for (int32_t h = 0; h < HISTORIES; h++) {
-        if (History10[h]) { free(History10[h]); History10[h] = NULL; }
-        if (History120[h]) { free(History120[h]); History120[h] = NULL; }
-    }
 
     if (PowerMap) { free(PowerMap); PowerMap = NULL; }
     if (CityFileName) { free(CityFileName); CityFileName = NULL; }

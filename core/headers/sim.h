@@ -417,9 +417,9 @@ extern int16_t Cycle;
 extern int16_t ScenarioID;
 extern int16_t ShakeNow;
 
-extern int16_t *ResHis, ResHisMax, Res2HisMax;
-extern int16_t *ComHis, ComHisMax, Com2HisMax;
-extern int16_t *IndHis, IndHisMax, Ind2HisMax;
+extern int16_t *ResHis;
+extern int16_t *ComHis;
+extern int16_t *IndHis;
 extern int16_t *MoneyHis, *CrimeHis, *PollutionHis, *MiscHis;
 extern uint16_t *PowerMap;
 
@@ -456,8 +456,6 @@ extern int16_t ResCap, ComCap, IndCap;
 extern int16_t RValve, CValve, IValve;
 extern int16_t PwrdZCnt, unPwrdZCnt;
 
-extern int16_t Graph10Max, Graph120Max;
-extern uint8_t *History10[HISTORIES], *History120[HISTORIES];
 extern int16_t CityScore, deltaCityScore;
 extern int16_t ScoreType, ScoreWait;
 extern int16_t CityClass;
@@ -517,6 +515,7 @@ void Sim_RegisterCallbacks(const SimCallbacks *cb);
 void SimFrame(void);
 void Simulate(int32_t mod16);
 void SetSimSpeed(int16_t speed);
+int16_t GetLastRunSpeed(void);
 void SetGameLevel(int16_t level);
 void SetNewCityLevel(int16_t level);
 void SetMessageField(const char *str);

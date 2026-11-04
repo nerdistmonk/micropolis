@@ -4,6 +4,7 @@
 #ifndef SDL3_DIALOG_COMMON_H
 #define SDL3_DIALOG_COMMON_H
 
+#include "sdl3_gui.h"
 #include "sdl3_gui_dialogs.h"
 #include "sdl3_gui_text.h"
 #include "sdl3_audio.h"

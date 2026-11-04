@@ -109,7 +109,7 @@ void Input_ProcessEvents(bool *running)
                 if (running) *running = false;
                 break;
             case SDLK_SPACE:
-                SetSimSpeed(SimSpeed == 0 ? 3 : 0);
+                SetSimSpeed(SimSpeed == 0 ? GetLastRunSpeed() : 0);
                 break;
             case SDLK_1: SetSimSpeed(1); break;
             case SDLK_2: SetSimSpeed(2); break;
