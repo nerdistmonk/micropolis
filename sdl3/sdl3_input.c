@@ -152,7 +152,7 @@ void Input_SetActiveTool(int16_t tool)
 
 void Input_UpdateEdgeScroll(uint64_t now)
 {
-    if (!Settings_GetEdgeScroll() || !pointer_known || is_dragging ||
+    if (!Settings_GetEdgeScroll() || !pointer_known ||
         GUI_IsModalOpen() || Splash_IsActive() || Help_IsModeActive()) {
         last_edge_scroll_ms = now;
         return;
