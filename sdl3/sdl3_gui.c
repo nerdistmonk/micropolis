@@ -6,6 +6,7 @@
 #include "sdl3_gui_dialogs.h"
 #include "sdl3_help.h"
 #include "sdl3_input.h"
+#include "sdl3_audio.h"
 #include "sdl3_video.h"
 #include "sim.h"
 #include <stdio.h>
@@ -296,6 +297,7 @@ bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
         if (speed_cycle[i] == SimSpeed) cur = i;
       }
       SetSimSpeed(speed_cycle[(cur + 1) % cycle_len]);
+      Audio_PlayRunningSound(SimSpeed);
       return true;
     }
     return true;

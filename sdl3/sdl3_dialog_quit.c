@@ -59,6 +59,7 @@ bool Dialog_Quit_HandleClick(float mx, float my)
             } else {
                 snprintf(quit_status, sizeof(quit_status), "Error: Could not save to %s", name);
                 quit_status_color = col_red;
+                Audio_MakeSound("warning", "Sorry -speed 85");
             }
         }
         return true;

@@ -247,6 +247,14 @@ void Audio_MakeSound(const char *channel, const char *sound_name)
     }
 }
 
+void Audio_PlayRunningSound(int16_t speed)
+{
+    char name[32];
+    int32_t pitch = (speed > 0) ? 100 + 10 * speed : 90;
+    snprintf(name, sizeof(name), "boing -speed %d", pitch);
+    Audio_MakeSound("edit", name);
+}
+
 void Audio_PlaySound(int16_t sound_id, int16_t x, int16_t y)
 {
     (void)x;

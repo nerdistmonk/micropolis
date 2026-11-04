@@ -147,6 +147,7 @@ bool Dialog_File_HandleClick(float mx, float my)
                 } else {
                     snprintf(file_status_message, sizeof(file_status_message), "Error: Could not save to %s", file_name_input_buffer);
                     file_status_color = col_red;
+                    Audio_MakeSound("warning", "Sorry -speed 85");
                 }
             } else {
                 snprintf(file_status_message, sizeof(file_status_message), "Error: Filename cannot be empty");
@@ -165,6 +166,7 @@ bool Dialog_File_HandleClick(float mx, float my)
                 } else {
                     snprintf(file_status_message, sizeof(file_status_message), "Failed to load %s", file_name_input_buffer);
                     file_status_color = col_red;
+                    Audio_MakeSound("warning", "Sorry -speed 85");
                 }
             } else {
                 snprintf(file_status_message, sizeof(file_status_message), "Error: Filename cannot be empty");

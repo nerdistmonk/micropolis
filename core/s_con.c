@@ -234,7 +234,8 @@ bool CheckZoneClear(int32_t x, int32_t y, int16_t size)
     return true;
 }
 
-bool PlaceZone(int32_t x, int32_t y, int16_t tool_id)
+/* Returns 1 on success, -1 if the footprint is not clear, -2 if funds are short, 0 for a non-zone tool. */
+int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
 {
     int32_t base_cost = 0;
     int16_t base_tile = 0;
@@ -292,7 +293,7 @@ bool PlaceZone(int32_t x, int32_t y, int16_t tool_id)
         size = 6;
         break;
     default:
-        return false;
+        return 0;
     }
 
     int32_t start_x = x - 1;
@@ -304,7 +305,7 @@ bool PlaceZone(int32_t x, int32_t y, int16_t tool_id)
             int32_t tx = start_x + dx;
             int32_t ty = start_y + dy;
 
-            if (!TestBounds(tx, ty)) return false;
+            if (!TestBounds(tx, ty)) return -1;
 
             uint16_t tile = Map[tx][ty];
             uint16_t low = tile & LOMASK;
@@ -313,17 +314,17 @@ bool PlaceZone(int32_t x, int32_t y, int16_t tool_id)
                 if (autoBulldoze && tally(low)) {
                     doze_cost++;
                 } else {
-                    return false;
+                    return -1;
                 }
             }
             if (tile & (ZONEBIT | ANIMBIT)) {
-                return false;
+                return -1;
             }
         }
     }
 
     if (TotalFunds < (base_cost + doze_cost)) {
-        return false;
+        return -2;
     }
 
     /* Deduct both zone and auto-bulldoze costs atomically */
@@ -343,8 +344,7 @@ bool PlaceZone(int32_t x, int32_t y, int16_t tool_id)
     SMapY = (int16_t)y;
 
     ZonePlop(base_tile);
-    Audio_MakeSound("city", "build");
-    return true;
+    return 1;
 }
 
 /* Picks the bridge orientation for water from an adjacent road/rail, in historic order (E, W, S, N). Returns 0 if none. */
@@ -444,7 +444,6 @@ int32_t LayRoad(int32_t x, int32_t y)
         TotalFunds -= 10;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "road");
         return 1;
     }
 
@@ -456,7 +455,6 @@ int32_t LayRoad(int32_t x, int32_t y)
         TotalFunds -= 50;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "road");
         return 1;
     }
 
@@ -465,7 +463,6 @@ int32_t LayRoad(int32_t x, int32_t y)
         TotalFunds -= 10;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "road");
         return 1;
     }
 
@@ -474,7 +471,6 @@ int32_t LayRoad(int32_t x, int32_t y)
         TotalFunds -= 10;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "road");
         return 1;
     }
 
@@ -495,7 +491,6 @@ int32_t LayRail(int32_t x, int32_t y)
         TotalFunds -= 20;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "rail");
         return 1;
     }
 
@@ -507,7 +502,6 @@ int32_t LayRail(int32_t x, int32_t y)
         TotalFunds -= 100;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "rail");
         return 1;
     }
 
@@ -516,7 +510,6 @@ int32_t LayRail(int32_t x, int32_t y)
         TotalFunds -= 20;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "rail");
         return 1;
     }
 
@@ -525,7 +518,6 @@ int32_t LayRail(int32_t x, int32_t y)
         TotalFunds -= 20;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "rail");
         return 1;
     }
 
@@ -546,7 +538,6 @@ int32_t LayWire(int32_t x, int32_t y)
         TotalFunds -= 5;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "wire");
         return 1;
     }
 
@@ -558,7 +549,6 @@ int32_t LayWire(int32_t x, int32_t y)
         TotalFunds -= 25;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "wire");
         return 1;
     }
 
@@ -567,7 +557,6 @@ int32_t LayWire(int32_t x, int32_t y)
         TotalFunds -= 5;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "wire");
         return 1;
     }
 
@@ -576,7 +565,6 @@ int32_t LayWire(int32_t x, int32_t y)
         TotalFunds -= 5;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "wire");
         return 1;
     }
 
@@ -600,7 +588,6 @@ int32_t LayPark(int32_t x, int32_t y)
 
     TotalFunds -= CostOf[parkState];
     MustUpdateFunds = 1;
-    Audio_MakeSound("city", "park");
     return 1;
 }
 
@@ -620,6 +607,13 @@ static void ClearZoneArea(int32_t center_x, int32_t center_y, int16_t size)
             }
         }
     }
+}
+
+/* Unix plays High for 3x3 zones, Low for 4x4, and both for 6x6. */
+static void PlayZoneExplosion(int16_t size)
+{
+    if (size == 3 || size == 6) Audio_MakeSound("city", "expl-hi");
+    if (size == 4 || size == 6) Audio_MakeSound("city", "expl-low");
 }
 
 int32_t LayDoze(int32_t x, int32_t y)
@@ -647,7 +641,7 @@ int32_t LayDoze(int32_t x, int32_t y)
         TotalFunds -= 1;
         MustUpdateFunds = 1;
         FixZone(x, y);
-        Audio_MakeSound("city", "expl-low");
+        PlayZoneExplosion(size);
         return 1;
     }
 
@@ -679,7 +673,7 @@ int32_t LayDoze(int32_t x, int32_t y)
                     TotalFunds -= 1;
                     MustUpdateFunds = 1;
                     FixZone(cx, cy);
-                    Audio_MakeSound("city", "expl-low");
+                    PlayZoneExplosion(size);
                     return 1;
                 }
             }

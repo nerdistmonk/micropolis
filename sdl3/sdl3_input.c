@@ -8,6 +8,7 @@
 #include "sdl3_help.h"
 #include "sdl3_settings.h"
 #include "sdl3_splash.h"
+#include "sdl3_audio.h"
 #include "sim.h"
 #include <SDL3/SDL.h>
 
@@ -29,15 +30,52 @@ static float pointer_y = 0.0f;
 static bool pointer_known = false;
 static uint64_t last_edge_scroll_ms = 0;
 
-static void ApplyTool(int32_t tx, int32_t ty)
+/* Success tones per tool, matching Unix UIDidTool* in res/micropolis.tcl */
+static void PlayToolTone(int16_t tool)
+{
+    switch (tool) {
+    case residentialState: Audio_MakeSound("edit", "o -speed 140"); break;
+    case commercialState:  Audio_MakeSound("edit", "a -speed 140"); break;
+    case industrialState:  Audio_MakeSound("edit", "e -speed 140"); break;
+    case fireState:        Audio_MakeSound("edit", "o -speed 130"); break;
+    case policeState:      Audio_MakeSound("edit", "e -speed 130"); break;
+    case powerState:       Audio_MakeSound("edit", "o -speed 75"); break;
+    case nuclearState:     Audio_MakeSound("edit", "e -speed 75"); break;
+    case stadiumState:     Audio_MakeSound("edit", "o -speed 90"); break;
+    case seaportState:     Audio_MakeSound("edit", "e -speed 90"); break;
+    case airportState:     Audio_MakeSound("edit", "a -speed 50"); break;
+    case parkState:        Audio_MakeSound("edit", "a -speed 130"); break;
+    case roadState:        Audio_MakeSound("edit", "e -speed 100"); break;
+    case rrState:          Audio_MakeSound("edit", "o -speed 100"); break;
+    case wireState:        Audio_MakeSound("edit", "o -speed 120"); break;
+    default: break;
+    }
+}
+
+/* Mirrors Unix ToolDown: -2 is insufficient funds, anything else is a refusal */
+static void ReportToolFailure(int32_t result)
+{
+    ClearMes();
+    if (result == -2) {
+        SendMes(33);
+        Audio_MakeSound("edit", "Sorry");
+    } else {
+        SendMes(34);
+        Audio_MakeSound("edit", "UhUh");
+    }
+}
+
+static void ApplyTool(int32_t tx, int32_t ty, bool first)
 {
     if (!TestBounds(tx, ty)) return;
 
     if (active_tool == queryState) {
         GUI_Dialogs_ShowQueryInspector(tx, ty);
+        Audio_MakeSound("edit", "e -speed 200");
         return;
     }
 
+    int32_t result;
     switch (active_tool) {
     case residentialState:
     case commercialState:
@@ -49,27 +87,41 @@ static void ApplyTool(int32_t tx, int32_t ty)
     case seaportState:
     case nuclearState:
     case airportState:
-        PlaceZone(tx, ty, active_tool);
+        result = PlaceZone(tx, ty, active_tool);
         break;
 
     case wireState:
-        LayWire(tx, ty);
+        result = LayWire(tx, ty);
         break;
     case dozeState:
-        LayDoze(tx, ty);
+        result = LayDoze(tx, ty);
         break;
     case parkState:
-        LayPark(tx, ty);
+        result = LayPark(tx, ty);
         break;
     case roadState:
-        LayRoad(tx, ty);
+        result = LayRoad(tx, ty);
         break;
     case rrState:
-        LayRail(tx, ty);
+        result = LayRail(tx, ty);
         break;
     default:
-        break;
+        return;
     }
+
+    if (result == 1) {
+        /* Bulldozer clips are played by the core */
+        if (active_tool != dozeState) PlayToolTone(active_tool);
+        return;
+    }
+
+    /* Failure feedback only on the initial click, not while dragging */
+    if (!first) return;
+
+    /* Bulldozing empty ground is silent */
+    if (active_tool == dozeState && result == 0) return;
+
+    ReportToolFailure(result);
 }
 
 void Input_Init(void)
@@ -159,10 +211,11 @@ void Input_ProcessEvents(void)
                 break;
             case SDLK_SPACE:
                 SetSimSpeed(SimSpeed == 0 ? GetLastRunSpeed() : 0);
+                Audio_PlayRunningSound(SimSpeed);
                 break;
-            case SDLK_1: SetSimSpeed(1); break;
-            case SDLK_2: SetSimSpeed(2); break;
-            case SDLK_3: SetSimSpeed(3); break;
+            case SDLK_1: SetSimSpeed(1); Audio_PlayRunningSound(SimSpeed); break;
+            case SDLK_2: SetSimSpeed(2); Audio_PlayRunningSound(SimSpeed); break;
+            case SDLK_3: SetSimSpeed(3); Audio_PlayRunningSound(SimSpeed); break;
 
             case SDLK_Q: active_tool = queryState; break;
             case SDLK_R: active_tool = residentialState; break;
@@ -176,10 +229,20 @@ void Input_ProcessEvents(void)
 
             /* Persistence Hotkeys */
             case SDLK_F7:
-                GUI_ShowStatus(SaveCity("quicksave.cty") ? "Quicksaved to quicksave.cty" : "Quicksave failed");
+                if (SaveCity("quicksave.cty")) {
+                    GUI_ShowStatus("Quicksaved to quicksave.cty");
+                } else {
+                    GUI_ShowStatus("Quicksave failed");
+                    Audio_MakeSound("warning", "Sorry -speed 85");
+                }
                 break;
             case SDLK_F8:
-                GUI_ShowStatus(LoadCity("quicksave.cty") ? "Quickloaded quicksave.cty" : "Quickload failed: quicksave.cty missing or unreadable");
+                if (LoadCity("quicksave.cty")) {
+                    GUI_ShowStatus("Quickloaded quicksave.cty");
+                } else {
+                    GUI_ShowStatus("Quickload failed: quicksave.cty missing or unreadable");
+                    Audio_MakeSound("warning", "Sorry -speed 85");
+                }
                 break;
 
             case SDLK_LEFT:
@@ -224,7 +287,7 @@ void Input_ProcessEvents(void)
             if (event.button.button == SDL_BUTTON_LEFT) {
                 int32_t tx, ty;
                 if (Video_ScreenToTile(event.button.x, event.button.y, &tx, &ty)) {
-                    ApplyTool(tx, ty);
+                    ApplyTool(tx, ty, true);
                     last_drag_tile_x = tx;
                     last_drag_tile_y = ty;
                 }
@@ -265,7 +328,7 @@ void Input_ProcessEvents(void)
                 int32_t tx, ty;
                 if (Video_ScreenToTile(event.motion.x, event.motion.y, &tx, &ty)) {
                     if (tx != last_drag_tile_x || ty != last_drag_tile_y) {
-                        ApplyTool(tx, ty);
+                        ApplyTool(tx, ty, false);
                         last_drag_tile_x = tx;
                         last_drag_tile_y = ty;
                     }

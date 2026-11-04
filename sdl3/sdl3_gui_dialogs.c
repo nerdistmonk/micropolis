@@ -26,6 +26,7 @@ void GUI_Dialogs_OpenAnnualBudget(void)
     pending_annual_budget = true;
     saved_sim_speed = (SimSpeed > 0) ? SimSpeed : 3;
     SetSimSpeed(0);
+    Audio_PlayRunningSound(SimSpeed);
 }
 
 void GUI_Dialogs_OpenOverlays(void)
@@ -94,6 +95,7 @@ void GUI_Dialogs_Close(void)
             ApplyBudgetCommit();
             pending_annual_budget = false;
             SetSimSpeed(saved_sim_speed);
+            Audio_PlayRunningSound(SimSpeed);
         }
     } else if (active_modal == GUI_MODAL_FILE) {
         Dialog_File_Reset();
