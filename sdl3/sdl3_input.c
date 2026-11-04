@@ -291,6 +291,8 @@ void Input_ProcessEvents(void)
             continue;
         }
 
+        if (GUI_Dialogs_HandleNativeEvent(&event)) continue;
+
         switch (event.type) {
         case SDL_EVENT_QUIT:
             GUI_Dialogs_OpenQuitConfirm();
@@ -349,8 +351,8 @@ void Input_ProcessEvents(void)
             case SDLK_P: BeginToolHold(wireState); break;
             case SDLK_T: BeginToolHold(rrState); break;
 
-            case SDLK_X: CycleTool(1); break;
-            case SDLK_Z: CycleTool(-1); break;
+            case SDLK_X: if (!event.key.repeat) CycleTool(1); break;
+            case SDLK_Z: if (!event.key.repeat) CycleTool(-1); break;
 
             /* Persistence Hotkeys */
             case SDLK_F7:

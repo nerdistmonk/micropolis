@@ -49,22 +49,28 @@ bool Dialog_Quit_HandleClick(float mx, float my)
             quit_confirmed = true;
             GUI_Dialogs_Close();
         } else {
-            const char *name = Dialog_File_GetSaveName();
-            if (name[0] == '\0') {
-                snprintf(quit_status, sizeof(quit_status), "Error: Filename cannot be empty");
-                quit_status_color = col_red;
-            } else if (SaveCity(name)) {
-                quit_confirmed = true;
-                GUI_Dialogs_Close();
-            } else {
-                snprintf(quit_status, sizeof(quit_status), "Error: Could not save to %s", name);
-                quit_status_color = col_red;
-                Audio_MakeSound("warning", "Sorry -speed 85");
-            }
+            Dialog_File_RequestNative(NATIVE_SAVE_QUIT);
         }
         return true;
     }
     return true;
+}
+
+/* name is NULL when the native save dialog itself failed. */
+void Dialog_Quit_SaveFinished(bool saved, const char *name)
+{
+    if (saved) {
+        quit_confirmed = true;
+        GUI_Dialogs_Close();
+        return;
+    }
+    if (name) {
+        snprintf(quit_status, sizeof(quit_status), "Error: Could not save to %s", name);
+    } else {
+        snprintf(quit_status, sizeof(quit_status), "Error: Save dialog failed");
+    }
+    quit_status_color = col_red;
+    Audio_MakeSound("warning", "Sorry -speed 85");
 }
 
 void Dialog_Quit_Render(SDL_Renderer *renderer)

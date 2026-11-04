@@ -34,13 +34,17 @@ bool Dialog_City_HandleTextInput(const char *text);
 void Dialog_City_Render(SDL_Renderer *renderer);
 
 /* File, Scenario & Options Manager */
+typedef enum {
+    NATIVE_SAVE_FILE,
+    NATIVE_LOAD_FILE,
+    NATIVE_SAVE_QUIT
+} NativeFileRequest;
+
 void Dialog_File_Open(FileDialogTab tab);
-void Dialog_File_Reset(void);
-const char *Dialog_File_GetSaveName(void);
 bool Dialog_File_HandleClick(float mx, float my);
-bool Dialog_File_HandleKeyDown(SDL_Keycode key);
-bool Dialog_File_HandleTextInput(const char *text);
 void Dialog_File_Render(SDL_Renderer *renderer);
+void Dialog_File_RequestNative(NativeFileRequest req);
+bool Dialog_File_HandleNativeEvent(const SDL_Event *event);
 
 /* Map Overlays */
 void Dialog_Overlays_Open(void);
@@ -73,6 +77,7 @@ void Dialog_Notice_Render(SDL_Renderer *renderer);
 void Dialog_Quit_Show(void);
 bool Dialog_Quit_HandleClick(float mx, float my);
 bool Dialog_Quit_TakeConfirmed(void);
+void Dialog_Quit_SaveFinished(bool saved, const char *name);
 void Dialog_Quit_Render(SDL_Renderer *renderer);
 
 /* Choose another city confirmation (gates New City and scenario load) */

@@ -104,8 +104,6 @@ void GUI_Dialogs_Close(void)
             SetSimSpeed(saved_sim_speed);
             Audio_PlayRunningSound(SimSpeed);
         }
-    } else if (active_modal == GUI_MODAL_FILE) {
-        Dialog_File_Reset();
     } else if (active_modal == GUI_MODAL_CHOOSE_CITY) {
         Dialog_ChooseCity_Reset();
     }
@@ -129,10 +127,12 @@ bool GUI_Dialogs_HandleTextInput(const char *text)
     if (active_modal == GUI_MODAL_CITY_MGMT) {
         return Dialog_City_HandleTextInput(text);
     }
-    if (active_modal == GUI_MODAL_FILE) {
-        return Dialog_File_HandleTextInput(text);
-    }
     return false;
+}
+
+bool GUI_Dialogs_HandleNativeEvent(const SDL_Event *event)
+{
+    return Dialog_File_HandleNativeEvent(event);
 }
 
 bool GUI_Dialogs_HandleKeyDown(SDL_Keycode key)
@@ -155,10 +155,6 @@ bool GUI_Dialogs_HandleKeyDown(SDL_Keycode key)
     if (active_modal == GUI_MODAL_CITY_MGMT) {
         return Dialog_City_HandleKeyDown(key);
     }
-    if (active_modal == GUI_MODAL_FILE) {
-        return Dialog_File_HandleKeyDown(key);
-    }
-
     return true;
 }
 

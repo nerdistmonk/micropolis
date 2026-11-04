@@ -5,14 +5,21 @@
 #include "sdl3_gui.h"
 #include "sdl3_audio.h"
 #include "sdl3_settings.h"
+#include <ctype.h>
+#include <stdint.h>
 
 static FileDialogTab active_file_tab = FILE_TAB_SAVE_LOAD;
-static bool is_editing_filename = false;
-static char file_name_input_buffer[64] = "mycity.cty";
 static char file_status_message[128] = {0};
 static SDL_Color file_status_color = { 245, 245, 250, 255 };
 static int new_city_level = 0;
 static const char *const NewCityLevelNames[3] = { "Easy", "Medium", "Hard" };
+static Uint32 native_result_event = 0;
+
+typedef struct {
+    NativeFileRequest request;
+    char *path;
+    bool dialog_error;
+} NativeFileResult;
 
 static const struct {
     int id;
@@ -44,16 +51,7 @@ static SDL_FRect ScenarioGridRect(size_t i)
 void Dialog_File_Open(FileDialogTab tab)
 {
     active_file_tab = tab;
-    Dialog_File_Reset();
     file_status_message[0] = '\0';
-}
-
-void Dialog_File_Reset(void)
-{
-    if (is_editing_filename) {
-        SDL_StopTextInput(Video_GetWindow());
-        is_editing_filename = false;
-    }
 }
 
 /* Run only after the "Choose Another City" confirmation. */
@@ -73,38 +71,137 @@ static void ScenarioConfirmed(int32_t id)
     GUI_LoadScenarioWithStatus((int16_t)id);
 }
 
-const char *Dialog_File_GetSaveName(void)
+static bool EndsWithCityExt(const char *path)
 {
-    return file_name_input_buffer;
+    size_t n = strlen(path);
+    if (n < 4) return false;
+    const char *ext = path + n - 4;
+    return ext[0] == '.' &&
+           tolower((unsigned char)ext[1]) == 'c' &&
+           tolower((unsigned char)ext[2]) == 't' &&
+           tolower((unsigned char)ext[3]) == 'y';
 }
 
-bool Dialog_File_HandleTextInput(const char *text)
+static void WithCityExt(const char *in, char *out, size_t cap)
 {
-    if (!text || !is_editing_filename) return false;
-
-    size_t cur = strlen(file_name_input_buffer);
-    size_t add = strlen(text);
-    if (cur + add < sizeof(file_name_input_buffer) - 1) {
-        strcat(file_name_input_buffer, text);
+    snprintf(out, cap, "%s", in);
+    if (!EndsWithCityExt(out)) {
+        strncat(out, ".cty", cap - strlen(out) - 1);
     }
-    return true;
 }
 
-bool Dialog_File_HandleKeyDown(SDL_Keycode key)
+static const char *BaseName(const char *path)
 {
-    if (!is_editing_filename) return false;
+    const char *slash = strrchr(path, '/');
+    const char *bslash = strrchr(path, '\\');
+    if (bslash && (!slash || bslash > slash)) slash = bslash;
+    return slash ? slash + 1 : path;
+}
 
-    if (key == SDLK_RETURN || key == SDLK_KP_ENTER) {
-        SDL_StopTextInput(Video_GetWindow());
-        is_editing_filename = false;
-        return true;
-    } else if (key == SDLK_BACKSPACE) {
-        size_t len = strlen(file_name_input_buffer);
-        if (len > 0) {
-            file_name_input_buffer[len - 1] = '\0';
+/* Runs on the main thread: the core is never touched from a dialog callback. */
+static void ApplyNativeResult(const NativeFileResult *r)
+{
+    char path[512];
+
+    switch (r->request) {
+    case NATIVE_SAVE_FILE:
+        if (r->dialog_error) {
+            snprintf(file_status_message, sizeof(file_status_message), "Error: Save dialog failed");
+            file_status_color = col_red;
+        } else if (r->path) {
+            WithCityExt(r->path, path, sizeof(path));
+            if (SaveCity(path)) {
+                snprintf(file_status_message, sizeof(file_status_message), "Successfully saved city to %s", BaseName(path));
+                file_status_color = col_green;
+            } else {
+                snprintf(file_status_message, sizeof(file_status_message), "Error: Could not save to %s", BaseName(path));
+                file_status_color = col_red;
+                Audio_MakeSound("warning", "Sorry -speed 85");
+            }
         }
-        return true;
+        break;
+
+    case NATIVE_LOAD_FILE:
+        if (r->dialog_error) {
+            snprintf(file_status_message, sizeof(file_status_message), "Error: Load dialog failed");
+            file_status_color = col_red;
+        } else if (r->path) {
+            if (LoadCity(r->path)) {
+                snprintf(file_status_message, sizeof(file_status_message), "Loaded %s successfully", BaseName(r->path));
+                file_status_color = col_green;
+            } else {
+                snprintf(file_status_message, sizeof(file_status_message), "Failed to load %s", BaseName(r->path));
+                file_status_color = col_red;
+                Audio_MakeSound("warning", "Sorry -speed 85");
+            }
+        }
+        break;
+
+    case NATIVE_SAVE_QUIT:
+        if (r->dialog_error) {
+            Dialog_Quit_SaveFinished(false, NULL);
+        } else if (r->path) {
+            WithCityExt(r->path, path, sizeof(path));
+            Dialog_Quit_SaveFinished(SaveCity(path), BaseName(path));
+        }
+        break;
     }
+}
+
+/* SDL may invoke this on any thread, so it only queues the result as a user event. */
+static void SDLCALL NativeFileCallback(void *userdata, const char *const *filelist, int filter)
+{
+    (void)filter;
+    NativeFileResult *r = (NativeFileResult *)SDL_calloc(1, sizeof(*r));
+    if (!r) return;
+
+    r->request = (NativeFileRequest)(uintptr_t)userdata;
+    if (!filelist) {
+        r->dialog_error = true;
+    } else if (filelist[0]) {
+        r->path = SDL_strdup(filelist[0]);
+    }
+
+    SDL_Event ev;
+    SDL_zero(ev);
+    ev.type = native_result_event;
+    ev.user.type = native_result_event;
+    ev.user.data1 = r;
+    if (!SDL_PushEvent(&ev)) {
+        SDL_free(r->path);
+        SDL_free(r);
+    }
+}
+
+void Dialog_File_RequestNative(NativeFileRequest req)
+{
+    static const SDL_DialogFileFilter save_filters[] = { { "Micropolis city", "cty" } };
+    static const SDL_DialogFileFilter load_filters[] = { { "Micropolis city", "cty;snro" } };
+
+    if (!native_result_event) native_result_event = SDL_RegisterEvents(1);
+    if (!native_result_event) {
+        NativeFileResult fail = { req, NULL, true };
+        ApplyNativeResult(&fail);
+        return;
+    }
+
+    SDL_Window *window = Video_GetWindow();
+    void *userdata = (void *)(uintptr_t)req;
+    if (req == NATIVE_LOAD_FILE) {
+        SDL_ShowOpenFileDialog(NativeFileCallback, userdata, window, load_filters, 1, NULL, false);
+    } else {
+        SDL_ShowSaveFileDialog(NativeFileCallback, userdata, window, save_filters, 1, "mycity.cty");
+    }
+}
+
+bool Dialog_File_HandleNativeEvent(const SDL_Event *event)
+{
+    if (!native_result_event || event->type != native_result_event) return false;
+
+    NativeFileResult *r = (NativeFileResult *)event->user.data1;
+    ApplyNativeResult(r);
+    SDL_free(r->path);
+    SDL_free(r);
     return true;
 }
 
@@ -128,68 +225,27 @@ bool Dialog_File_HandleClick(float mx, float my)
     for (int i = 0; i < FILE_TAB_COUNT; i++) {
         if (mx >= tab_x && mx <= tab_x + tab_w && my >= tab_y && my <= tab_y + tab_h) {
             active_file_tab = (FileDialogTab)i;
-            if (is_editing_filename) {
-                SDL_StopTextInput(Video_GetWindow());
-                is_editing_filename = false;
-            }
             return true;
         }
         tab_x += tab_w + 8.0f;
     }
 
     if (active_file_tab == FILE_TAB_SAVE_LOAD) {
-        SDL_FRect input_rect = { dx + 130.0f, dy + 138.0f, 280.0f, 28.0f };
-        if (mx >= input_rect.x && mx <= input_rect.x + input_rect.w &&
-            my >= input_rect.y && my <= input_rect.y + input_rect.h) {
-            if (!is_editing_filename) {
-                is_editing_filename = true;
-                SDL_StartTextInput(Video_GetWindow());
-            }
-            return true;
-        } else if (is_editing_filename) {
-            SDL_StopTextInput(Video_GetWindow());
-            is_editing_filename = false;
-        }
-
-        SDL_FRect save_btn = { dx + 60.0f, dy + 185.0f, 180.0f, 34.0f };
+        SDL_FRect save_btn = { dx + 60.0f, dy + 138.0f, 180.0f, 34.0f };
         if (mx >= save_btn.x && mx <= save_btn.x + save_btn.w &&
             my >= save_btn.y && my <= save_btn.y + save_btn.h) {
-            if (strlen(file_name_input_buffer) > 0) {
-                if (SaveCity(file_name_input_buffer)) {
-                    snprintf(file_status_message, sizeof(file_status_message), "Successfully saved city to %s", file_name_input_buffer);
-                    file_status_color = col_green;
-                } else {
-                    snprintf(file_status_message, sizeof(file_status_message), "Error: Could not save to %s", file_name_input_buffer);
-                    file_status_color = col_red;
-                    Audio_MakeSound("warning", "Sorry -speed 85");
-                }
-            } else {
-                snprintf(file_status_message, sizeof(file_status_message), "Error: Filename cannot be empty");
-                file_status_color = col_red;
-            }
+            Dialog_File_RequestNative(NATIVE_SAVE_FILE);
             return true;
         }
 
-        SDL_FRect load_btn = { dx + 300.0f, dy + 185.0f, 180.0f, 34.0f };
+        SDL_FRect load_btn = { dx + 300.0f, dy + 138.0f, 180.0f, 34.0f };
         if (mx >= load_btn.x && mx <= load_btn.x + load_btn.w &&
             my >= load_btn.y && my <= load_btn.y + load_btn.h) {
-            if (strlen(file_name_input_buffer) > 0) {
-                if (LoadCity(file_name_input_buffer)) {
-                    snprintf(file_status_message, sizeof(file_status_message), "Loaded %s successfully", file_name_input_buffer);
-                    file_status_color = col_green;
-                } else {
-                    snprintf(file_status_message, sizeof(file_status_message), "Failed to load %s", file_name_input_buffer);
-                    file_status_color = col_red;
-                    Audio_MakeSound("warning", "Sorry -speed 85");
-                }
-            } else {
-                snprintf(file_status_message, sizeof(file_status_message), "Error: Filename cannot be empty");
-                file_status_color = col_red;
-            }
+            Dialog_File_RequestNative(NATIVE_LOAD_FILE);
             return true;
         }
 
-        SDL_FRect new_btn = { dx + 180.0f, dy + 235.0f, 180.0f, 34.0f };
+        SDL_FRect new_btn = { dx + 180.0f, dy + 185.0f, 180.0f, 34.0f };
         if (mx >= new_btn.x && mx <= new_btn.x + new_btn.w &&
             my >= new_btn.y && my <= new_btn.y + new_btn.h) {
             GUI_Dialogs_OpenChooseCity(NewCityConfirmed, new_city_level);
@@ -334,37 +390,23 @@ void Dialog_File_Render(SDL_Renderer *renderer)
 
     if (active_file_tab == FILE_TAB_SAVE_LOAD) {
         GUI_DrawText(renderer, cx, cy, "CITY PERSISTENCE & FILE DISK", col_gold);
-        GUI_DrawText(renderer, cx, cy + 46, "Filename:", col_white);
+        GUI_DrawText(renderer, cx, cy + 46, "Save and Load open your system's file dialog.", col_white);
 
-        SDL_FRect input_rect = { dx + 130.0f, dy + 138.0f, 280.0f, 28.0f };
-        SDL_SetRenderDrawColor(renderer, is_editing_filename ? 30 : 20, is_editing_filename ? 40 : 25, is_editing_filename ? 60 : 35, 255);
-        SDL_RenderFillRect(renderer, &input_rect);
-        SDL_SetRenderDrawColor(renderer, is_editing_filename ? 255 : 80, is_editing_filename ? 215 : 95, is_editing_filename ? 0 : 120, 255);
-        SDL_RenderRect(renderer, &input_rect);
-
-        char edit_text[70];
-        if (is_editing_filename && (flagBlink > 0)) {
-            snprintf(edit_text, sizeof(edit_text), "%s_", file_name_input_buffer);
-        } else {
-            snprintf(edit_text, sizeof(edit_text), "%s", file_name_input_buffer);
-        }
-        GUI_DrawText(renderer, (int)input_rect.x + 8, (int)input_rect.y + 6, edit_text, col_white);
-
-        SDL_FRect save_btn = { dx + 60.0f, dy + 185.0f, 180.0f, 34.0f };
+        SDL_FRect save_btn = { dx + 60.0f, dy + 138.0f, 180.0f, 34.0f };
         SDL_SetRenderDrawColor(renderer, 40, 70, 110, 255);
         SDL_RenderFillRect(renderer, &save_btn);
         SDL_SetRenderDrawColor(renderer, 80, 140, 220, 255);
         SDL_RenderRect(renderer, &save_btn);
         GUI_DrawText(renderer, (int)save_btn.x + 44, (int)save_btn.y + 8, "Save City", col_white);
 
-        SDL_FRect load_btn = { dx + 300.0f, dy + 185.0f, 180.0f, 34.0f };
+        SDL_FRect load_btn = { dx + 300.0f, dy + 138.0f, 180.0f, 34.0f };
         SDL_SetRenderDrawColor(renderer, 40, 90, 70, 255);
         SDL_RenderFillRect(renderer, &load_btn);
         SDL_SetRenderDrawColor(renderer, 70, 160, 120, 255);
         SDL_RenderRect(renderer, &load_btn);
         GUI_DrawText(renderer, (int)load_btn.x + 44, (int)load_btn.y + 8, "Load City", col_white);
 
-        SDL_FRect new_btn = { dx + 180.0f, dy + 235.0f, 180.0f, 34.0f };
+        SDL_FRect new_btn = { dx + 180.0f, dy + 185.0f, 180.0f, 34.0f };
         SDL_SetRenderDrawColor(renderer, 100, 70, 30, 255);
         SDL_RenderFillRect(renderer, &new_btn);
         SDL_SetRenderDrawColor(renderer, 200, 140, 50, 255);
