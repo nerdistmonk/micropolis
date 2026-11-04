@@ -44,13 +44,13 @@ target_link_libraries(micropolis_sdl3 PRIVATE
 
 # Copy runtime assets adjacent to the binary in the build directory
 add_custom_command(TARGET micropolis_sdl3 POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
+   COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/fonts"
         "$<TARGET_FILE_DIR:micropolis_sdl3>/fonts"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
+   COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/images"
         "$<TARGET_FILE_DIR:micropolis_sdl3>/images"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
+   COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/scenarios"
         "$<TARGET_FILE_DIR:micropolis_sdl3>/scenarios"
    COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -59,5 +59,8 @@ add_custom_command(TARGET micropolis_sdl3 POST_BUILD
    COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/cities"
         "$<TARGET_FILE_DIR:micropolis_sdl3>/cities"
+   COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/manual"
+        "$<TARGET_FILE_DIR:micropolis_sdl3>/manual"
     COMMENT "Synchronizing fonts, images, and scenarios to build directory"
 )
