@@ -626,13 +626,14 @@ static void ClearZoneArea(int32_t center_x, int32_t center_y, int16_t size)
 int32_t LayDoze(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return 0;
-    if (TotalFunds < 1) return -2;
 
     uint16_t raw_tile = Map[x][y];
     int32_t tile = raw_tile & LOMASK;
+    bool has_funds = TotalFunds >= 1;
 
     /* 1. Zone center demolition */
     if (raw_tile & ZONEBIT) {
+        if (!has_funds) return 1;
         int16_t size = 3;
         if ((tile >= PORTBASE && tile <= LASTPORT) ||
             (tile >= COALBASE && tile <= LASTPOWERPLANT) ||
@@ -674,6 +675,7 @@ int32_t LayDoze(int32_t x, int32_t y)
                 int32_t max_y = min_y + size - 1;
 
                 if (x >= min_x && x <= max_x && y >= min_y && y <= max_y) {
+                    if (!has_funds) return 1;
                     ClearZoneArea(cx, cy, size);
                     TotalFunds -= 1;
                     MustUpdateFunds = 1;
@@ -686,6 +688,7 @@ int32_t LayDoze(int32_t x, int32_t y)
     }
 
     /* 3. Single-tile clearing */
+    if (!has_funds) return -2;
     if (raw_tile & BULLBIT) {
         int32_t folded = tile;
         NeutralizeRoad(&folded);
