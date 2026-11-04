@@ -186,7 +186,7 @@ static int16_t AverageTrf(void)
         }
     }
 
-    TrafficAverage = (int16_t)(((float)trf_total / (float)count) * 2.4f);
+    TrafficAverage = (int16_t)((trf_total / count) * 2.4);
     return TrafficAverage;
 }
 
@@ -199,7 +199,6 @@ static int16_t GetUnemployment(void)
     int32_t result = (int32_t)((r - 1.0f) * 255.0f);
 
     if (result > 255) result = 255;
-    if (result < 0)   result = 0;
 
     return (int16_t)result;
 }
@@ -227,25 +226,24 @@ static void GetScore(void)
     if (z > 1000) z = 1000;
     if (z < 0)    z = 0;
 
-    float z_flt = (float)z;
-
-    if (ResCap) z_flt *= 0.85f;
-    if (ComCap) z_flt *= 0.85f;
-    if (IndCap) z_flt *= 0.85f;
+    /* Unix truncates to int after every multiplier; keep that per step */
+    if (ResCap) z = (int32_t)(z * 0.85);
+    if (ComCap) z = (int32_t)(z * 0.85);
+    if (IndCap) z = (int32_t)(z * 0.85);
 
     if (RoadEffect < 32) {
-        z_flt -= (float)(32 - RoadEffect);
+        z -= (32 - RoadEffect);
     }
     if (PoliceEffect < 1000) {
-        z_flt *= (0.9f + ((float)PoliceEffect / 10000.1f));
+        z = (int32_t)(z * (0.9 + ((double)PoliceEffect / 10000.1)));
     }
     if (FireEffect < 1000) {
-        z_flt *= (0.9f + ((float)FireEffect / 10000.1f));
+        z = (int32_t)(z * (0.9 + ((double)FireEffect / 10000.1)));
     }
 
-    if (RValve < -1000) z_flt *= 0.85f;
-    if (CValve < -1000) z_flt *= 0.85f;
-    if (IValve < -1000) z_flt *= 0.85f;
+    if (RValve < -1000) z = (int32_t)(z * 0.85);
+    if (CValve < -1000) z = (int32_t)(z * 0.85);
+    if (IValve < -1000) z = (int32_t)(z * 0.85);
 
     float sm = 1.0f;
     if ((CityPop == 0) || (deltaCityPop == 0)) {
@@ -257,9 +255,9 @@ static void GetScore(void)
     } else if (deltaCityPop < 0) {
         sm = 0.95f + ((float)deltaCityPop / (float)(CityPop - deltaCityPop));
     }
-    z_flt *= sm;
-    z_flt -= (float)GetFire();
-    z_flt -= (float)CityTax;
+    z = (int32_t)(z * sm);
+    z -= GetFire();
+    z -= CityTax;
 
     float total_zones = (float)(unPwrdZCnt + PwrdZCnt);
     if (total_zones > 0.0f) {
@@ -267,9 +265,7 @@ static void GetScore(void)
     } else {
         sm = 1.0f;
     }
-    z_flt *= sm;
-
-    z = (int32_t)z_flt;
+    z = (int32_t)(z * sm);
     if (z > 1000) z = 1000;
     if (z < 0)    z = 0;
 
