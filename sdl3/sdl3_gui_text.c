@@ -160,6 +160,18 @@ int GUI_GetLineHeight(void)
     return 10;
 }
 
+float GUI_ButtonWidth(const char *label, float pad)
+{
+    return (float)GUI_GetTextWidth(label) + 2.0f * pad;
+}
+
+void GUI_DrawTextCentered(SDL_Renderer *renderer, SDL_FRect rect, const char *text, SDL_Color color)
+{
+    int x = (int)(rect.x + (rect.w - (float)GUI_GetTextWidth(text)) / 2.0f);
+    int y = (int)(rect.y + (rect.h - (float)GUI_GetLineHeight()) / 2.0f);
+    GUI_DrawText(renderer, x, y, text, color);
+}
+
 void GUI_DrawText(SDL_Renderer *renderer, int x, int y, const char *text, SDL_Color color)
 {
     if (!renderer || !text || text[0] == '\0') return;

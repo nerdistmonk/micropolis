@@ -7,16 +7,25 @@
 #define CHOOSE_H 150.0f
 #define CHOOSE_X ((WINDOW_DEFAULT_WIDTH - CHOOSE_W) / 2.0f)
 #define CHOOSE_Y 200.0f
-#define CHOOSE_BTN_W 170.0f
 #define CHOOSE_BTN_H 32.0f
-#define CHOOSE_BTN_STEP 190.0f
+#define CHOOSE_BTN_PAD 16.0f
+#define CHOOSE_BTN_GAP 20.0f
+
+static const char *const choose_labels[2] = { "Keep playing.", "Another city!" };
 
 static void (*choose_on_confirm)(int32_t) = NULL;
 static int32_t choose_arg = 0;
 
 static SDL_FRect ChooseButtonRect(int index)
 {
-    SDL_FRect r = { CHOOSE_X + 40.0f + (float)index * CHOOSE_BTN_STEP, CHOOSE_Y + CHOOSE_H - 46.0f, CHOOSE_BTN_W, CHOOSE_BTN_H };
+    float row_w = 0.0f;
+    for (int i = 0; i < 2; i++) row_w += GUI_ButtonWidth(choose_labels[i], CHOOSE_BTN_PAD);
+    row_w += CHOOSE_BTN_GAP;
+
+    float x = CHOOSE_X + (CHOOSE_W - row_w) / 2.0f;
+    for (int i = 0; i < index; i++) x += GUI_ButtonWidth(choose_labels[i], CHOOSE_BTN_PAD) + CHOOSE_BTN_GAP;
+
+    SDL_FRect r = { x, CHOOSE_Y + CHOOSE_H - 46.0f, GUI_ButtonWidth(choose_labels[index], CHOOSE_BTN_PAD), CHOOSE_BTN_H };
     return r;
 }
 
@@ -70,14 +79,12 @@ void Dialog_ChooseCity_Render(SDL_Renderer *renderer)
     GUI_DrawText(renderer, tx, ty + 40, "Do you want to abandon this city and", col_white);
     GUI_DrawText(renderer, tx, ty + 64, "choose another one?", col_white);
 
-    static const char *const labels[2] = { "Keep playing.", "Another city!" };
     for (int i = 0; i < 2; i++) {
         SDL_FRect r = ChooseButtonRect(i);
         SDL_SetRenderDrawColor(renderer, 44, 55, 75, 255);
         SDL_RenderFillRect(renderer, &r);
         SDL_SetRenderDrawColor(renderer, 100, 130, 180, 255);
         SDL_RenderRect(renderer, &r);
-        int label_x = (int)(r.x + (r.w - (float)GUI_GetTextWidth(labels[i])) / 2.0f);
-        GUI_DrawText(renderer, label_x, (int)r.y + 8, labels[i], col_white);
+        GUI_DrawTextCentered(renderer, r, choose_labels[i], col_white);
     }
 }

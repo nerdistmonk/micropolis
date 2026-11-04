@@ -36,6 +36,13 @@ void Dialog_Scenario_Show(bool won, const char *msg)
     }
 }
 
+static SDL_FRect ScenarioOkRect(float dx, float dy, float dw, float dh)
+{
+    float w = GUI_ButtonWidth("OK", 28.0f);
+    SDL_FRect r = { dx + (dw - w) / 2.0f, dy + dh - 46.0f, w, 32.0f };
+    return r;
+}
+
 bool Dialog_Scenario_HandleClick(float mx, float my)
 {
     float dx = 290.0f;
@@ -43,7 +50,7 @@ bool Dialog_Scenario_HandleClick(float mx, float my)
     float dw = 444.0f;
     float dh = ScenarioDialogHeight();
 
-    SDL_FRect ok_btn = { dx + (dw - 120.0f) / 2.0f, dy + dh - 46.0f, 120.0f, 32.0f };
+    SDL_FRect ok_btn = ScenarioOkRect(dx, dy, dw, dh);
     if (mx >= ok_btn.x && mx <= ok_btn.x + ok_btn.w &&
         my >= ok_btn.y && my <= ok_btn.y + ok_btn.h) {
         GUI_Dialogs_Close();
@@ -85,12 +92,12 @@ void Dialog_Scenario_Render(SDL_Renderer *renderer)
         SDL_RenderTexture(renderer, key_texture, NULL, &key_dst);
     }
 
-    SDL_FRect ok_btn = { dx + (dw - 120.0f) / 2.0f, dy + dh - 46.0f, 120.0f, 32.0f };
+    SDL_FRect ok_btn = ScenarioOkRect(dx, dy, dw, dh);
     SDL_SetRenderDrawColor(renderer, 44, 55, 75, 255);
     SDL_RenderFillRect(renderer, &ok_btn);
 
     SDL_SetRenderDrawColor(renderer, 100, 130, 180, 255);
     SDL_RenderRect(renderer, &ok_btn);
 
-    GUI_DrawText(renderer, (int)ok_btn.x + 44, (int)ok_btn.y + 8, "OK", col_white);
+    GUI_DrawTextCentered(renderer, ok_btn, "OK", col_white);
 }

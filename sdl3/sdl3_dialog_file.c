@@ -68,6 +68,33 @@ static const int32_t terrain_opt_values[TERRAIN_OPT_COUNT][TERRAIN_OPT_VALUES] =
 static const int terrain_opt_count[TERRAIN_OPT_COUNT] = { 4, 4, 4, 3 };
 static int terrain_opt_index[TERRAIN_OPT_COUNT] = { 0, 0, 0, 0 };
 
+static SDL_FRect FileActionRect(float cx, float y, const char *label, float pad, float h)
+{
+    float w = GUI_ButtonWidth(label, pad);
+    SDL_FRect r = { cx - w / 2.0f, y, w, h };
+    return r;
+}
+
+static SDL_FRect FileSaveRect(float dx, float dy)
+{
+    return FileActionRect(dx + 150.0f, dy + 138.0f, "Save City", 24.0f, 34.0f);
+}
+
+static SDL_FRect FileLoadRect(float dx, float dy)
+{
+    return FileActionRect(dx + 390.0f, dy + 138.0f, "Load City", 24.0f, 34.0f);
+}
+
+static SDL_FRect FileNewRect(float dx, float dy)
+{
+    return FileActionRect(dx + 270.0f, dy + 185.0f, "New City Map", 24.0f, 34.0f);
+}
+
+static SDL_FRect FileDifficultyRect(float dx, float dy, int i)
+{
+    return FileActionRect(dx + 120.0f + (float)i * 140.0f, dy + 318.0f, NewCityLevelNames[i], 20.0f, 28.0f);
+}
+
 static SDL_FRect TerrainOptRect(int i)
 {
     SDL_FRect r = {
@@ -292,21 +319,21 @@ bool Dialog_File_HandleClick(float mx, float my)
     }
 
     if (active_file_tab == FILE_TAB_SAVE_LOAD) {
-        SDL_FRect save_btn = { dx + 60.0f, dy + 138.0f, 180.0f, 34.0f };
+        SDL_FRect save_btn = FileSaveRect(dx, dy);
         if (mx >= save_btn.x && mx <= save_btn.x + save_btn.w &&
             my >= save_btn.y && my <= save_btn.y + save_btn.h) {
             Dialog_File_RequestNative(NATIVE_SAVE_FILE);
             return true;
         }
 
-        SDL_FRect load_btn = { dx + 300.0f, dy + 138.0f, 180.0f, 34.0f };
+        SDL_FRect load_btn = FileLoadRect(dx, dy);
         if (mx >= load_btn.x && mx <= load_btn.x + load_btn.w &&
             my >= load_btn.y && my <= load_btn.y + load_btn.h) {
             Dialog_File_RequestNative(NATIVE_LOAD_FILE);
             return true;
         }
 
-        SDL_FRect new_btn = { dx + 180.0f, dy + 185.0f, 180.0f, 34.0f };
+        SDL_FRect new_btn = FileNewRect(dx, dy);
         if (mx >= new_btn.x && mx <= new_btn.x + new_btn.w &&
             my >= new_btn.y && my <= new_btn.y + new_btn.h) {
             GUI_Dialogs_OpenChooseCity(NewCityConfirmed, new_city_level);
@@ -314,7 +341,7 @@ bool Dialog_File_HandleClick(float mx, float my)
         }
 
         for (int i = 0; i < 3; i++) {
-            SDL_FRect diff_btn = { dx + 60.0f + (float)i * 140.0f, dy + 318.0f, 120.0f, 28.0f };
+            SDL_FRect diff_btn = FileDifficultyRect(dx, dy, i);
             if (mx >= diff_btn.x && mx <= diff_btn.x + diff_btn.w &&
                 my >= diff_btn.y && my <= diff_btn.y + diff_btn.h) {
                 new_city_level = i;
@@ -461,36 +488,36 @@ void Dialog_File_Render(SDL_Renderer *renderer)
         GUI_DrawText(renderer, cx, cy, "CITY PERSISTENCE & FILE DISK", col_gold);
         GUI_DrawText(renderer, cx, cy + 22, "Save and Load open your system's file dialog.", col_white);
 
-        SDL_FRect save_btn = { dx + 60.0f, dy + 138.0f, 180.0f, 34.0f };
+        SDL_FRect save_btn = FileSaveRect(dx, dy);
         SDL_SetRenderDrawColor(renderer, 40, 70, 110, 255);
         SDL_RenderFillRect(renderer, &save_btn);
         SDL_SetRenderDrawColor(renderer, 80, 140, 220, 255);
         SDL_RenderRect(renderer, &save_btn);
-        GUI_DrawText(renderer, (int)save_btn.x + 44, (int)save_btn.y + 8, "Save City", col_white);
+        GUI_DrawTextCentered(renderer, save_btn, "Save City", col_white);
 
-        SDL_FRect load_btn = { dx + 300.0f, dy + 138.0f, 180.0f, 34.0f };
+        SDL_FRect load_btn = FileLoadRect(dx, dy);
         SDL_SetRenderDrawColor(renderer, 40, 90, 70, 255);
         SDL_RenderFillRect(renderer, &load_btn);
         SDL_SetRenderDrawColor(renderer, 70, 160, 120, 255);
         SDL_RenderRect(renderer, &load_btn);
-        GUI_DrawText(renderer, (int)load_btn.x + 44, (int)load_btn.y + 8, "Load City", col_white);
+        GUI_DrawTextCentered(renderer, load_btn, "Load City", col_white);
 
-        SDL_FRect new_btn = { dx + 180.0f, dy + 185.0f, 180.0f, 34.0f };
+        SDL_FRect new_btn = FileNewRect(dx, dy);
         SDL_SetRenderDrawColor(renderer, 100, 70, 30, 255);
         SDL_RenderFillRect(renderer, &new_btn);
         SDL_SetRenderDrawColor(renderer, 200, 140, 50, 255);
         SDL_RenderRect(renderer, &new_btn);
-        GUI_DrawText(renderer, (int)new_btn.x + 36, (int)new_btn.y + 8, "New City Map", col_gold);
+        GUI_DrawTextCentered(renderer, new_btn, "New City Map", col_gold);
 
         GUI_DrawText(renderer, (int)dx + 60, (int)dy + 298, "New city difficulty:", col_white);
         for (int i = 0; i < 3; i++) {
-            SDL_FRect diff_btn = { dx + 60.0f + (float)i * 140.0f, dy + 318.0f, 120.0f, 28.0f };
+            SDL_FRect diff_btn = FileDifficultyRect(dx, dy, i);
             bool selected = (new_city_level == i);
             SDL_SetRenderDrawColor(renderer, selected ? 70 : 35, selected ? 55 : 45, selected ? 25 : 62, 255);
             SDL_RenderFillRect(renderer, &diff_btn);
             SDL_SetRenderDrawColor(renderer, selected ? 255 : 70, selected ? 215 : 90, selected ? 0 : 130, 255);
             SDL_RenderRect(renderer, &diff_btn);
-            GUI_DrawText(renderer, (int)diff_btn.x + 34, (int)diff_btn.y + 6, NewCityLevelNames[i], selected ? col_gold : col_white);
+            GUI_DrawTextCentered(renderer, diff_btn, NewCityLevelNames[i], selected ? col_gold : col_white);
         }
 
         GUI_DrawText(renderer, (int)dx + 60, (int)dy + 352, "New city terrain:", col_white);

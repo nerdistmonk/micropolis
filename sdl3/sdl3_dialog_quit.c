@@ -7,9 +7,9 @@
 #define QUIT_H 180.0f
 #define QUIT_X ((WINDOW_DEFAULT_WIDTH - QUIT_W) / 2.0f)
 #define QUIT_Y 200.0f
-#define QUIT_BTN_W 120.0f
 #define QUIT_BTN_H 32.0f
-#define QUIT_BTN_STEP 140.0f
+#define QUIT_BTN_PAD 16.0f
+#define QUIT_BTN_GAP 20.0f
 
 enum { QUIT_BTN_SAVE = 0, QUIT_BTN_QUIT, QUIT_BTN_CANCEL, QUIT_BTN_COUNT };
 
@@ -21,7 +21,13 @@ static SDL_Color quit_status_color = { 245, 245, 250, 255 };
 
 static SDL_FRect QuitButtonRect(int index)
 {
-    SDL_FRect r = { QUIT_X + 20.0f + (float)index * QUIT_BTN_STEP, QUIT_Y + QUIT_H - 46.0f, QUIT_BTN_W, QUIT_BTN_H };
+    float row_w = (float)(QUIT_BTN_COUNT - 1) * QUIT_BTN_GAP;
+    for (int i = 0; i < QUIT_BTN_COUNT; i++) row_w += GUI_ButtonWidth(quit_labels[i], QUIT_BTN_PAD);
+
+    float x = QUIT_X + (QUIT_W - row_w) / 2.0f;
+    for (int i = 0; i < index; i++) x += GUI_ButtonWidth(quit_labels[i], QUIT_BTN_PAD) + QUIT_BTN_GAP;
+
+    SDL_FRect r = { x, QUIT_Y + QUIT_H - 46.0f, GUI_ButtonWidth(quit_labels[index], QUIT_BTN_PAD), QUIT_BTN_H };
     return r;
 }
 
@@ -104,7 +110,6 @@ void Dialog_Quit_Render(SDL_Renderer *renderer)
         SDL_RenderFillRect(renderer, &r);
         SDL_SetRenderDrawColor(renderer, 100, 130, 180, 255);
         SDL_RenderRect(renderer, &r);
-        int label_x = (int)(r.x + (r.w - (float)GUI_GetTextWidth(quit_labels[i])) / 2.0f);
-        GUI_DrawText(renderer, label_x, (int)r.y + 8, quit_labels[i], col_white);
+        GUI_DrawTextCentered(renderer, r, quit_labels[i], col_white);
     }
 }

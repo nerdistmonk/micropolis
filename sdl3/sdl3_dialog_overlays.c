@@ -4,6 +4,8 @@
 #include "sdl3_dialog_common.h"
 
 #define OVERLAY_COLS 2
+#define OVERLAY_BTN_PAD 16.0f
+#define OVERLAY_BTN_GAP 20.0f
 
 static const struct {
     OverlayViewMode mode;
@@ -27,12 +29,27 @@ static const struct {
 
 #define OVERLAY_CHOICE_COUNT (sizeof(overlay_choices) / sizeof(overlay_choices[0]))
 
+static float OverlayColumnWidth(size_t col)
+{
+    float w = 0.0f;
+    for (size_t i = col; i < OVERLAY_CHOICE_COUNT; i += OVERLAY_COLS) {
+        float bw = GUI_ButtonWidth(overlay_choices[i].name, OVERLAY_BTN_PAD);
+        if (bw > w) w = bw;
+    }
+    return w;
+}
+
 static SDL_FRect OverlayButtonRect(size_t i)
 {
+    size_t col = i % OVERLAY_COLS;
+    float grid_w = OverlayColumnWidth(0) + OVERLAY_BTN_GAP + OverlayColumnWidth(1);
+    float x = 280.0f + (460.0f - grid_w) / 2.0f;
+    if (col == 1) x += OverlayColumnWidth(0) + OVERLAY_BTN_GAP;
+
     SDL_FRect r = {
-        280.0f + 30.0f + (float)(i % OVERLAY_COLS) * 200.0f,
+        x,
         150.0f + 60.0f + (float)(i / OVERLAY_COLS) * 45.0f,
-        180.0f,
+        OverlayColumnWidth(col),
         36.0f
     };
     return r;
@@ -119,7 +136,7 @@ void Dialog_Overlays_Render(SDL_Renderer *renderer)
         }
         SDL_RenderRect(renderer, &r);
 
-        GUI_DrawText(renderer, (int)r.x + 16, (int)r.y + 10, overlay_choices[i].name, selected ? col_gold : col_white);
+        GUI_DrawTextCentered(renderer, r, overlay_choices[i].name, selected ? col_gold : col_white);
     }
 
     char buf[128];

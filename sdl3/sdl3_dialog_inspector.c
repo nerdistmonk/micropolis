@@ -95,6 +95,13 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
     snprintf(inspect_stat_growth, sizeof(inspect_stat_growth), "Growth Trend: %s (%+d)", (rog > 10) ? "Booming" : (rog < -10 ? "Declining" : "Stable"), rog);
 }
 
+static SDL_FRect InspectorOkRect(float dx, float dy, float dw, float dh)
+{
+    float w = GUI_ButtonWidth("OK", 24.0f);
+    SDL_FRect r = { dx + (dw - w) / 2.0f, dy + dh - 42.0f, w, 28.0f };
+    return r;
+}
+
 bool Dialog_Inspector_HandleClick(float mx, float my)
 {
     float dx = 310.0f;
@@ -108,7 +115,7 @@ bool Dialog_Inspector_HandleClick(float mx, float my)
         return true;
     }
 
-    SDL_FRect ok_btn = { dx + (dw - 110.0f) / 2.0f, dy + dh - 42.0f, 110.0f, 28.0f };
+    SDL_FRect ok_btn = InspectorOkRect(dx, dy, dw, dh);
     if (mx >= ok_btn.x && mx <= ok_btn.x + ok_btn.w &&
         my >= ok_btn.y && my <= ok_btn.y + ok_btn.h) {
         GUI_Dialogs_Close();
@@ -163,10 +170,10 @@ void Dialog_Inspector_Render(SDL_Renderer *renderer)
     GUI_DrawText(renderer, (int)dx + 24, cy + 96, inspect_stat_landvalue, col_green);
     GUI_DrawText(renderer, (int)dx + 24, cy + 120, inspect_stat_growth, col_gold);
 
-    SDL_FRect ok_btn = { dx + (dw - 110.0f) / 2.0f, dy + dh - 42.0f, 110.0f, 28.0f };
+    SDL_FRect ok_btn = InspectorOkRect(dx, dy, dw, dh);
     SDL_SetRenderDrawColor(renderer, 44, 55, 75, 255);
     SDL_RenderFillRect(renderer, &ok_btn);
     SDL_SetRenderDrawColor(renderer, 100, 130, 180, 255);
     SDL_RenderRect(renderer, &ok_btn);
-    GUI_DrawText(renderer, (int)ok_btn.x + 40, (int)ok_btn.y + 6, "OK", col_white);
+    GUI_DrawTextCentered(renderer, ok_btn, "OK", col_white);
 }

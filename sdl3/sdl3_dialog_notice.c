@@ -9,8 +9,8 @@
 #define NOTICE_PAD 14.0f
 #define NOTICE_LINE_H 18.0f
 #define NOTICE_BODY_Y 44.0f
-#define NOTICE_BTN_W 110.0f
 #define NOTICE_BTN_H 28.0f
+#define NOTICE_BTN_PAD 16.0f
 #define NOTICE_MAX_LINES 24
 #define NOTICE_LINE_LEN 160
 #define NOTICE_AUTO_CLEAR_MS 15000
@@ -143,13 +143,14 @@ static float NoticeHeight(void)
 
 static SDL_FRect NoticeViewRect(void)
 {
-    SDL_FRect r = { NOTICE_X + NOTICE_PAD, NoticeButtonY(), NOTICE_BTN_W, NOTICE_BTN_H };
+    SDL_FRect r = { NOTICE_X + NOTICE_PAD, NoticeButtonY(), GUI_ButtonWidth("View", NOTICE_BTN_PAD), NOTICE_BTN_H };
     return r;
 }
 
 static SDL_FRect NoticeCloseRect(void)
 {
-    SDL_FRect r = { NOTICE_X + NOTICE_W - NOTICE_PAD - NOTICE_BTN_W, NoticeButtonY(), NOTICE_BTN_W, NOTICE_BTN_H };
+    float w = GUI_ButtonWidth("Close", NOTICE_BTN_PAD);
+    SDL_FRect r = { NOTICE_X + NOTICE_W - NOTICE_PAD - w, NoticeButtonY(), w, NOTICE_BTN_H };
     return r;
 }
 
@@ -164,7 +165,7 @@ static void DrawNoticeButton(SDL_Renderer *renderer, SDL_FRect r, const char *la
     SDL_RenderFillRect(renderer, &r);
     SDL_SetRenderDrawColor(renderer, 100, 130, 180, 255);
     SDL_RenderRect(renderer, &r);
-    GUI_DrawText(renderer, (int)r.x + 12, (int)r.y + 6, label, col_white);
+    GUI_DrawTextCentered(renderer, r, label, col_white);
 }
 
 void Dialog_Notice_Show(int16_t picture_id, int32_t tile_x, int32_t tile_y)

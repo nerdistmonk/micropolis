@@ -24,16 +24,21 @@ static bool CityRectHit(const SDL_FRect *r, float x, float y)
     return x >= r->x && x <= r->x + r->w && y >= r->y && y <= r->y + r->h;
 }
 
+static SDL_FRect CenteredButtonRect(float cx, float y, const char *label, float pad, float h)
+{
+    float w = GUI_ButtonWidth(label, pad);
+    SDL_FRect r = { cx - w / 2.0f, y, w, h };
+    return r;
+}
+
 static SDL_FRect BudgetCancelRect(float dx, float dy)
 {
-    SDL_FRect r = { dx + 130.0f, dy + 370.0f, 150.0f, 32.0f };
-    return r;
+    return CenteredButtonRect(dx + 205.0f, dy + 370.0f, "Cancel", 24.0f, 32.0f);
 }
 
 static SDL_FRect BudgetApplyRect(float dx, float dy)
 {
-    SDL_FRect r = { dx + 300.0f, dy + 370.0f, 150.0f, 32.0f };
-    return r;
+    return CenteredButtonRect(dx + 375.0f, dy + 370.0f, "Apply & Close", 24.0f, 32.0f);
 }
 
 static SDL_FRect TaxButtonRect(float dx, float dy, bool up)
@@ -44,7 +49,9 @@ static SDL_FRect TaxButtonRect(float dx, float dy, bool up)
 
 static SDL_FRect GraphModeRect(float dx, float dy, bool is_120)
 {
-    SDL_FRect r = { dx + 30.0f + (is_120 ? 104.0f : 0.0f), dy + 88.0f, 96.0f, 26.0f };
+    float x = dx + 30.0f;
+    if (is_120) x += GUI_ButtonWidth("10 Years", 18.0f) + 8.0f;
+    SDL_FRect r = { x, dy + 88.0f, GUI_ButtonWidth(is_120 ? "120 Years" : "10 Years", 18.0f), 26.0f };
     return r;
 }
 
@@ -280,20 +287,18 @@ static void RenderGraphsTab(SDL_Renderer *renderer, float dx, float dy, float dw
     (void)dh;
     SDL_FRect btn_10y = GraphModeRect(dx, dy, false);
     SDL_FRect btn_120y = GraphModeRect(dx, dy, true);
-    int cx = (int)btn_10y.x;
-    int cy = (int)btn_10y.y;
 
     SDL_SetRenderDrawColor(renderer, !graph_120_year_mode ? 48 : 28, !graph_120_year_mode ? 85 : 36, !graph_120_year_mode ? 140 : 48, 255);
     SDL_RenderFillRect(renderer, &btn_10y);
     SDL_SetRenderDrawColor(renderer, !graph_120_year_mode ? 255 : 70, !graph_120_year_mode ? 215 : 85, !graph_120_year_mode ? 0 : 110, 255);
     SDL_RenderRect(renderer, &btn_10y);
-    GUI_DrawText(renderer, cx + 18, cy + 5, "10 Years", !graph_120_year_mode ? col_gold : col_gray);
+    GUI_DrawTextCentered(renderer, btn_10y, "10 Years", !graph_120_year_mode ? col_gold : col_gray);
 
     SDL_SetRenderDrawColor(renderer, graph_120_year_mode ? 48 : 28, graph_120_year_mode ? 85 : 36, graph_120_year_mode ? 140 : 48, 255);
     SDL_RenderFillRect(renderer, &btn_120y);
     SDL_SetRenderDrawColor(renderer, graph_120_year_mode ? 255 : 70, graph_120_year_mode ? 215 : 85, graph_120_year_mode ? 0 : 110, 255);
     SDL_RenderRect(renderer, &btn_120y);
-    GUI_DrawText(renderer, cx + 118, cy + 5, "120 Years", graph_120_year_mode ? col_gold : col_gray);
+    GUI_DrawTextCentered(renderer, btn_120y, "120 Years", graph_120_year_mode ? col_gold : col_gray);
 
     float gx = dx + 30.0f;
     float gy = dy + 124.0f;
@@ -487,14 +492,14 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         SDL_RenderFillRect(renderer, &cancel_btn);
         SDL_SetRenderDrawColor(renderer, 180, 90, 90, 255);
         SDL_RenderRect(renderer, &cancel_btn);
-        GUI_DrawText(renderer, (int)cancel_btn.x + 42, (int)cancel_btn.y + 8, "Cancel", col_white);
+        GUI_DrawTextCentered(renderer, cancel_btn, "Cancel", col_white);
 
         SDL_FRect apply_btn = BudgetApplyRect(dx, dy);
         SDL_SetRenderDrawColor(renderer, 40, 90, 70, 255);
         SDL_RenderFillRect(renderer, &apply_btn);
         SDL_SetRenderDrawColor(renderer, 70, 180, 120, 255);
         SDL_RenderRect(renderer, &apply_btn);
-        GUI_DrawText(renderer, (int)apply_btn.x + 18, (int)apply_btn.y + 8, "Apply & Close", col_white);
+        GUI_DrawTextCentered(renderer, apply_btn, "Apply & Close", col_white);
 
     } else if (active_city_tab == CITY_TAB_TAXES) {
         char buf[128];
