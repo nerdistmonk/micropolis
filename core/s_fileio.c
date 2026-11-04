@@ -10,12 +10,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 extern void Audio_MakeSound(const char *channel, const char *sound_name);
 extern void ClearMes(void);
 
 /* MiscHis[64] holds this tag when NoDisasters was on at save time. Any other value means off. */
 #define NODISASTERS_SAVE_TAG 0x4E44
+
+/* Fixed on-disk size of a city image (header streams plus 120x100 map). */
+#define CITY_FILE_BYTES 27120
 
 static void SwapShortBuffer(int16_t *buf, size_t len)
 {
@@ -33,13 +37,10 @@ static void SwapMapBuffer(uint16_t *buf, size_t len)
     }
 }
 
-static int32_t LoadShortStream(int16_t *buf, size_t len, FILE *f)
+static void CopyShortStream(int16_t *buf, const uint8_t *src, size_t len)
 {
-    if (fread(buf, sizeof(int16_t), len, f) != len) {
-        return 0;
-    }
+    memcpy(buf, src, len * sizeof(int16_t));
     SwapShortBuffer(buf, len);
-    return 1;
 }
 
 static int32_t SaveShortStream(const int16_t *buf, size_t len, FILE *f)
@@ -89,31 +90,41 @@ static int32_t LoadFileInternal(const char *filename)
         return 0;
     }
 
-    if (!LoadShortStream(ResHis, HISTLEN / 2, f) ||
-        !LoadShortStream(ComHis, HISTLEN / 2, f) ||
-        !LoadShortStream(IndHis, HISTLEN / 2, f) ||
-        !LoadShortStream(CrimeHis, HISTLEN / 2, f) ||
-        !LoadShortStream(PollutionHis, HISTLEN / 2, f) ||
-        !LoadShortStream(MoneyHis, HISTLEN / 2, f) ||
-        !LoadShortStream(MiscHis, MISCHISTLEN / 2, f)) {
+    /* Read the whole image before touching any globals, so a short read leaves the current city intact. */
+    uint8_t *blob = (uint8_t *)malloc(CITY_FILE_BYTES);
+    if (!blob) {
         fclose(f);
         return 0;
     }
+    size_t got = fread(blob, 1, CITY_FILE_BYTES, f);
+    fclose(f);
+    if (got != CITY_FILE_BYTES) {
+        free(blob);
+        return 0;
+    }
 
-    /* Column-by-column read: 120 columns of 100 tiles each */
+    const size_t hist_bytes = (HISTLEN / 2) * sizeof(int16_t);
+    const size_t misc_bytes = (MISCHISTLEN / 2) * sizeof(int16_t);
+    CopyShortStream(ResHis, blob + 0 * hist_bytes, HISTLEN / 2);
+    CopyShortStream(ComHis, blob + 1 * hist_bytes, HISTLEN / 2);
+    CopyShortStream(IndHis, blob + 2 * hist_bytes, HISTLEN / 2);
+    CopyShortStream(CrimeHis, blob + 3 * hist_bytes, HISTLEN / 2);
+    CopyShortStream(PollutionHis, blob + 4 * hist_bytes, HISTLEN / 2);
+    CopyShortStream(MoneyHis, blob + 5 * hist_bytes, HISTLEN / 2);
+    CopyShortStream(MiscHis, blob + 6 * hist_bytes, MISCHISTLEN / 2);
+
+    /* Column-by-column layout: 120 columns of 100 tiles each */
+    const uint8_t *map_src = blob + 6 * hist_bytes + misc_bytes;
     uint16_t col[WORLD_Y];
     for (int32_t x = 0; x < WORLD_X; x++) {
-        if (fread(col, sizeof(uint16_t), WORLD_Y, f) != WORLD_Y) {
-            fclose(f);
-            return 0;
-        }
+        memcpy(col, map_src + (size_t)x * WORLD_Y * sizeof(uint16_t), WORLD_Y * sizeof(uint16_t));
         SwapMapBuffer(col, WORLD_Y);
         for (int32_t y = 0; y < WORLD_Y; y++) {
             Map[x][y] = col[y];
         }
     }
 
-    fclose(f);
+    free(blob);
     return 1;
 }
 
@@ -234,8 +245,18 @@ int32_t SaveCity(const char *filename)
         filename = CityFileName;
     }
 
-    f = fopen(filename, "wb");
-    if (!f) return 0;
+    /* Write a sibling temp file and rename it over the original on success, so a failed save never clobbers the existing city. */
+    size_t name_len = strlen(filename);
+    char *tmp = (char *)malloc(name_len + 5);
+    if (!tmp) return 0;
+    memcpy(tmp, filename, name_len);
+    memcpy(tmp + name_len, ".tmp", 5);
+
+    f = fopen(tmp, "wb");
+    if (!f) {
+        free(tmp);
+        return 0;
+    }
 
     uint32_t tf = (uint32_t)TotalFunds;
     MiscHis[50] = (int16_t)((tf >> 16) & 0xFFFFu);
@@ -275,6 +296,8 @@ int32_t SaveCity(const char *filename)
         !SaveShortStream(MoneyHis, HISTLEN / 2, f) ||
         !SaveShortStream(MiscHis, MISCHISTLEN / 2, f)) {
         fclose(f);
+        remove(tmp);
+        free(tmp);
         return 0;
     }
 
@@ -287,11 +310,20 @@ int32_t SaveCity(const char *filename)
         SwapMapBuffer(col, WORLD_Y);
         if (fwrite(col, sizeof(uint16_t), WORLD_Y, f) != WORLD_Y) {
             fclose(f);
+            remove(tmp);
+            free(tmp);
             return 0;
         }
     }
 
-    fclose(f);
+    int32_t ok = (fflush(f) == 0) && (fsync(fileno(f)) == 0);
+    if (fclose(f) != 0) ok = 0;
+    if (!ok || rename(tmp, filename) != 0) {
+        remove(tmp);
+        free(tmp);
+        return 0;
+    }
+    free(tmp);
 
     if (CityFileName && CityFileName != filename) {
         free(CityFileName);
