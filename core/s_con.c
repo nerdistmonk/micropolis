@@ -180,8 +180,7 @@ static void FixSingle(int32_t x, int32_t y)
                 if (t != 208 && t != 77 && t != 221) adj |= 0x0008;
             }
         }
-        uint16_t cond = (Map[x][y] & PWRBIT) ? PWRBIT : 0;
-        Map[x][y] = (uint16_t)(WireTable[adj] | BULLBIT | BURNBIT | CONDBIT | cond);
+        Map[x][y] = (uint16_t)(WireTable[adj] | BULLBIT | BURNBIT | CONDBIT);
         return;
     }
 }
