@@ -854,24 +854,25 @@ static int32_t DoBridge(void)
                         }
                     }
                 }
+                return TRUE;
             }
-            return TRUE;
-        }
-        return FALSE;
-    } else {
-        if (SMapY > 0 && Map[SMapX][SMapY - 1] == CHANNEL) {
-            for (z = 0; z < 7; z++) {
-                x = SMapX + HDx[z];
-                y = SMapY + HDy[z];
-                if (TestBounds(x, y)) {
-                    MPtem = Map[x][y];
-                    if (((MPtem & 15) == (HBRTAB2[z] & 15)) || (MPtem == CHANNEL)) {
-                        Map[x][y] = HBRTAB[z];
+            return FALSE;
+        } else {
+            if (SMapY > 0 && Map[SMapX][SMapY - 1] == CHANNEL) {
+                for (z = 0; z < 7; z++) {
+                    x = SMapX + HDx[z];
+                    y = SMapY + HDy[z];
+                    if (TestBounds(x, y)) {
+                        MPtem = Map[x][y];
+                        if (((MPtem & 15) == (HBRTAB2[z] & 15)) || (MPtem == CHANNEL)) {
+                            Map[x][y] = HBRTAB[z];
+                        }
                     }
                 }
+                return TRUE;
             }
+            return FALSE;
         }
-        return TRUE;
     }
     return FALSE;
 }
