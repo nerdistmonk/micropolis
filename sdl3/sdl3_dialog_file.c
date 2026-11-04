@@ -111,10 +111,10 @@ static void ApplyNativeResult(const NativeFileResult *r)
         } else if (r->path) {
             WithCityExt(r->path, path, sizeof(path));
             if (SaveCity(path)) {
-                snprintf(file_status_message, sizeof(file_status_message), "Successfully saved city to %s", BaseName(path));
+                snprintf(file_status_message, sizeof(file_status_message), "Successfully saved city to %.80s", BaseName(path));
                 file_status_color = col_green;
             } else {
-                snprintf(file_status_message, sizeof(file_status_message), "Error: Could not save to %s", BaseName(path));
+                snprintf(file_status_message, sizeof(file_status_message), "Error: Could not save to %.80s", BaseName(path));
                 file_status_color = col_red;
                 Audio_MakeSound("warning", "Sorry -speed 85");
             }
@@ -127,10 +127,10 @@ static void ApplyNativeResult(const NativeFileResult *r)
             file_status_color = col_red;
         } else if (r->path) {
             if (LoadCity(r->path)) {
-                snprintf(file_status_message, sizeof(file_status_message), "Loaded %s successfully", BaseName(r->path));
+                snprintf(file_status_message, sizeof(file_status_message), "Loaded %.80s successfully", BaseName(r->path));
                 file_status_color = col_green;
             } else {
-                snprintf(file_status_message, sizeof(file_status_message), "Failed to load %s", BaseName(r->path));
+                snprintf(file_status_message, sizeof(file_status_message), "Failed to load %.80s", BaseName(r->path));
                 file_status_color = col_red;
                 Audio_MakeSound("warning", "Sorry -speed 85");
             }
