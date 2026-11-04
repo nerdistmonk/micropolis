@@ -114,6 +114,7 @@ void GenerateMap(int32_t seed)
     if (TreeLevel != 0) {
         DoTrees();
     }
+    RandomlySeedRand();
 }
 
 void ClearMap(void)

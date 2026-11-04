@@ -519,6 +519,7 @@ extern SimCallbacks EngineCallbacks;
 
 /* RNG */
 void SeedRand(int32_t seed);
+void RandomlySeedRand(void);
 int16_t Rand(int16_t range);
 int16_t RandInt(void);
 int16_t Rand16(void);

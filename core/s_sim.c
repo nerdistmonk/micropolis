@@ -8,6 +8,8 @@
 
 #include "sim.h"
 
+#include <time.h>
+
 /* Simulation State Variables */
 int32_t ValveFlag = 0;
 int16_t CrimeRamp = 0;
@@ -80,6 +82,13 @@ static uint16_t sim_rand_raw(void)
 void SeedRand(int32_t seed)
 {
     sim_next_rand = (uint32_t)seed;
+}
+
+void RandomlySeedRand(void)
+{
+    struct timespec ts;
+    timespec_get(&ts, TIME_UTC);
+    SeedRand((int32_t)((uint32_t)ts.tv_nsec ^ (uint32_t)ts.tv_sec ^ sim_rand_raw()));
 }
 
 int16_t Rand(int16_t range)
