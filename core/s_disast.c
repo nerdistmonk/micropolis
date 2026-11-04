@@ -64,7 +64,7 @@ void MakeFire(void)
             uint16_t low = z & LOMASK;
             if (low > 21 && low < LASTZONE) {
                 Map[x][y] = (uint16_t)(FIRE + ANIMBIT + (Rand16() & 7));
-                SendMesAt(-20, (int16_t)x, (int16_t)y);
+                SendMesAt(20, (int16_t)x, (int16_t)y);
                 Audio_MakeSound("city", "fire");
                 return;
             }
@@ -140,10 +140,10 @@ void MakeEarthquake(void)
 {
     ShakeNow = 40; /* Viewport tremors */
 
-    SendMesAt(-23, HWLDX, HWLDY);
-    Audio_MakeSound("city", "rumble");
+    SendMesAt(-23, CCx, CCy);
+    Audio_MakeSound("city", "Explosion-Low");
 
-    int32_t duration = Rand(400) + 200;
+    int32_t duration = Rand(700) + 300;
     for (int32_t z = 0; z < duration; z++) {
         int32_t x = Rand(WORLD_X - 1);
         int32_t y = Rand(WORLD_Y - 1);
@@ -162,8 +162,8 @@ void MakeEarthquake(void)
 
 void MakeMeltdown(void)
 {
-    for (int32_t x = 0; x < WORLD_X; x++) {
-        for (int32_t y = 0; y < WORLD_Y; y++) {
+    for (int32_t x = 0; x < WORLD_X - 1; x++) {
+        for (int32_t y = 0; y < WORLD_Y - 1; y++) {
             if ((Map[x][y] & LOMASK) == NUCLEAR) {
                 DoMeltdown(x, y);
                 Audio_MakeSound("city", "Explosion-High");
@@ -182,11 +182,50 @@ void FireBomb(void)
     SendMesAt(-30, CrashX, CrashY);
 }
 
+/* Unix schedules these four bombs over 0-900 ms; with no timers they drop in one step. */
+static void DropFireBombs(void)
+{
+    for (int32_t i = 0; i < 4; i++) {
+        FireBomb();
+    }
+}
+
+static void ScenarioDisaster(void)
+{
+    switch (DisasterEvent) {
+    case 2: /* San Francisco */
+        if (DisasterWait == 1) MakeEarthquake();
+        break;
+    case 3: /* Hamburg */
+        DropFireBombs();
+        break;
+    case 5: /* Tokyo */
+        if (DisasterWait == 1) MakeMonster();
+        break;
+    case 7: /* Boston */
+        if (DisasterWait == 1) MakeMeltdown();
+        break;
+    case 8: /* Rio */
+        if ((DisasterWait % 24) == 0) MakeFlood();
+        break;
+    default:
+        break;
+    }
+
+    if (DisasterWait) {
+        DisasterWait--;
+    } else {
+        DisasterEvent = 0;
+    }
+}
+
 void DoDisasters(void)
 {
     static const int16_t DisChance[3] = { 10 * 48, 5 * 48, 60 };
 
     if (FloodCnt > 0) FloodCnt--;
+
+    if (DisasterEvent) ScenarioDisaster();
 
     int16_t lvl = GameLevel;
     if (lvl > 2 || lvl < 0) lvl = 0;

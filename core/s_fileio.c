@@ -354,8 +354,8 @@ int32_t LoadScenario(int16_t s)
             fname = "snro.111";
             start_year = 1900;
             initial_funds = 5000;
-            dis_event = 0;
-            dis_wait = 0;
+            dis_event = 1;
+            dis_wait = 2;
             score_wait = 48 * 30;
             break;
         case 2:
@@ -363,23 +363,23 @@ int32_t LoadScenario(int16_t s)
             fname = "snro.222";
             start_year = 1906;
             dis_event = 2;
-            dis_wait = 40;
-            score_wait = 48 * 10;
+            dis_wait = 10;
+            score_wait = 48 * 5;
             break;
         case 3:
             name = "Hamburg";
             fname = "snro.333";
             start_year = 1944;
             dis_event = 3;
-            dis_wait = 100;
-            score_wait = 48 * 10;
+            dis_wait = 5;
+            score_wait = 48 * 5;
             break;
         case 4:
             name = "Bern";
             fname = "snro.444";
             start_year = 1965;
             dis_event = 4;
-            dis_wait = 0;
+            dis_wait = 20;
             score_wait = 48 * 10;
             break;
         case 5:
@@ -387,15 +387,15 @@ int32_t LoadScenario(int16_t s)
             fname = "snro.555";
             start_year = 1957;
             dis_event = 5;
-            dis_wait = 30;
-            score_wait = 48 * 10;
+            dis_wait = 3;
+            score_wait = 48 * 5;
             break;
         case 6:
             name = "Detroit";
             fname = "snro.666";
             start_year = 1972;
             dis_event = 6;
-            dis_wait = 0;
+            dis_wait = 5;
             score_wait = 48 * 10;
             break;
         case 7:
@@ -403,15 +403,15 @@ int32_t LoadScenario(int16_t s)
             fname = "snro.777";
             start_year = 2010;
             dis_event = 7;
-            dis_wait = 50;
-            score_wait = 48 * 10;
+            dis_wait = 5;
+            score_wait = 48 * 5;
             break;
         case 8:
             name = "Rio de Janeiro";
             fname = "snro.888";
             start_year = 2047;
             dis_event = 8;
-            dis_wait = 48;
+            dis_wait = 96;
             score_wait = 48 * 10;
             break;
         default:
