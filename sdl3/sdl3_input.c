@@ -34,6 +34,83 @@ static bool right_doze_held = false;
 static int32_t pan_world_px = 0;
 static int32_t pan_world_py = 0;
 
+/* Tool to restore when the hold key (B/R/P/T) is released; -1 when no hold is active */
+static int16_t tool_hold_save = -1;
+
+/* Ctrl-constrained drags lock to the first axis that moves past the threshold */
+#define CONSTRAIN_THRESHOLD_PX 16.0f
+typedef struct {
+    bool active;
+    int32_t axis; /* 0 undecided, 1 horizontal (y locked), 2 vertical (x locked) */
+    float origin_x;
+    float origin_y;
+} DragConstraint;
+
+static DragConstraint tool_constraint;
+static DragConstraint pan_constraint;
+
+/* Mirrors Unix X/Z wand cycling order (w_x.c), without chalk, eraser, and network */
+static const int16_t cycle_tools[] = {
+    residentialState, commercialState, industrialState, fireState, queryState,
+    policeState, wireState, dozeState, rrState, roadState,
+    stadiumState, parkState, seaportState, powerState, nuclearState, airportState
+};
+#define CYCLE_TOOL_COUNT ((int32_t)(sizeof(cycle_tools) / sizeof(cycle_tools[0])))
+
+static void BeginToolHold(int16_t tool)
+{
+    if (tool_hold_save == -1) tool_hold_save = active_tool;
+    active_tool = tool;
+}
+
+static void EndToolHold(void)
+{
+    if (tool_hold_save != -1) active_tool = tool_hold_save;
+    tool_hold_save = -1;
+}
+
+static void CycleTool(int32_t step)
+{
+    int32_t index = 0;
+    for (int32_t i = 0; i < CYCLE_TOOL_COUNT; i++) {
+        if (cycle_tools[i] == active_tool) index = i;
+    }
+    index = (index + step + CYCLE_TOOL_COUNT) % CYCLE_TOOL_COUNT;
+    active_tool = cycle_tools[index];
+}
+
+static void DragConstraintBegin(DragConstraint *c, float x, float y)
+{
+    c->active = (SDL_GetModState() & SDL_KMOD_CTRL) != 0;
+    c->axis = 0;
+    c->origin_x = x;
+    c->origin_y = y;
+}
+
+static void DragConstraintApply(DragConstraint *c, float *x, float *y)
+{
+    if (!c->active) return;
+
+    if (c->axis == 0) {
+        float dx = *x - c->origin_x;
+        float dy = *y - c->origin_y;
+        if (dx < 0.0f) dx = -dx;
+        if (dy < 0.0f) dy = -dy;
+        if (dx > CONSTRAIN_THRESHOLD_PX) c->axis = 1;
+        else if (dy > CONSTRAIN_THRESHOLD_PX) c->axis = 2;
+        else return;
+    }
+
+    if (c->axis == 1) *y = c->origin_y;
+    else *x = c->origin_x;
+}
+
+/* Only letters feed the cheat window; any other key breaks a cheat word */
+static char CheatKeyChar(SDL_Keycode key)
+{
+    return (key >= 'a' && key <= 'z') ? (char)key : ' ';
+}
+
 /* Success tones per tool, matching Unix UIDidTool* in res/micropolis.tcl */
 static void PlayToolTone(int16_t tool)
 {
@@ -138,6 +215,9 @@ void Input_Init(void)
     last_edge_scroll_ms = 0;
     left_tool_held = false;
     right_doze_held = false;
+    tool_hold_save = -1;
+    tool_constraint.active = false;
+    pan_constraint.active = false;
 }
 
 int16_t Input_GetActiveTool(void)
@@ -183,7 +263,10 @@ static void UpdateMapCursor(void)
 
     if (pointer_known && !is_dragging && !GUI_IsModalOpen() && !Splash_IsActive() &&
         !Help_IsModeActive() && GUI_HelpTopicAt(pointer_x, pointer_y) == HELP_MAP) {
-        cursor.tool_visible = Video_ScreenToTile(pointer_x, pointer_y,
+        float cursor_x = pointer_x;
+        float cursor_y = pointer_y;
+        if (left_tool_held) DragConstraintApply(&tool_constraint, &cursor_x, &cursor_y);
+        cursor.tool_visible = Video_ScreenToTile(cursor_x, cursor_y,
                                                  &cursor.tile_x, &cursor.tile_y);
     }
 
@@ -219,11 +302,30 @@ void Input_ProcessEvents(void)
             }
             break;
 
+        case SDL_EVENT_KEY_UP:
+            switch (event.key.key) {
+            case SDLK_B:
+            case SDLK_R:
+            case SDLK_P:
+            case SDLK_T:
+                EndToolHold();
+                break;
+            default:
+                break;
+            }
+            break;
+
+        case SDL_EVENT_WINDOW_FOCUS_LOST:
+            EndToolHold();
+            break;
+
         case SDL_EVENT_KEY_DOWN:
             if (GUI_IsModalOpen()) {
                 GUI_HandleKeyDown(event.key.key);
                 break;
             }
+
+            if (!event.key.repeat) Cheat_KeyPressed(CheatKeyChar(event.key.key));
 
             /* Escape dismisses an open notice before it can quit */
             if (Help_HandleKey(event.key.key)) break;
@@ -242,14 +344,20 @@ void Input_ProcessEvents(void)
             case SDLK_3: SetSimSpeed(3); Audio_PlayRunningSound(SimSpeed); break;
 
             case SDLK_Q: active_tool = queryState; break;
-            case SDLK_R: active_tool = residentialState; break;
             case SDLK_C: active_tool = commercialState; break;
             case SDLK_I: active_tool = industrialState; break;
             case SDLK_F: active_tool = fireState; break;
-            case SDLK_P: active_tool = policeState; break;
             case SDLK_W: active_tool = wireState; break;
             case SDLK_D: active_tool = dozeState; break;
-            case SDLK_T: active_tool = roadState; break;
+
+            /* Hold-to-use tools, matching Unix w_keys.c: released to restore the previous tool */
+            case SDLK_B: BeginToolHold(dozeState); break;
+            case SDLK_R: BeginToolHold(roadState); break;
+            case SDLK_P: BeginToolHold(wireState); break;
+            case SDLK_T: BeginToolHold(rrState); break;
+
+            case SDLK_X: CycleTool(1); break;
+            case SDLK_Z: CycleTool(-1); break;
 
             /* Persistence Hotkeys */
             case SDLK_F7:
@@ -310,6 +418,7 @@ void Input_ProcessEvents(void)
 
             if (event.button.button == SDL_BUTTON_LEFT) {
                 int32_t tx, ty;
+                DragConstraintBegin(&tool_constraint, event.button.x, event.button.y);
                 if (Video_ScreenToTile(event.button.x, event.button.y, &tx, &ty)) {
                     ApplyTool(active_tool, tx, ty, true);
                     last_drag_tile_x = tx;
@@ -319,6 +428,7 @@ void Input_ProcessEvents(void)
             } else if (event.button.button == SDL_BUTTON_RIGHT) {
                 if (SDL_GetModState() & SDL_KMOD_SHIFT) {
                     int32_t tx, ty;
+                    tool_constraint.active = false;
                     if (Video_ScreenToTile(event.button.x, event.button.y, &tx, &ty)) {
                         ApplyTool(dozeState, tx, ty, true);
                         last_drag_tile_x = tx;
@@ -329,6 +439,7 @@ void Input_ProcessEvents(void)
                     is_dragging = true;
                     drag_origin_x = event.button.x;
                     drag_origin_y = event.button.y;
+                    DragConstraintBegin(&pan_constraint, event.button.x, event.button.y);
                     Video_GetCamera(&initial_cam_x, &initial_cam_y);
                     pan_world_px = initial_cam_x * TILE_PIXEL_SIZE + (int32_t)event.button.x;
                     pan_world_py = initial_cam_y * TILE_PIXEL_SIZE + (int32_t)event.button.y;
@@ -342,6 +453,7 @@ void Input_ProcessEvents(void)
                 right_doze_held = false;
             } else if (event.button.button == SDL_BUTTON_LEFT) {
                 left_tool_held = false;
+                tool_constraint.active = false;
             }
             last_drag_tile_x = -1;
             last_drag_tile_y = -1;
@@ -358,8 +470,11 @@ void Input_ProcessEvents(void)
             pointer_known = true;
 
             if (is_dragging) {
-                float dx = event.motion.x - drag_origin_x;
-                float dy = event.motion.y - drag_origin_y;
+                float px = event.motion.x;
+                float py = event.motion.y;
+                DragConstraintApply(&pan_constraint, &px, &py);
+                float dx = px - drag_origin_x;
+                float dy = py - drag_origin_y;
                 int32_t tile_dx = (int32_t)(dx / (float)TILE_PIXEL_SIZE);
                 int32_t tile_dy = (int32_t)(dy / (float)TILE_PIXEL_SIZE);
                 Video_SetCamera(initial_cam_x - tile_dx, initial_cam_y - tile_dy);
@@ -367,8 +482,11 @@ void Input_ProcessEvents(void)
                        (right_doze_held ||
                         ((event.motion.state & SDL_BUTTON_LMASK) && active_tool != queryState))) {
                 int16_t drag_tool = right_doze_held ? dozeState : active_tool;
+                float tool_x = event.motion.x;
+                float tool_y = event.motion.y;
+                DragConstraintApply(&tool_constraint, &tool_x, &tool_y);
                 int32_t tx, ty;
-                if (Video_ScreenToTile(event.motion.x, event.motion.y, &tx, &ty)) {
+                if (Video_ScreenToTile(tool_x, tool_y, &tx, &ty)) {
                     if (tx != last_drag_tile_x || ty != last_drag_tile_y) {
                         ApplyTool(drag_tool, tx, ty, false);
                         last_drag_tile_x = tx;

@@ -15,7 +15,8 @@ typedef enum {
     GUI_MODAL_FILE,
     GUI_MODAL_DISASTERS,
     GUI_MODAL_QUERY_INSPECTOR,
-    GUI_MODAL_QUIT_CONFIRM
+    GUI_MODAL_QUIT_CONFIRM,
+    GUI_MODAL_CHOOSE_CITY
 } GuiModalId;
 
 typedef enum {
@@ -65,6 +66,7 @@ bool GUI_Dialogs_HandleNoticeKey(SDL_Keycode key);
 void GUI_Dialogs_UpdateNotice(uint64_t now);
 void GUI_Dialogs_OpenQuitConfirm(void);
 bool GUI_Dialogs_TakeQuitConfirmed(void);
+void GUI_Dialogs_OpenChooseCity(void (*on_confirm)(int32_t), int32_t arg);
 void GUI_Dialogs_Close(void);
 
 OverlayViewMode GUI_Dialogs_GetActiveOverlay(void);

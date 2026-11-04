@@ -11,8 +11,6 @@ static bool is_editing_filename = false;
 static char file_name_input_buffer[64] = "mycity.cty";
 static char file_status_message[128] = {0};
 static SDL_Color file_status_color = { 245, 245, 250, 255 };
-static char scenario_status_message[128] = {0};
-static SDL_Color scenario_status_color = { 245, 245, 250, 255 };
 static int new_city_level = 0;
 static const char *const NewCityLevelNames[3] = { "Easy", "Medium", "Hard" };
 
@@ -48,7 +46,6 @@ void Dialog_File_Open(FileDialogTab tab)
     active_file_tab = tab;
     Dialog_File_Reset();
     file_status_message[0] = '\0';
-    scenario_status_message[0] = '\0';
 }
 
 void Dialog_File_Reset(void)
@@ -57,6 +54,23 @@ void Dialog_File_Reset(void)
         SDL_StopTextInput(Video_GetWindow());
         is_editing_filename = false;
     }
+}
+
+/* Run only after the "Choose Another City" confirmation. */
+static void NewCityConfirmed(int32_t level)
+{
+    Sim_InitEngine();
+    GenerateMap((uint32_t)SDL_GetTicks());
+    SetNewCityLevel((int16_t)level);
+    SetSimSpeed(3);
+    char buf[64];
+    snprintf(buf, sizeof(buf), "New %s city generated!", NewCityLevelNames[GameLevel]);
+    GUI_ShowStatus(buf);
+}
+
+static void ScenarioConfirmed(int32_t id)
+{
+    GUI_LoadScenarioWithStatus((int16_t)id);
 }
 
 const char *Dialog_File_GetSaveName(void)
@@ -178,12 +192,7 @@ bool Dialog_File_HandleClick(float mx, float my)
         SDL_FRect new_btn = { dx + 180.0f, dy + 235.0f, 180.0f, 34.0f };
         if (mx >= new_btn.x && mx <= new_btn.x + new_btn.w &&
             my >= new_btn.y && my <= new_btn.y + new_btn.h) {
-            Sim_InitEngine();
-            GenerateMap((uint32_t)SDL_GetTicks());
-            SetNewCityLevel((int16_t)new_city_level);
-            SetSimSpeed(3);
-            snprintf(file_status_message, sizeof(file_status_message), "New %s city generated!", NewCityLevelNames[GameLevel]);
-            file_status_color = col_cyan;
+            GUI_Dialogs_OpenChooseCity(NewCityConfirmed, new_city_level);
             return true;
         }
 
@@ -199,12 +208,7 @@ bool Dialog_File_HandleClick(float mx, float my)
         for (size_t i = 0; i < SCENARIO_GRID_COUNT; i++) {
             SDL_FRect r = ScenarioGridRect(i);
             if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
-                if (GUI_LoadScenarioWithStatus((int16_t)scenario_grid[i].id)) {
-                    GUI_Dialogs_Close();
-                } else {
-                    snprintf(scenario_status_message, sizeof(scenario_status_message), "Error: Scenario files could not be loaded");
-                    scenario_status_color = col_red;
-                }
+                GUI_Dialogs_OpenChooseCity(ScenarioConfirmed, scenario_grid[i].id);
                 return true;
             }
         }
@@ -393,10 +397,6 @@ void Dialog_File_Render(SDL_Renderer *renderer)
             SDL_RenderRect(renderer, &r);
             GUI_DrawText(renderer, (int)r.x + 12, (int)r.y + 8, scenario_grid[i].title, col_white);
         }
-
-        if (scenario_status_message[0]) {
-            GUI_DrawText(renderer, cx, (int)dy + 330, scenario_status_message, scenario_status_color);
-        }
     } else if (active_file_tab == FILE_TAB_OPTIONS) {
         GUI_DrawText(renderer, cx, cy, "SIMULATION PREFERENCES & TOGGLES", col_gold);
 
@@ -405,7 +405,7 @@ void Dialog_File_Render(SDL_Renderer *renderer)
             bool state;
         } opts[] = {
             { "Auto-Budget Processing", (bool)autoBudget },
-            { "Auto-Bulldoze Confirmation", (bool)autoBulldoze },
+            { "Auto Bulldoze", (bool)autoBulldoze },
             { "Auto-Goto Incident Coordinates", (bool)autoGo },
             { "Spontaneous Disasters Enabled", (bool)(!NoDisasters) },
             { "Sound Effects & Audio Playback", (bool)UserSoundOn }

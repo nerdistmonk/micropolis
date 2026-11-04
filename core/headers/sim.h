@@ -626,6 +626,10 @@ void MakeMeltdown(void);
 void FireBomb(void);
 void MakeExplosion(int32_t x, int32_t y);
 
+/* Typed cheat codes (fund, fart, nuke) */
+void Cheat_Reset(void);
+void Cheat_KeyPressed(char key);
+
 /* Messaging & Game Outcome */
 void SendMessages(void);
 int32_t SendMes(int16_t msg_num);

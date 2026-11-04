@@ -1194,6 +1194,7 @@ void Sim_InitEngine(void)
     Fcycle = 0;
     Scycle = 0;
     Spdcycle = 0;
+    Cheat_Reset();
 
     ClearCityMemory();
     SetCommonInits();

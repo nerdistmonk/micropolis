@@ -75,4 +75,10 @@ bool Dialog_Quit_HandleClick(float mx, float my);
 bool Dialog_Quit_TakeConfirmed(void);
 void Dialog_Quit_Render(SDL_Renderer *renderer);
 
+/* Choose another city confirmation (gates New City and scenario load) */
+void Dialog_ChooseCity_Show(void (*on_confirm)(int32_t), int32_t arg);
+void Dialog_ChooseCity_Reset(void);
+bool Dialog_ChooseCity_HandleClick(float mx, float my);
+void Dialog_ChooseCity_Render(SDL_Renderer *renderer);
+
 #endif /* SDL3_DIALOG_COMMON_H */

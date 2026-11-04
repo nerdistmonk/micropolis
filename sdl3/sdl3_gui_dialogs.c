@@ -87,6 +87,13 @@ bool GUI_Dialogs_TakeQuitConfirmed(void)
     return Dialog_Quit_TakeConfirmed();
 }
 
+void GUI_Dialogs_OpenChooseCity(void (*on_confirm)(int32_t), int32_t arg)
+{
+    GUI_Dialogs_Close();
+    active_modal = GUI_MODAL_CHOOSE_CITY;
+    Dialog_ChooseCity_Show(on_confirm, arg);
+}
+
 void GUI_Dialogs_Close(void)
 {
     if (active_modal == GUI_MODAL_CITY_MGMT) {
@@ -99,10 +106,13 @@ void GUI_Dialogs_Close(void)
         }
     } else if (active_modal == GUI_MODAL_FILE) {
         Dialog_File_Reset();
+    } else if (active_modal == GUI_MODAL_CHOOSE_CITY) {
+        Dialog_ChooseCity_Reset();
     }
 
     active_modal = GUI_MODAL_NONE;
 }
+
 
 OverlayViewMode GUI_Dialogs_GetActiveOverlay(void)
 {
@@ -169,6 +179,8 @@ bool GUI_Dialogs_HandleClick(float mx, float my)
         return Dialog_Inspector_HandleClick(mx, my);
     case GUI_MODAL_QUIT_CONFIRM:
         return Dialog_Quit_HandleClick(mx, my);
+    case GUI_MODAL_CHOOSE_CITY:
+        return Dialog_ChooseCity_HandleClick(mx, my);
     default:
         return Dialog_Notice_HandleClick(mx, my);
     }
@@ -199,6 +211,9 @@ void GUI_Dialogs_Render(SDL_Renderer *renderer)
         break;
     case GUI_MODAL_QUIT_CONFIRM:
         Dialog_Quit_Render(renderer);
+        break;
+    case GUI_MODAL_CHOOSE_CITY:
+        Dialog_ChooseCity_Render(renderer);
         break;
     default:
         break;
