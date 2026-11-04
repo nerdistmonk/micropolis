@@ -154,6 +154,12 @@ int GUI_GetTextWidth(const char *text)
     return (int)strlen(text) * 8;
 }
 
+int GUI_GetLineHeight(void)
+{
+    if (font_main) return TTF_GetFontLineSkip(font_main);
+    return 10;
+}
+
 void GUI_DrawText(SDL_Renderer *renderer, int x, int y, const char *text, SDL_Color color)
 {
     if (!renderer || !text || text[0] == '\0') return;

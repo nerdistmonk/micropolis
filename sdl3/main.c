@@ -7,6 +7,9 @@
 #include "sdl3_audio.h"
 #include "sdl3_gui.h"
 #include "sdl3_gui_dialogs.h"
+#include "sdl3_help.h"
+#include "sdl3_settings.h"
+#include "sdl3_splash.h"
 #include <SDL3/SDL.h>
 
 static void OnMessageReceived(int16_t msg_num, int16_t x, int16_t y)
@@ -54,9 +57,11 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    Settings_Load();
     Audio_Init();
     Input_Init();
     GUI_Init();
+    Help_Init();
 
     SimCallbacks callbacks = {
         .update_funds = OnUpdateFunds,
@@ -81,15 +86,19 @@ int main(int argc, char **argv)
     const uint64_t tick_interval_ms = 40;
     const uint64_t anim_interval_ms = 120;
 
+    Splash_Start();
+
     while (running) {
         Input_ProcessEvents();
         if (GUI_Dialogs_TakeQuitConfirmed()) running = false;
 
         uint64_t now = SDL_GetTicks();
+        Splash_Update(now);
         GUI_Dialogs_UpdateNotice(now);
+        Input_UpdateEdgeScroll(now);
 
-        /* Sim core tick - suspended while modal dialogs are open */
-        if (!GUI_Dialogs_IsModalOpen()) {
+        /* Sim core tick - suspended while modal dialogs or the splash are up */
+        if (!GUI_Dialogs_IsModalOpen() && !Splash_IsActive()) {
             if (now - last_tick_time >= tick_interval_ms) {
                 SimFrame();
                 doMessage();
@@ -110,6 +119,8 @@ int main(int argc, char **argv)
         SDL_Delay(8);
     }
 
+    Splash_Dismiss();
+    Help_Shutdown();
     GUI_Shutdown();
     Audio_Shutdown();
     Video_Shutdown();

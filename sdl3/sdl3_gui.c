@@ -4,6 +4,7 @@
 #include "sdl3_gui.h"
 #include "sdl3_gui_text.h"
 #include "sdl3_gui_dialogs.h"
+#include "sdl3_help.h"
 #include "sdl3_input.h"
 #include "sdl3_video.h"
 #include "sim.h"
@@ -232,6 +233,11 @@ bool GUI_HandleKeyDown(SDL_Keycode key)
   return GUI_Dialogs_HandleKeyDown(key);
 }
 
+static bool TickerVisible(void)
+{
+  return HaveLastMessage && LastMessage[0] && strcmp(LastMessage, ticker_dismissed_message) != 0;
+}
+
 bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
 {
   if (button != SDL_BUTTON_LEFT) return false;
@@ -241,7 +247,8 @@ bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
   }
 
   /* Dismiss Ticker Alert Click */
-  if (HaveLastMessage && LastMessage[0] && strcmp(LastMessage, ticker_dismissed_message) != 0) {
+  if (TickerVisible()) {
+
     if (mouse_x >= rect_ticker_box.x && mouse_x <= (rect_ticker_box.x + rect_ticker_box.w) &&
         mouse_y >= rect_ticker_box.y && mouse_y <= (rect_ticker_box.y + rect_ticker_box.h)) {
       strncpy(ticker_dismissed_message, LastMessage, sizeof(ticker_dismissed_message) - 1);
@@ -603,4 +610,41 @@ void GUI_Render(SDL_Renderer *renderer)
   if (hovered_tool_idx >= 0 && !GUI_IsModalOpen()) {
     RenderTooltip(renderer, hovered_tool_idx);
   }
+
+  /* 6. Context help overlay (F1) */
+  Help_Render(renderer);
+}
+
+static bool RectContainsPoint(SDL_FRect r, float x, float y)
+{
+  return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+}
+
+HelpTopic GUI_HelpTopicAt(float mouse_x, float mouse_y)
+{
+  if (mouse_y <= (float)STATUS_BAR_HEIGHT) {
+    if (RectContainsPoint(rect_funds_btn, mouse_x, mouse_y)) return HELP_FUNDS;
+    if (RectContainsPoint(rect_city_btn, mouse_x, mouse_y)) return HELP_CITY;
+    if (RectContainsPoint(rect_overlays_btn, mouse_x, mouse_y)) return HELP_OVERLAYS;
+    if (RectContainsPoint(rect_disasters_btn, mouse_x, mouse_y)) return HELP_DISASTERS;
+    if (RectContainsPoint(rect_file_btn, mouse_x, mouse_y)) return HELP_FILE;
+    if (RectContainsPoint(rect_speed_btn, mouse_x, mouse_y)) return HELP_SPEED;
+    return HELP_NONE;
+  }
+
+  if (TickerVisible() && RectContainsPoint(rect_ticker_box, mouse_x, mouse_y)) return HELP_TICKER;
+  if (RectContainsPoint(rect_query_btn, mouse_x, mouse_y)) return HELP_QUERY;
+  if (RectContainsPoint(rect_rci_box, mouse_x, mouse_y)) return HELP_RCI;
+  if (RectContainsPoint(Video_GetMinimapRect(), mouse_x, mouse_y)) return HELP_MINIMAP;
+
+  if (mouse_x <= (float)TOOLBAR_WIDTH) {
+    for (size_t i = 0; i < NUM_TOOL_BUTTONS; i++) {
+      if (RectContainsPoint(tool_buttons[i].rect, mouse_x, mouse_y)) {
+        return (HelpTopic)(HELP_TOOL_RESIDENTIAL + (int)i);
+      }
+    }
+    return HELP_NONE;
+  }
+
+  return HELP_MAP;
 }

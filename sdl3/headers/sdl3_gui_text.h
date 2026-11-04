@@ -11,6 +11,7 @@ bool GUI_Text_Init(void);
 void GUI_Text_Shutdown(void);
 
 int GUI_GetTextWidth(const char *text);
+int GUI_GetLineHeight(void);
 void GUI_DrawText(SDL_Renderer *renderer, int x, int y, const char *text, SDL_Color color);
 
 #endif /* SDL3_GUI_TEXT_H */

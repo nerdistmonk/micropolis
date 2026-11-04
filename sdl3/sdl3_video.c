@@ -4,6 +4,7 @@
 #include "sdl3_video.h"
 #include "sdl3_tiles.h"
 #include "sdl3_gui.h"
+#include "sdl3_splash.h"
 #include "sim.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -677,6 +678,12 @@ static void UpdateAndRenderMinimap(SDL_Renderer *renderer, OverlayViewMode mode)
 void Video_RenderFrame(void)
 {
   if (!frame_buffer || !video_renderer || !stream_texture) return;
+
+  if (Splash_IsActive()) {
+    Splash_Render(video_renderer);
+    SDL_RenderPresent(video_renderer);
+    return;
+  }
 
   bool has_tiles = Tiles_IsLoaded();
   bool show_bolt = (flagBlink <= 0);

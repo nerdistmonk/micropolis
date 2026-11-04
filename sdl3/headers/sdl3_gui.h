@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <SDL3/SDL.h>
 #include "sdl3_gui_dialogs.h"
+#include "sdl3_help.h"
 
 #define STATUS_BAR_HEIGHT 28
 #define TOOLBAR_WIDTH 108
@@ -21,6 +22,9 @@ bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button);
 void GUI_HandleMotion(float mouse_x, float mouse_y);
 bool GUI_HandleKeyDown(SDL_Keycode key);
 bool GUI_HandleTextInput(const char *text);
+
+/* Help topic under a window point, for context help mode */
+HelpTopic GUI_HelpTopicAt(float mouse_x, float mouse_y);
 
 /* Dialog control functions */
 bool GUI_IsModalOpen(void);

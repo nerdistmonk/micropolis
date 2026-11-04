@@ -10,6 +10,7 @@
 
 bool Audio_Init(void);
 void Audio_Shutdown(void);
+void Audio_ApplySoundLevel(void);
 
 /* Sound callback hooks registered with core engine */
 void Audio_PlaySound(int16_t sound_id, int16_t x, int16_t y);

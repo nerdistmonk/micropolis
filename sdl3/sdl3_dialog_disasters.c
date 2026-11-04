@@ -72,12 +72,12 @@ void Dialog_Disasters_Render(SDL_Renderer *renderer)
         const char *name;
         SDL_FRect rect;
     } d_display[] = {
-        { "Firestorm (F1)", { dx + 30.0f, dy + 65.0f, 170.0f, 34.0f } },
-        { "Flood Waters (F2)", { dx + 224.0f, dy + 65.0f, 170.0f, 34.0f } },
-        { "Earthquake (F3)", { dx + 30.0f, dy + 115.0f, 170.0f, 34.0f } },
-        { "Tornado (F4)", { dx + 224.0f, dy + 115.0f, 170.0f, 34.0f } },
-        { "Monster (F5)", { dx + 30.0f, dy + 165.0f, 170.0f, 34.0f } },
-        { "Meltdown (F6)", { dx + 224.0f, dy + 165.0f, 170.0f, 34.0f } }
+        { "Firestorm", { dx + 30.0f, dy + 65.0f, 170.0f, 34.0f } },
+        { "Flood Waters", { dx + 224.0f, dy + 65.0f, 170.0f, 34.0f } },
+        { "Earthquake", { dx + 30.0f, dy + 115.0f, 170.0f, 34.0f } },
+        { "Tornado", { dx + 224.0f, dy + 115.0f, 170.0f, 34.0f } },
+        { "Monster", { dx + 30.0f, dy + 165.0f, 170.0f, 34.0f } },
+        { "Meltdown", { dx + 224.0f, dy + 165.0f, 170.0f, 34.0f } }
     };
 
     for (size_t i = 0; i < sizeof(d_display) / sizeof(d_display[0]); i++) {

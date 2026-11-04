@@ -3,6 +3,8 @@
 
 #include "sdl3_dialog_common.h"
 #include "sdl3_gui.h"
+#include "sdl3_audio.h"
+#include "sdl3_settings.h"
 
 static FileDialogTab active_file_tab = FILE_TAB_SAVE_LOAD;
 static bool is_editing_filename = false;
@@ -228,6 +230,15 @@ bool Dialog_File_HandleClick(float mx, float my)
             UserSoundOn = !UserSoundOn;
             return true;
         }
+        if (mx >= opt_x && mx <= opt_x + 90.0f && my >= opt_y + 175.0f && my <= opt_y + 201.0f) {
+            Settings_ToggleEdgeScroll();
+            return true;
+        }
+        if (mx >= opt_x && mx <= opt_x + 90.0f && my >= opt_y + 210.0f && my <= opt_y + 236.0f) {
+            Settings_CycleSoundLevel();
+            Audio_ApplySoundLevel();
+            return true;
+        }
     }
 
     return true;
@@ -391,5 +402,24 @@ void Dialog_File_Render(SDL_Renderer *renderer)
             const char *status_str = opts[i].state ? "[ ON ]" : "[ OFF ]";
             GUI_DrawText(renderer, (int)toggle_btn.x + 18, (int)toggle_btn.y + 5, status_str, opts[i].state ? col_green : col_red);
         }
+
+        int edge_row_y = (int)opt_y + 175;
+        GUI_DrawText(renderer, cx + 10, edge_row_y + 4, "Edge Auto-Scroll (Map Borders)", col_white);
+        bool edge_on = Settings_GetEdgeScroll();
+        SDL_FRect edge_btn = { opt_x, (float)edge_row_y, 90.0f, 26.0f };
+        SDL_SetRenderDrawColor(renderer, edge_on ? 30 : 45, edge_on ? 70 : 25, edge_on ? 40 : 25, 255);
+        SDL_RenderFillRect(renderer, &edge_btn);
+        SDL_SetRenderDrawColor(renderer, edge_on ? 80 : 180, edge_on ? 220 : 60, edge_on ? 100 : 60, 255);
+        SDL_RenderRect(renderer, &edge_btn);
+        GUI_DrawText(renderer, (int)edge_btn.x + 18, (int)edge_btn.y + 5, edge_on ? "[ ON ]" : "[ OFF ]", edge_on ? col_green : col_red);
+
+        int level_row_y = (int)opt_y + 210;
+        GUI_DrawText(renderer, cx + 10, level_row_y + 4, "Sound Level (Click to Cycle)", col_white);
+        SDL_FRect level_btn = { opt_x, (float)level_row_y, 90.0f, 26.0f };
+        SDL_SetRenderDrawColor(renderer, 40, 50, 90, 255);
+        SDL_RenderFillRect(renderer, &level_btn);
+        SDL_SetRenderDrawColor(renderer, 120, 150, 220, 255);
+        SDL_RenderRect(renderer, &level_btn);
+        GUI_DrawText(renderer, (int)level_btn.x + 8, (int)level_btn.y + 5, Settings_GetSoundLevelName(), col_white);
     }
 }

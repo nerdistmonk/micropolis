@@ -4,6 +4,7 @@
  */
 
 #include "sdl3_audio.h"
+#include "sdl3_settings.h"
 #include "sim.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,8 +138,16 @@ bool Audio_Init(void)
         return false;
     }
 
+    Audio_ApplySoundLevel();
     SDL_ResumeAudioStreamDevice(audio_stream);
     return true;
+}
+
+void Audio_ApplySoundLevel(void)
+{
+    if (audio_stream) {
+        SDL_SetAudioStreamGain(audio_stream, Settings_GetSoundGain());
+    }
 }
 
 void Audio_Shutdown(void)

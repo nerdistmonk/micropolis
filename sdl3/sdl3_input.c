@@ -5,8 +5,14 @@
 #include "sdl3_video.h"
 #include "sdl3_gui.h"
 #include "sdl3_gui_dialogs.h"
+#include "sdl3_help.h"
+#include "sdl3_settings.h"
+#include "sdl3_splash.h"
 #include "sim.h"
 #include <SDL3/SDL.h>
+
+#define EDGE_SCROLL_ZONE_PX 16.0f
+#define EDGE_SCROLL_INTERVAL_MS 10
 
 static int16_t active_tool = residentialState;
 static bool is_dragging = false;
@@ -17,6 +23,11 @@ static int32_t initial_cam_y = 0;
 
 static int32_t last_drag_tile_x = -1;
 static int32_t last_drag_tile_y = -1;
+
+static float pointer_x = 0.0f;
+static float pointer_y = 0.0f;
+static bool pointer_known = false;
+static uint64_t last_edge_scroll_ms = 0;
 
 static void ApplyTool(int32_t tx, int32_t ty)
 {
@@ -64,6 +75,8 @@ void Input_Init(void)
     is_dragging = false;
     last_drag_tile_x = -1;
     last_drag_tile_y = -1;
+    pointer_known = false;
+    last_edge_scroll_ms = 0;
 }
 
 int16_t Input_GetActiveTool(void)
@@ -76,6 +89,28 @@ void Input_SetActiveTool(int16_t tool)
     active_tool = tool;
 }
 
+void Input_UpdateEdgeScroll(uint64_t now)
+{
+    if (!Settings_GetEdgeScroll() || !pointer_known || is_dragging ||
+        GUI_IsModalOpen() || Splash_IsActive() || Help_IsModeActive()) {
+        last_edge_scroll_ms = now;
+        return;
+    }
+    if (now - last_edge_scroll_ms < EDGE_SCROLL_INTERVAL_MS) return;
+    last_edge_scroll_ms = now;
+
+    if (GUI_HelpTopicAt(pointer_x, pointer_y) != HELP_MAP) return;
+
+    int32_t dx = 0;
+    int32_t dy = 0;
+    if (pointer_x < (float)TOOLBAR_WIDTH + EDGE_SCROLL_ZONE_PX) dx = -1;
+    else if (pointer_x >= (float)WINDOW_DEFAULT_WIDTH - EDGE_SCROLL_ZONE_PX) dx = 1;
+    if (pointer_y < (float)STATUS_BAR_HEIGHT + EDGE_SCROLL_ZONE_PX) dy = -1;
+    else if (pointer_y >= (float)WINDOW_DEFAULT_HEIGHT - EDGE_SCROLL_ZONE_PX) dy = 1;
+
+    if (dx || dy) Video_PanCamera(dx, dy);
+}
+
 void Input_ProcessEvents(void)
 {
     SDL_Event event;
@@ -86,6 +121,12 @@ void Input_ProcessEvents(void)
 
         if (renderer) {
             SDL_ConvertEventToRenderCoordinates(renderer, &event);
+        }
+
+        if (Splash_IsActive() &&
+            (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)) {
+            Splash_Dismiss();
+            continue;
         }
 
         switch (event.type) {
@@ -106,6 +147,7 @@ void Input_ProcessEvents(void)
             }
 
             /* Escape dismisses an open notice before it can quit */
+            if (Help_HandleKey(event.key.key)) break;
             if (GUI_Dialogs_HandleNoticeKey(event.key.key)) break;
 
             switch (event.key.key) {
@@ -193,6 +235,15 @@ void Input_ProcessEvents(void)
             break;
 
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            if (Help_IsModeActive() && !GUI_IsModalOpen() && event.button.button == SDL_BUTTON_LEFT) {
+                /* Notice buttons keep working in help mode */
+                if (!GUI_Dialogs_HandleClick(event.button.x, event.button.y)) {
+                    Help_HandleClick(event.button.x, event.button.y,
+                                     GUI_HelpTopicAt(event.button.x, event.button.y));
+                }
+                break;
+            }
+
             if (GUI_HandleClick(event.button.x, event.button.y, event.button.button)) {
                 break;
             }
@@ -224,8 +275,15 @@ void Input_ProcessEvents(void)
             last_drag_tile_y = -1;
             break;
 
+        case SDL_EVENT_WINDOW_MOUSE_LEAVE:
+            pointer_known = false;
+            break;
+
         case SDL_EVENT_MOUSE_MOTION:
             GUI_HandleMotion(event.motion.x, event.motion.y);
+            pointer_x = event.motion.x;
+            pointer_y = event.motion.y;
+            pointer_known = true;
 
             if (is_dragging) {
                 float dx = event.motion.x - drag_origin_x;
@@ -233,7 +291,8 @@ void Input_ProcessEvents(void)
                 int32_t tile_dx = (int32_t)(dx / (float)TILE_PIXEL_SIZE);
                 int32_t tile_dy = (int32_t)(dy / (float)TILE_PIXEL_SIZE);
                 Video_SetCamera(initial_cam_x - tile_dx, initial_cam_y - tile_dy);
-            } else if ((event.motion.state & SDL_BUTTON_LMASK) && !GUI_IsModalOpen() && active_tool != queryState) {
+            } else if ((event.motion.state & SDL_BUTTON_LMASK) && !GUI_IsModalOpen() &&
+                       !Help_IsModeActive() && active_tool != queryState) {
                 int32_t tx, ty;
                 if (Video_ScreenToTile(event.motion.x, event.motion.y, &tx, &ty)) {
                     if (tx != last_drag_tile_x || ty != last_drag_tile_y) {
