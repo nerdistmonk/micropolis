@@ -204,9 +204,7 @@ int32_t LoadCity(const char *filename)
 
     ScenarioID = 0;
     DisasterEvent = 0;
-    DisasterWait = 0;
     ScoreType = 0;
-    ScoreWait = 0;
     InitSimLoad = 1;
     DoInitialEval = 0;
 
