@@ -751,6 +751,201 @@ static void UpdateAndRenderMinimap(SDL_Renderer *renderer, OverlayViewMode mode)
   SDL_RenderRect(renderer, &cam_rect);
 }
 
+/* Unix w_tool.c toolSize/toolOffset/toolColors, indexed by tool state */
+typedef struct {
+    int32_t size;
+    int32_t offset;
+    uint8_t fg;
+    uint8_t bg;
+} ToolCursorStyle;
+
+static const ToolCursorStyle tool_cursor_style[] = {
+    [residentialState] = { 3, 1, COLOR_LIGHTGREEN, COLOR_LIGHTGREEN },
+    [commercialState]  = { 3, 1, COLOR_LIGHTBLUE, COLOR_LIGHTBLUE },
+    [industrialState]  = { 3, 1, COLOR_YELLOW, COLOR_YELLOW },
+    [fireState]        = { 3, 1, COLOR_LIGHTGREEN, COLOR_RED },
+    [queryState]       = { 1, 0, COLOR_ORANGE, COLOR_ORANGE },
+    [policeState]      = { 3, 1, COLOR_LIGHTGREEN, COLOR_LIGHTBLUE },
+    [wireState]        = { 1, 0, COLOR_DARKGRAY, COLOR_YELLOW },
+    [dozeState]        = { 1, 0, COLOR_LIGHTBROWN, COLOR_LIGHTBROWN },
+    [rrState]          = { 1, 0, COLOR_DARKGRAY, COLOR_OLIVE },
+    [roadState]        = { 1, 0, COLOR_DARKGRAY, COLOR_WHITE },
+    [stadiumState]     = { 4, 1, COLOR_LIGHTGRAY, COLOR_LIGHTGREEN },
+    [parkState]        = { 1, 0, COLOR_LIGHTBROWN, COLOR_LIGHTGREEN },
+    [seaportState]     = { 4, 1, COLOR_LIGHTGRAY, COLOR_LIGHTBLUE },
+    [powerState]       = { 4, 1, COLOR_LIGHTGRAY, COLOR_YELLOW },
+    [nuclearState]     = { 4, 1, COLOR_LIGHTGRAY, COLOR_YELLOW },
+    [airportState]     = { 6, 1, COLOR_LIGHTGRAY, COLOR_LIGHTBROWN },
+    [networkState]     = { 1, 0, COLOR_LIGHTGRAY, COLOR_RED },
+};
+
+/* Unix w_x.c palette */
+static const SDL_Color cursor_palette[] = {
+    [COLOR_WHITE]      = { 255, 255, 255, 255 },
+    [COLOR_YELLOW]     = { 255, 255, 0, 255 },
+    [COLOR_ORANGE]     = { 255, 127, 0, 255 },
+    [COLOR_RED]        = { 255, 0, 0, 255 },
+    [COLOR_DARKRED]    = { 191, 0, 0, 255 },
+    [COLOR_DARKBLUE]   = { 0, 0, 230, 255 },
+    [COLOR_LIGHTBLUE]  = { 102, 102, 230, 255 },
+    [COLOR_BROWN]      = { 204, 76, 76, 255 },
+    [COLOR_LIGHTGREEN] = { 0, 230, 0, 255 },
+    [COLOR_DARKGREEN]  = { 0, 127, 0, 255 },
+    [COLOR_OLIVE]      = { 153, 127, 76, 255 },
+    [COLOR_LIGHTBROWN] = { 204, 127, 102, 255 },
+    [COLOR_LIGHTGRAY]  = { 191, 191, 191, 255 },
+    [COLOR_MEDIUMGRAY] = { 127, 127, 127, 255 },
+    [COLOR_DARKGRAY]   = { 63, 63, 63, 255 },
+    [COLOR_BLACK]      = { 0, 0, 0, 255 },
+};
+
+static MapCursor map_cursor;
+
+void Video_SetMapCursor(const MapCursor *cursor)
+{
+    if (cursor) map_cursor = *cursor;
+}
+
+static void CursorFill(SDL_Renderer *renderer, float x, float y, float w, float h, uint8_t color)
+{
+    SDL_SetRenderDrawColor(renderer, cursor_palette[color].r, cursor_palette[color].g,
+                           cursor_palette[color].b, 255);
+    SDL_FRect r = { x, y, w, h };
+    SDL_RenderFillRect(renderer, &r);
+}
+
+static void CursorHLine(SDL_Renderer *renderer, int32_t x1, int32_t x2, int32_t y, uint8_t color)
+{
+    int32_t lo = x1 < x2 ? x1 : x2;
+    int32_t hi = x1 < x2 ? x2 : x1;
+    CursorFill(renderer, (float)lo, (float)y, (float)(hi - lo + 1), 1.0f, color);
+}
+
+static void CursorVLine(SDL_Renderer *renderer, int32_t x, int32_t y1, int32_t y2, uint8_t color)
+{
+    int32_t lo = y1 < y2 ? y1 : y2;
+    int32_t hi = y1 < y2 ? y2 : y1;
+    CursorFill(renderer, (float)x, (float)lo, 1.0f, (float)(hi - lo + 1), color);
+}
+
+static void CursorRectOutline(SDL_Renderer *renderer, int32_t x, int32_t y, int32_t w, int32_t h, uint8_t color)
+{
+    CursorHLine(renderer, x, x + w, y, color);
+    CursorHLine(renderer, x, x + w, y + h, color);
+    CursorVLine(renderer, x, y, y + h, color);
+    CursorVLine(renderer, x + w, y, y + h, color);
+}
+
+/* Two-pixel stroke; dashed with 4 on / 4 off in fg over bg, as Unix CursorDashes */
+static void CursorStrokeH(SDL_Renderer *renderer, int32_t x1, int32_t x2, int32_t y,
+                          uint8_t fg, uint8_t bg)
+{
+    int32_t lo = x1 < x2 ? x1 : x2;
+    int32_t hi = x1 < x2 ? x2 : x1;
+    for (int32_t row = y; row <= y + 1; row++) {
+        if (fg == bg) {
+            CursorHLine(renderer, lo, hi, row, fg);
+            continue;
+        }
+        CursorHLine(renderer, lo, hi, row, bg);
+        for (int32_t x = lo; x <= hi; x += 8) {
+            int32_t end = (x + 3 < hi) ? x + 3 : hi;
+            CursorHLine(renderer, x, end, row, fg);
+        }
+    }
+}
+
+static void CursorStrokeV(SDL_Renderer *renderer, int32_t x, int32_t y1, int32_t y2,
+                          uint8_t fg, uint8_t bg)
+{
+    int32_t lo = y1 < y2 ? y1 : y2;
+    int32_t hi = y1 < y2 ? y2 : y1;
+    for (int32_t col = x; col <= x + 1; col++) {
+        if (fg == bg) {
+            CursorVLine(renderer, col, lo, hi, fg);
+            continue;
+        }
+        CursorVLine(renderer, col, lo, hi, bg);
+        for (int32_t y = lo; y <= hi; y += 8) {
+            int32_t end = (y + 3 < hi) ? y + 3 : hi;
+            CursorVLine(renderer, col, y, end, fg);
+        }
+    }
+}
+
+/* Mirrors the default branch of Unix DrawCursor: a tool-sized box snapped to the pointer tile */
+static void RenderToolOutline(SDL_Renderer *renderer, const MapCursor *cursor)
+{
+    if (cursor->tool < firstState || cursor->tool > lastState) return;
+
+    const ToolCursorStyle *style = &tool_cursor_style[cursor->tool];
+    int32_t size = style->size * TILE_PIXEL_SIZE;
+    int32_t x = (cursor->tile_x - style->offset - cam_x) * TILE_PIXEL_SIZE;
+    int32_t y = (cursor->tile_y - style->offset - cam_y) * TILE_PIXEL_SIZE;
+
+    uint8_t dark = COLOR_BLACK;
+    uint8_t light = COLOR_WHITE;
+    if (cursor->tool_pressed) {
+        uint8_t swap = dark;
+        dark = light;
+        light = swap;
+    }
+
+    CursorRectOutline(renderer, x - 1, y - 1, size + 4, size + 4, dark);
+    CursorHLine(renderer, x - 3, x - 1, y + size + 3, dark);
+    CursorVLine(renderer, x + size + 3, y - 3, y - 1, dark);
+
+    CursorRectOutline(renderer, x - 4, y - 4, size + 4, size + 4, light);
+    CursorVLine(renderer, x - 4, y + size + 1, y + size + 3, light);
+    CursorHLine(renderer, x + size + 1, x + size + 3, y - 4, light);
+
+    CursorStrokeV(renderer, x - 2, y - 1, y + size + 3, style->fg, style->bg);
+    CursorStrokeH(renderer, x - 1, x + size + 3, y + size + 2, style->fg, style->bg);
+    CursorStrokeV(renderer, x + size + 2, y + size + 1, y - 3, style->fg, style->bg);
+    CursorStrokeH(renderer, x + size + 1, x - 3, y - 2, style->fg, style->bg);
+}
+
+/* Mirrors the pan branch of Unix DrawCursor: a black-edged white cross at the pan anchor */
+static void RenderPanCrosshair(SDL_Renderer *renderer, const MapCursor *cursor)
+{
+    float x = (float)(cursor->pan_px - cam_x * TILE_PIXEL_SIZE);
+    float y = (float)(cursor->pan_py - cam_y * TILE_PIXEL_SIZE);
+
+    SDL_SetRenderDrawColor(renderer, cursor_palette[COLOR_BLACK].r, cursor_palette[COLOR_BLACK].g,
+                           cursor_palette[COLOR_BLACK].b, 255);
+    for (int32_t d = -1; d <= 1; d++) {
+        SDL_RenderLine(renderer, x - 6 + d, y - 6, x + 6 + d, y + 6);
+        SDL_RenderLine(renderer, x - 6 + d, y + 6, x + 6 + d, y - 6);
+        SDL_RenderLine(renderer, x - 8, y + d, x + 8, y + d);
+        SDL_RenderLine(renderer, x + d, y - 8, x + d, y + 8);
+    }
+
+    SDL_SetRenderDrawColor(renderer, cursor_palette[COLOR_WHITE].r, cursor_palette[COLOR_WHITE].g,
+                           cursor_palette[COLOR_WHITE].b, 255);
+    SDL_RenderLine(renderer, x - 6, y - 6, x + 6, y + 6);
+    SDL_RenderLine(renderer, x - 6, y + 6, x + 6, y - 6);
+    SDL_RenderLine(renderer, x - 8, y, x + 8, y);
+    SDL_RenderLine(renderer, x, y - 8, x, y + 8);
+}
+
+static void RenderMapCursor(SDL_Renderer *renderer)
+{
+    SDL_Color saved = { 0, 0, 0, 255 };
+    SDL_GetRenderDrawColor(renderer, &saved.r, &saved.g, &saved.b, &saved.a);
+    SDL_BlendMode saved_blend;
+    SDL_GetRenderDrawBlendMode(renderer, &saved_blend);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+
+    if (map_cursor.pan_visible) {
+        RenderPanCrosshair(renderer, &map_cursor);
+    } else if (map_cursor.tool_visible) {
+        RenderToolOutline(renderer, &map_cursor);
+    }
+
+    SDL_SetRenderDrawBlendMode(renderer, saved_blend);
+    SDL_SetRenderDrawColor(renderer, saved.r, saved.g, saved.b, saved.a);
+}
+
 /* Unix StopEarthquake timer: the shake ends 3000 ms after the most recent quake */
 #define QUAKE_SHAKE_MS 3000
 
@@ -835,6 +1030,8 @@ void Video_RenderFrame(void)
   if (overlay_mode == OVERLAY_VIEW_NORMAL) {
     RenderSprites(video_renderer);
   }
+
+  RenderMapCursor(video_renderer);
 
   GUI_Render(video_renderer);
   UpdateAndRenderMinimap(video_renderer, overlay_mode);

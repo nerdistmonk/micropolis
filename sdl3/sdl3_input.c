@@ -29,6 +29,9 @@ static float pointer_x = 0.0f;
 static float pointer_y = 0.0f;
 static bool pointer_known = false;
 static uint64_t last_edge_scroll_ms = 0;
+static bool left_tool_held = false;
+static int32_t pan_world_px = 0;
+static int32_t pan_world_py = 0;
 
 /* Success tones per tool, matching Unix UIDidTool* in res/micropolis.tcl */
 static void PlayToolTone(int16_t tool)
@@ -132,6 +135,7 @@ void Input_Init(void)
     last_drag_tile_y = -1;
     pointer_known = false;
     last_edge_scroll_ms = 0;
+    left_tool_held = false;
 }
 
 int16_t Input_GetActiveTool(void)
@@ -164,6 +168,24 @@ void Input_UpdateEdgeScroll(uint64_t now)
     else if (pointer_y >= (float)WINDOW_DEFAULT_HEIGHT - EDGE_SCROLL_ZONE_PX) dy = 1;
 
     if (dx || dy) Video_PanCamera(dx, dy);
+}
+
+static void UpdateMapCursor(void)
+{
+    MapCursor cursor = { 0 };
+    cursor.tool = active_tool;
+    cursor.tool_pressed = left_tool_held;
+    cursor.pan_visible = is_dragging;
+    cursor.pan_px = pan_world_px;
+    cursor.pan_py = pan_world_py;
+
+    if (pointer_known && !is_dragging && !GUI_IsModalOpen() && !Splash_IsActive() &&
+        !Help_IsModeActive() && GUI_HelpTopicAt(pointer_x, pointer_y) == HELP_MAP) {
+        cursor.tool_visible = Video_ScreenToTile(pointer_x, pointer_y,
+                                                 &cursor.tile_x, &cursor.tile_y);
+    }
+
+    Video_SetMapCursor(&cursor);
 }
 
 void Input_ProcessEvents(void)
@@ -290,18 +312,23 @@ void Input_ProcessEvents(void)
                     ApplyTool(tx, ty, true);
                     last_drag_tile_x = tx;
                     last_drag_tile_y = ty;
+                    left_tool_held = true;
                 }
             } else if (event.button.button == SDL_BUTTON_RIGHT) {
                 is_dragging = true;
                 drag_origin_x = event.button.x;
                 drag_origin_y = event.button.y;
                 Video_GetCamera(&initial_cam_x, &initial_cam_y);
+                pan_world_px = initial_cam_x * TILE_PIXEL_SIZE + (int32_t)event.button.x;
+                pan_world_py = initial_cam_y * TILE_PIXEL_SIZE + (int32_t)event.button.y;
             }
             break;
 
         case SDL_EVENT_MOUSE_BUTTON_UP:
             if (event.button.button == SDL_BUTTON_RIGHT) {
                 is_dragging = false;
+            } else if (event.button.button == SDL_BUTTON_LEFT) {
+                left_tool_held = false;
             }
             last_drag_tile_x = -1;
             last_drag_tile_y = -1;
@@ -340,4 +367,6 @@ void Input_ProcessEvents(void)
             break;
         }
     }
+
+    UpdateMapCursor();
 }

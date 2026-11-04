@@ -22,6 +22,20 @@ void Video_PanCamera(int32_t delta_x, int32_t delta_y);
 void Video_CenterOnTile(int32_t tile_x, int32_t tile_y);
 bool Video_ScreenToTile(float screen_x, float screen_y, int32_t *tile_x, int32_t *tile_y);
 
+/* Placement outline and pan crosshair drawn over the map, following Unix DrawCursor */
+typedef struct {
+    bool tool_visible;
+    int16_t tool;
+    int32_t tile_x;
+    int32_t tile_y;
+    bool tool_pressed;
+    bool pan_visible;
+    int32_t pan_px;  /* world pixel of the pan anchor */
+    int32_t pan_py;
+} MapCursor;
+
+void Video_SetMapCursor(const MapCursor *cursor);
+
 /* Window event callback for resizing */
 void Video_HandleWindowEvent(const SDL_Event *event);
 
