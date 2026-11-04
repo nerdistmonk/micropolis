@@ -373,8 +373,9 @@ static void RenderRciGauge(SDL_Renderer *renderer)
 
   GUI_DrawText(renderer, (int)rect_rci_box.x + 22, (int)rect_rci_box.y + 3, "DEMAND", col_gold);
 
-  float zero_y = rect_rci_box.y + 36.0f;
-  float max_bar_h = 16.0f;
+  float zero_y = rect_rci_box.y + 32.0f;
+  float max_bar_h = 12.0f;
+  float label_y = zero_y + max_bar_h + 2.0f;
 
   SDL_SetRenderDrawColor(renderer, 90, 105, 135, 255);
   SDL_RenderLine(renderer, rect_rci_box.x + 10.0f, zero_y, rect_rci_box.x + rect_rci_box.w - 10.0f, zero_y);
@@ -398,7 +399,7 @@ static void RenderRciGauge(SDL_Renderer *renderer)
   SDL_FRect r_rect = { r_x, (r_h >= 0.0f) ? (zero_y - r_h) : zero_y, bar_w, (r_h >= 0.0f) ? r_h : -r_h };
   SDL_SetRenderDrawColor(renderer, 60, 220, 80, 255);
   SDL_RenderFillRect(renderer, &r_rect);
-  GUI_DrawText(renderer, (int)r_x + 5, (int)zero_y - 20, "R", col_green);
+  GUI_DrawText(renderer, (int)r_x + 5, (int)label_y, "R", col_green);
 
   /* C Bar */
   float c_x = rect_rci_box.x + 51.0f;
@@ -406,7 +407,7 @@ static void RenderRciGauge(SDL_Renderer *renderer)
   SDL_FRect c_rect = { c_x, (c_h >= 0.0f) ? (zero_y - c_h) : zero_y, bar_w, (c_h >= 0.0f) ? c_h : -c_h };
   SDL_SetRenderDrawColor(renderer, 60, 160, 255, 255);
   SDL_RenderFillRect(renderer, &c_rect);
-  GUI_DrawText(renderer, (int)c_x + 5, (int)zero_y - 20, "C", col_cyan);
+  GUI_DrawText(renderer, (int)c_x + 5, (int)label_y, "C", col_cyan);
 
   /* I Bar */
   float i_x = rect_rci_box.x + 84.0f;
@@ -414,7 +415,7 @@ static void RenderRciGauge(SDL_Renderer *renderer)
   SDL_FRect i_rect = { i_x, (i_h >= 0.0f) ? (zero_y - i_h) : zero_y, bar_w, (i_h >= 0.0f) ? i_h : -i_h };
   SDL_SetRenderDrawColor(renderer, 255, 180, 40, 255);
   SDL_RenderFillRect(renderer, &i_rect);
-  GUI_DrawText(renderer, (int)i_x + 5, (int)zero_y - 20, "I", col_gold);
+  GUI_DrawText(renderer, (int)i_x + 5, (int)label_y, "I", col_gold);
 }
 
 static void RenderQueryToolButton(SDL_Renderer *renderer)

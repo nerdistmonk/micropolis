@@ -459,7 +459,7 @@ void Dialog_File_Render(SDL_Renderer *renderer)
 
     if (active_file_tab == FILE_TAB_SAVE_LOAD) {
         GUI_DrawText(renderer, cx, cy, "CITY PERSISTENCE & FILE DISK", col_gold);
-        GUI_DrawText(renderer, cx, cy + 46, "Save and Load open your system's file dialog.", col_white);
+        GUI_DrawText(renderer, cx, cy + 22, "Save and Load open your system's file dialog.", col_white);
 
         SDL_FRect save_btn = { dx + 60.0f, dy + 138.0f, 180.0f, 34.0f };
         SDL_SetRenderDrawColor(renderer, 40, 70, 110, 255);
