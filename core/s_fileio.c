@@ -14,6 +14,9 @@
 extern void Audio_MakeSound(const char *channel, const char *sound_name);
 extern void ClearMes(void);
 
+/* MiscHis[64] holds this tag when NoDisasters was on at save time. Any other value means off. */
+#define NODISASTERS_SAVE_TAG 0x4E44
+
 static void SwapShortBuffer(int16_t *buf, size_t len)
 {
     for (size_t i = 0; i < len; i++) {
@@ -156,6 +159,12 @@ int32_t LoadCity(const char *filename)
     if (policePercent <= 0.0f || policePercent > 1.0f) policePercent = 1.0f;
     if (firePercent <= 0.0f || firePercent > 1.0f) firePercent = 1.0f;
 
+    NoDisasters = (MiscHis[64] == NODISASTERS_SAVE_TAG) ? 1 : 0;
+
+    int16_t level = MiscHis[15];
+    if (level < 0 || level > 2) level = 0;
+    SetGameLevel(level);
+
     ScenarioID = 0;
     DisasterEvent = 0;
     DisasterWait = 0;
@@ -187,7 +196,7 @@ int32_t LoadCity(const char *filename)
         }
     }
 
-    RoadFund = (int32_t)((float)(RoadTotal + (RailTotal * 2)) * 0.9f);
+    RoadFund = CalcRoadFund(GameLevel);
     RoadSpend = (int32_t)((float)RoadFund * roadPercent);
     PoliceFund = PolicePop * 100;
     PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
@@ -255,6 +264,9 @@ int32_t SaveCity(const char *filename)
     MiscHis[62] = (int16_t)((rd >> 16) & 0xFFFFu);
     MiscHis[63] = (int16_t)(rd & 0xFFFFu);
 
+    MiscHis[15] = GameLevel;
+    MiscHis[64] = NoDisasters ? NODISASTERS_SAVE_TAG : 0;
+
     if (!SaveShortStream(ResHis, HISTLEN / 2, f) ||
         !SaveShortStream(ComHis, HISTLEN / 2, f) ||
         !SaveShortStream(IndHis, HISTLEN / 2, f) ||
@@ -302,12 +314,6 @@ int32_t LoadScenario(int16_t s)
     int16_t dis_wait = 0;
     int16_t score_wait = 0;
 
-    if (CityFileName != NULL) {
-        free(CityFileName);
-        CityFileName = NULL;
-    }
-
-    SetGameLevel(0);
     if (s < 1 || s > 8) s = 1;
 
     switch (s) {
@@ -385,6 +391,16 @@ int32_t LoadScenario(int16_t s)
             break;
     }
 
+    if (!LoadFileInternal(fname)) {
+        return 0;
+    }
+
+    if (CityFileName != NULL) {
+        free(CityFileName);
+        CityFileName = NULL;
+    }
+    SetGameLevel(0);
+
     ScenarioID = s;
     DisasterEvent = dis_event;
     DisasterWait = dis_wait;
@@ -392,10 +408,6 @@ int32_t LoadScenario(int16_t s)
     ScoreWait = score_wait;
     CityTime = (int32_t)(((start_year - 1900) * 48) + 2);
     TotalFunds = initial_funds;
-
-    if (!LoadFileInternal(fname)) {
-        return 0;
-    }
 
     strncpy(CityName, name, sizeof(CityName) - 1);
     CityName[sizeof(CityName) - 1] = '\0';
@@ -432,7 +444,7 @@ int32_t LoadScenario(int16_t s)
         }
     }
 
-    RoadFund = (int32_t)((float)(RoadTotal + (RailTotal * 2)) * 0.9f);
+    RoadFund = CalcRoadFund(GameLevel);
     RoadSpend = (int32_t)((float)RoadFund * roadPercent);
     PoliceFund = PolicePop * 100;
     PoliceSpend = (int32_t)((float)PoliceFund * policePercent);

@@ -577,9 +577,15 @@ void ApplyBudgetCommit(void)
     }
 }
 
+static const float RLevels[3] = { 0.7f, 0.9f, 1.2f };
+
+int32_t CalcRoadFund(int16_t level)
+{
+    return (int32_t)((float)(RoadTotal + (RailTotal * 2)) * RLevels[level]);
+}
+
 void CollectTax(void)
 {
-    static const float RLevels[3] = { 0.7f, 0.9f, 1.2f };
     static const float FLevels[3] = { 1.4f, 1.2f, 0.8f };
 
     CashFlow = 0;
@@ -587,7 +593,7 @@ void CollectTax(void)
         AvCityTax = 0;
         PoliceFund = PolicePop * 100;
         FireFund = FireStPop * 100;
-        RoadFund = (int32_t)((float)(RoadTotal + (RailTotal * 2)) * RLevels[GameLevel]);
+        RoadFund = CalcRoadFund(GameLevel);
         TaxFund = (int32_t)((((float)TotalPop * (float)LVAverage) / 120.0f) * (float)CityTax * FLevels[GameLevel]);
 
         RoadSpend = (int32_t)((float)RoadFund * roadPercent);
