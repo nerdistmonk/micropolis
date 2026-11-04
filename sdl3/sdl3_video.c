@@ -507,6 +507,52 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
     break;
   }
 
+  case OVERLAY_VIEW_RATE_OF_GROWTH: {
+    int32_t bx = tx >> 3;
+    int32_t by = ty >> 3;
+    if (bx < SmX && by < SmY) {
+      int32_t v = RateOGMem[bx][by];
+      if (v > 10 || v < -10) {
+        int32_t mag = (v < 0) ? -v : v;
+        if (mag > 200) mag = 200;
+        uint8_t a = (uint8_t)(90 + mag / 2);
+        uint8_t r = (uint8_t)((v < 0) ? 230 : 40);
+        uint8_t g = (uint8_t)((v < 0) ? 40 : 220);
+        uint8_t b = (uint8_t)((v < 0) ? 40 : 80);
+        return ((uint32_t)a << 24) | ((uint32_t)b << 16) | ((uint32_t)g << 8) | (uint32_t)r;
+      }
+    }
+    break;
+  }
+
+  case OVERLAY_VIEW_FIRE_COVERAGE: {
+    int32_t bx = tx >> 3;
+    int32_t by = ty >> 3;
+    if (bx < SmX && by < SmY) {
+      int32_t v = FireStMap[bx][by];
+      if (v > 0) {
+        if (v > 255) v = 255;
+        uint8_t a = (uint8_t)(90 + v / 2);
+        return ((uint32_t)a << 24) | (20u << 16) | (130u << 8) | 255u;
+      }
+    }
+    break;
+  }
+
+  case OVERLAY_VIEW_POLICE_COVERAGE: {
+    int32_t bx = tx >> 3;
+    int32_t by = ty >> 3;
+    if (bx < SmX && by < SmY) {
+      int32_t v = PoliceMap[bx][by];
+      if (v > 0) {
+        if (v > 255) v = 255;
+        uint8_t a = (uint8_t)(90 + v / 2);
+        return ((uint32_t)a << 24) | (255u << 16) | (120u << 8) | 40u;
+      }
+    }
+    break;
+  }
+
   case OVERLAY_VIEW_NORMAL:
   default:
     break;

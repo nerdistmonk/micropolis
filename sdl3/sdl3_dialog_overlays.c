@@ -3,6 +3,45 @@
 
 #include "sdl3_dialog_common.h"
 
+#define OVERLAY_COLS 2
+
+static const struct {
+    OverlayViewMode mode;
+    const char *name;
+} overlay_choices[] = {
+    { OVERLAY_VIEW_NORMAL, "Normal View" },
+    { OVERLAY_VIEW_POWER, "Power Grid" },
+    { OVERLAY_VIEW_TRAFFIC, "Traffic Density" },
+    { OVERLAY_VIEW_POLLUTION, "Pollution Map" },
+    { OVERLAY_VIEW_CRIME, "Crime Rate" },
+    { OVERLAY_VIEW_LAND_VALUE, "Land Value" },
+    { OVERLAY_VIEW_POP_DENSITY, "Pop Density" },
+    { OVERLAY_VIEW_RATE_OF_GROWTH, "Growth Rate" },
+    { OVERLAY_VIEW_FIRE_COVERAGE, "Fire Coverage" },
+    { OVERLAY_VIEW_POLICE_COVERAGE, "Police Coverage" }
+};
+
+#define OVERLAY_CHOICE_COUNT (sizeof(overlay_choices) / sizeof(overlay_choices[0]))
+
+static SDL_FRect OverlayButtonRect(size_t i)
+{
+    SDL_FRect r = {
+        280.0f + 30.0f + (float)(i % OVERLAY_COLS) * 200.0f,
+        150.0f + 60.0f + (float)(i / OVERLAY_COLS) * 45.0f,
+        180.0f,
+        36.0f
+    };
+    return r;
+}
+
+static const char *OverlayName(OverlayViewMode mode)
+{
+    for (size_t i = 0; i < OVERLAY_CHOICE_COUNT; i++) {
+        if (overlay_choices[i].mode == mode) return overlay_choices[i].name;
+    }
+    return "Normal View";
+}
+
 void Dialog_Overlays_Open(void)
 {
 }
@@ -19,24 +58,11 @@ bool Dialog_Overlays_HandleClick(float mx, float my)
         return true;
     }
 
-    struct {
-        OverlayViewMode mode;
-        const char *name;
-        SDL_FRect rect;
-    } overlay_btns[] = {
-        { OVERLAY_VIEW_NORMAL, "Normal View", { dx + 30.0f, dy + 60.0f, 180.0f, 36.0f } },
-        { OVERLAY_VIEW_POWER, "Power Grid", { dx + 230.0f, dy + 60.0f, 180.0f, 36.0f } },
-        { OVERLAY_VIEW_TRAFFIC, "Traffic Density", { dx + 30.0f, dy + 115.0f, 180.0f, 36.0f } },
-        { OVERLAY_VIEW_POLLUTION, "Pollution Map", { dx + 230.0f, dy + 115.0f, 180.0f, 36.0f } },
-        { OVERLAY_VIEW_CRIME, "Crime Rate", { dx + 30.0f, dy + 170.0f, 180.0f, 36.0f } },
-        { OVERLAY_VIEW_LAND_VALUE, "Land Value", { dx + 230.0f, dy + 170.0f, 180.0f, 36.0f } },
-        { OVERLAY_VIEW_POP_DENSITY, "Pop Density", { dx + 30.0f, dy + 225.0f, 180.0f, 36.0f } }
-    };
-
-    for (size_t i = 0; i < sizeof(overlay_btns) / sizeof(overlay_btns[0]); i++) {
-        SDL_FRect r = overlay_btns[i].rect;
+    for (size_t i = 0; i < OVERLAY_CHOICE_COUNT; i++) {
+        SDL_FRect r = OverlayButtonRect(i);
         if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
-            GUI_Dialogs_SetActiveOverlay(overlay_btns[i].mode);
+            GUI_Dialogs_SetActiveOverlay(overlay_choices[i].mode);
+            GUI_Dialogs_Close();
             return true;
         }
     }
@@ -69,25 +95,11 @@ void Dialog_Overlays_Render(SDL_Renderer *renderer)
     SDL_RenderFillRect(renderer, &close_rect);
     GUI_DrawText(renderer, (int)close_rect.x + 6, (int)close_rect.y + 4, "X", col_white);
 
-    struct {
-        OverlayViewMode mode;
-        const char *name;
-        SDL_FRect rect;
-    } overlay_btns[] = {
-        { OVERLAY_VIEW_NORMAL, "Normal View", { dx + 30.0f, dy + 60.0f, 180.0f, 36.0f } },
-        { OVERLAY_VIEW_POWER, "Power Grid", { dx + 230.0f, dy + 60.0f, 180.0f, 36.0f } },
-        { OVERLAY_VIEW_TRAFFIC, "Traffic Density", { dx + 30.0f, dy + 115.0f, 180.0f, 36.0f } },
-        { OVERLAY_VIEW_POLLUTION, "Pollution Map", { dx + 230.0f, dy + 115.0f, 180.0f, 36.0f } },
-        { OVERLAY_VIEW_CRIME, "Crime Rate", { dx + 30.0f, dy + 170.0f, 180.0f, 36.0f } },
-        { OVERLAY_VIEW_LAND_VALUE, "Land Value", { dx + 230.0f, dy + 170.0f, 180.0f, 36.0f } },
-        { OVERLAY_VIEW_POP_DENSITY, "Pop Density", { dx + 30.0f, dy + 225.0f, 180.0f, 36.0f } }
-    };
-
     OverlayViewMode active_overlay = GUI_Dialogs_GetActiveOverlay();
 
-    for (size_t i = 0; i < sizeof(overlay_btns) / sizeof(overlay_btns[0]); i++) {
-        bool selected = (active_overlay == overlay_btns[i].mode);
-        SDL_FRect r = overlay_btns[i].rect;
+    for (size_t i = 0; i < OVERLAY_CHOICE_COUNT; i++) {
+        bool selected = (active_overlay == overlay_choices[i].mode);
+        SDL_FRect r = OverlayButtonRect(i);
 
         if (selected) {
             SDL_SetRenderDrawColor(renderer, 48, 85, 140, 255);
@@ -103,14 +115,10 @@ void Dialog_Overlays_Render(SDL_Renderer *renderer)
         }
         SDL_RenderRect(renderer, &r);
 
-        GUI_DrawText(renderer, (int)r.x + 16, (int)r.y + 10, overlay_btns[i].name, selected ? col_gold : col_white);
+        GUI_DrawText(renderer, (int)r.x + 16, (int)r.y + 10, overlay_choices[i].name, selected ? col_gold : col_white);
     }
 
     char buf[128];
-    static const char *layer_names[] = {
-        "Normal View", "Power Grid", "Traffic Density",
-        "Pollution Map", "Crime Rate", "Land Value", "Pop Density"
-    };
-    snprintf(buf, sizeof(buf), "Active Layer: [%s]", layer_names[active_overlay]);
+    snprintf(buf, sizeof(buf), "Active Layer: [%s]", OverlayName(active_overlay));
     GUI_DrawText(renderer, (int)dx + 30, (int)dy + 300, buf, col_cyan);
 }
