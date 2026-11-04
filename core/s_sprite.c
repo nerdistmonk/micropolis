@@ -97,20 +97,22 @@ void GenerateCopter(int16_t x, int16_t y)
     SimSprite *s = &active_sprites[COP];
     if (s->frame != 0) return;
 
+    /* Unix MakeSprite(COP, x<<4, (y<<4)+30) and InitSprite orig = (x-30, y), in Unix logical space.
+     * Converted to core space with the COP shift (40, -8). */
     s->type = COP;
     s->frame = 5;
-    s->x = (x << 4);
-    s->y = (y << 4);
+    s->x = (x << 4) + 40;
+    s->y = (y << 4) + 22;
     s->width = 32;
     s->height = 32;
     s->x_offset = -8;
     s->y_offset = -8;
     s->x_hot = 0;
     s->y_hot = 0;
-    s->orig_x = s->x;
+    s->orig_x = (x << 4) + 10;
     s->orig_y = s->y;
-    s->dest_x = (Rand(WORLD_X) << 4);
-    s->dest_y = (Rand(WORLD_Y) << 4);
+    s->dest_x = Rand((WORLD_X << 4) - 1) + 40;
+    s->dest_y = Rand((WORLD_Y << 4) - 1) - 8;
     s->count = 1500;
     s->control = -1;
     s->sound_count = 0;
