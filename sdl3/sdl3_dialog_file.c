@@ -609,19 +609,17 @@ void Dialog_File_Render(SDL_Renderer *renderer)
         DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 315, "Picture Notices (Pop-ups)", Settings_GetPictureNotices());
         DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 350, "Linear Filtering (Smooth Scaling)", Settings_GetLinearFilter());
     } else if (active_file_tab == FILE_TAB_ABOUT) {
-        /* Credits from Unix message 300; the version matches Unix MicropolisVersion. */
         static const char *about_lines[] = {
-            "Micropolis Version 4.0 Copyright (C) 2007",
+            "Micropolis Version 5.0 Copyright (C) 2026",
             "by Electronic Arts.",
             "",
-            "Based on the Original Micropolis Concept and Design",
+            "Based on the original Micropolis concept and design",
             "by Will Wright.",
             "",
-            "TCL/Tk User Interface Designed and Created",
-            "by Don Hopkins, DUX Software.",
+            "Originally ported to Unix by Don Hopkins.",
+            "Originally ported to Linux by Don Hopkins for the OLPC Project.",
             "",
-            "Ported to Linux, Optimized and Adapted for OLPC",
-            "by Don Hopkins.",
+            "Ported to SDL3 GNU/Linux by R. Shaklfrd, Gemini and Claude.",
             "",
             "Licensed under the GNU General Public License,",
             "version 3, with additional conditions."
