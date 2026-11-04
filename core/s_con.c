@@ -50,27 +50,6 @@ static bool tally(int32_t tileValue)
     return false;
 }
 
-static bool TryAutoBulldozeTile(int32_t x, int32_t y)
-{
-    if (!autoBulldoze || TotalFunds < 1) return false;
-    if (!TestBounds(x, y)) return false;
-
-    uint16_t raw_tile = Map[x][y];
-    int32_t tile = raw_tile & LOMASK;
-    NeutralizeRoad(&tile);
-
-    if (tally(tile) || (raw_tile & BULLBIT)) {
-        if (tile != DIRT && tile != RIVER && tile != REDGE && tile != CHANNEL) {
-            Map[x][y] = DIRT;
-            TotalFunds -= 1;
-            MustUpdateFunds = 1;
-            return true;
-        }
-    }
-
-    return false;
-}
-
 /* Unix ConnecTile autodoze for road, rail, and wire: clears only explosion debris and tiles below 64. */
 static void AutoDozeForConnect(int32_t x, int32_t y)
 {
@@ -610,10 +589,7 @@ int32_t LayPark(int32_t x, int32_t y)
     if (!TestBounds(x, y)) return 0;
     if (TotalFunds < CostOf[parkState]) return -2;
 
-    TryAutoBulldozeTile(x, y);
-
-    if ((Map[x][y] & LOMASK) != DIRT) return 0;
-    if (TotalFunds < CostOf[parkState]) return -2;
+    if (Map[x][y] != DIRT) return 0;
 
     /* Rand(4) yields 0..4; the 4 roll places a fountain, the rest woods. */
     int16_t roll = Rand(4);
