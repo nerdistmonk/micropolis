@@ -466,6 +466,7 @@ extern int32_t absDist;
 extern int16_t CCx, CCy, CCx2, CCy2;
 extern int16_t TrafMaxX, TrafMaxY;
 extern int16_t CrimeMaxX, CrimeMaxY;
+extern int16_t PolMaxX, PolMaxY;
 extern int16_t FloodX, FloodY;
 extern int16_t CrashX, CrashY;
 extern int32_t CityPop, deltaCityPop;
