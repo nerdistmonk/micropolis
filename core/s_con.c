@@ -685,13 +685,12 @@ int32_t LayDoze(int32_t x, int32_t y)
 
     /* 3. Single-tile clearing */
     if (raw_tile & BULLBIT) {
-        if ((tile >= HBRIDGE && tile <= VBRIDGE) ||
-            (tile >= 208 && tile <= 209) ||
-            (tile >= 224 && tile <= 225)) {
-            Map[x][y] = RIVER;
-        } else {
-            Map[x][y] = DIRT;
-        }
+        int32_t folded = tile;
+        NeutralizeRoad(&folded);
+        bool over_water = folded == HBRIDGE || folded == VBRIDGE || folded == BRWV || folded == BRWH ||
+                          (folded >= HBRDG0 && folded <= HBRDG3) || (folded >= VBRDG0 && folded <= VBRDG3) ||
+                          folded == HPOWER || folded == VPOWER || folded == HRAIL || folded == VRAIL;
+        Map[x][y] = over_water ? RIVER : DIRT;
 
         TotalFunds -= 1;
         MustUpdateFunds = 1;
