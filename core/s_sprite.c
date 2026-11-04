@@ -310,7 +310,6 @@ void MakeTornado(void)
 
     ClearMes();
     SendMesAt(-22, (int16_t)((ux >> 4) + 3), (int16_t)((uy >> 4) + 2));
-    Audio_MakeSound("city", "siren");
 }
 
 static void StepTrain(SimSprite *s)

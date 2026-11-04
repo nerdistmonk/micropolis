@@ -256,7 +256,6 @@ int32_t LoadCity(const char *filename)
     if (EngineCallbacks.invalidate_maps) EngineCallbacks.invalidate_maps();
     if (EngineCallbacks.invalidate_editors) EngineCallbacks.invalidate_editors();
 
-    Audio_MakeSound("city", "build");
     return 1;
 }
 
@@ -356,7 +355,6 @@ int32_t SaveCity(const char *filename)
         CityFileName = strdup(filename);
     }
 
-    Audio_MakeSound("city", "save");
     return 1;
 }
 
@@ -524,6 +522,5 @@ int32_t LoadScenario(int16_t s)
     if (EngineCallbacks.invalidate_maps) EngineCallbacks.invalidate_maps();
     if (EngineCallbacks.invalidate_editors) EngineCallbacks.invalidate_editors();
 
-    Audio_MakeSound("city", "build");
     return 1;
 }

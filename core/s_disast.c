@@ -45,7 +45,6 @@ void SetFire(void)
             CrashX = (int16_t)x;
             CrashY = (int16_t)y;
             SendMesAt(-20, (int16_t)x, (int16_t)y);
-            Audio_MakeSound("city", "fire");
         }
     }
 }
@@ -62,7 +61,6 @@ void MakeFire(void)
             if (low > 21 && low < LASTZONE) {
                 Map[x][y] = (uint16_t)(FIRE + ANIMBIT + (Rand16() & 7));
                 SendMesAt(20, (int16_t)x, (int16_t)y);
-                Audio_MakeSound("city", "fire");
                 return;
             }
         }
@@ -93,7 +91,6 @@ void MakeFlood(void)
                         FloodX = (int16_t)xx;
                         FloodY = (int16_t)yy;
                         SendMesAt(-42, (int16_t)xx, (int16_t)yy);
-                        Audio_MakeSound("city", "siren");
                         return;
                     }
                 }
