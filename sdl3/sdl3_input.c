@@ -137,14 +137,6 @@ void Input_ProcessEvents(void)
             case SDLK_D: active_tool = dozeState; break;
             case SDLK_T: active_tool = roadState; break;
 
-            /* Disaster Hotkeys */
-            case SDLK_F1: MakeFire(); break;
-            case SDLK_F2: MakeFlood(); break;
-            case SDLK_F3: MakeEarthquake(); break;
-            case SDLK_F4: MakeTornado(); break;
-            case SDLK_F5: MakeMonster(); break;
-            case SDLK_F6: MakeMeltdown(); break;
-
             /* Persistence Hotkeys */
             case SDLK_F7:
                 GUI_ShowStatus(SaveCity("quicksave.cty") ? "Quicksaved to quicksave.cty" : "Quicksave failed");
