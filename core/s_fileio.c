@@ -203,6 +203,7 @@ int32_t LoadCity(const char *filename)
     if (level < 0 || level > 2) level = 0;
     SetGameLevel(level);
 
+    ResetCityWorkingState();
     RestoreSimState();
 
     ScenarioID = 0;
@@ -469,6 +470,7 @@ int32_t LoadScenario(int16_t s)
     ScoreWait = score_wait;
     CityTime = (int32_t)(((start_year - 1900) * 48) + 2);
     TotalFunds = initial_funds;
+    ResetCityWorkingState();
     RestoreSimState();
 
     strncpy(CityName, name, sizeof(CityName) - 1);

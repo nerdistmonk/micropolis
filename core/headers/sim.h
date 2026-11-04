@@ -536,6 +536,7 @@ void SetNewCityLevel(int16_t level);
 void SetMessageField(const char *str);
 int32_t CalcRoadFund(int16_t level);
 void InitWillStuff(void);
+void ResetCityWorkingState(void);
 void ResetMapState(void);
 void ResetEditorState(void);
 void AnimateTiles(void);

@@ -15,10 +15,22 @@ static void DoNewGame(void);
 void InitWillStuff(void)
 {
     SeedRand(1);
-    
+
     RoadEffect   = 32;
     PoliceEffect = 1000;
     FireEffect   = 1000;
+    RoadFund      = 0;
+    PoliceFund    = 0;
+    FireFund      = 0;
+
+    ResetCityWorkingState();
+
+    ResetLastKeys();
+    DoNewGame();
+}
+
+void ResetCityWorkingState(void)
+{
     CityScore    = 500;
     CityPop      = -1;
     OverRide     = 0;
@@ -26,9 +38,6 @@ void InitWillStuff(void)
 
     MesNum        = 0;
     MessagePort   = 0;
-    RoadFund      = 0;
-    PoliceFund    = 0;
-    FireFund      = 0;
     ValveFlag     = 1;
     DisasterEvent = 0;
     TaxFlag       = 0;
@@ -58,9 +67,6 @@ void InitWillStuff(void)
             PoliceMapEffect[x][y] = 0;
         }
     }
-
-    ResetLastKeys();
-    DoNewGame();
 }
 
 static void ResetLastKeys(void)
