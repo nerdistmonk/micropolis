@@ -1,6 +1,8 @@
 /* sdl3_audio.c: Audio subsystem for Micropolis SDL3.
  *
- * WAV playback via SDL3 AudioStreams with queue clearing and rate throttling.
+ * WAV playback via SDL3 AudioStreams. Each clip plays on its own voice stream
+ * bound to the playback device, so SDL mixes overlapping clips. Rate throttling
+ * limits repetitive tool sounds.
  */
 
 #include "sdl3_audio.h"
@@ -12,8 +14,13 @@
 #include <ctype.h>
 #include <math.h>
 
-static SDL_AudioStream *audio_stream = NULL;
 static uint64_t last_tool_sound_time = 0;
+
+#define MAX_VOICES 8
+static SDL_AudioDeviceID playback_device = 0;
+static SDL_AudioSpec mix_spec;
+static SDL_AudioStream *voices[MAX_VOICES];
+static int next_voice = 0;
 
 typedef struct {
     char name[64];
@@ -104,19 +111,41 @@ static bool ContainsNoCase(const char *haystack, const char *needle)
 
 static void PlayPcmData(const uint8_t *data, uint32_t len, const SDL_AudioSpec *spec)
 {
-    if (!audio_stream || !data || len == 0 || !spec) return;
+    if (!playback_device || !data || len == 0 || !spec) return;
 
-    /* Prevent stream stacking backlog */
-    SDL_ClearAudioStream(audio_stream);
+    /* Recycle voices the device has finished consuming */
+    int slot = -1;
+    for (int i = 0; i < MAX_VOICES; i++) {
+        if (voices[i] && SDL_GetAudioStreamQueued(voices[i]) <= 0) {
+            SDL_DestroyAudioStream(voices[i]);
+            voices[i] = NULL;
+        }
+        if (!voices[i] && slot < 0) slot = i;
+    }
 
-    SDL_SetAudioStreamFormat(audio_stream, spec, NULL);
-    SDL_PutAudioStreamData(audio_stream, data, (int)len);
-    SDL_FlushAudioStream(audio_stream);
+    /* All voices busy: evict the oldest in round-robin order */
+    if (slot < 0) {
+        slot = next_voice;
+        next_voice = (next_voice + 1) % MAX_VOICES;
+        SDL_DestroyAudioStream(voices[slot]);
+        voices[slot] = NULL;
+    }
+
+    SDL_AudioStream *voice = SDL_CreateAudioStream(spec, &mix_spec);
+    if (!voice) return;
+    if (!SDL_BindAudioStream(playback_device, voice)) {
+        SDL_DestroyAudioStream(voice);
+        return;
+    }
+    SDL_SetAudioStreamGain(voice, Settings_GetSoundGain());
+    SDL_PutAudioStreamData(voice, data, (int)len);
+    SDL_FlushAudioStream(voice);
+    voices[slot] = voice;
 }
 
 static void PlaySyntheticTone(int freq_hz, int duration_ms)
 {
-    if (!audio_stream) return;
+    if (!playback_device) return;
 
     const int rate = 22050;
     int total_samples = (rate * duration_ms) / 1000;
@@ -150,35 +179,37 @@ bool Audio_Init(void)
     target_spec.channels = 2;
     target_spec.freq = 44100;
 
-    audio_stream = SDL_OpenAudioDeviceStream(
-        SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
-        &target_spec,
-        NULL,
-        NULL
-    );
-
-    if (!audio_stream) {
-        SDL_Log("Failed to create default audio stream: %s", SDL_GetError());
+    playback_device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &target_spec);
+    if (!playback_device) {
+        SDL_Log("Failed to open default audio device: %s", SDL_GetError());
         return false;
     }
+    SDL_GetAudioDeviceFormat(playback_device, &mix_spec, NULL);
 
     Audio_ApplySoundLevel();
-    SDL_ResumeAudioStreamDevice(audio_stream);
+    SDL_ResumeAudioDevice(playback_device);
     return true;
 }
 
 void Audio_ApplySoundLevel(void)
 {
-    if (audio_stream) {
-        SDL_SetAudioStreamGain(audio_stream, Settings_GetSoundGain());
+    float gain = Settings_GetSoundGain();
+    for (int i = 0; i < MAX_VOICES; i++) {
+        if (voices[i]) SDL_SetAudioStreamGain(voices[i], gain);
     }
 }
 
 void Audio_Shutdown(void)
 {
-    if (audio_stream) {
-        SDL_DestroyAudioStream(audio_stream);
-        audio_stream = NULL;
+    for (int i = 0; i < MAX_VOICES; i++) {
+        if (voices[i]) {
+            SDL_DestroyAudioStream(voices[i]);
+            voices[i] = NULL;
+        }
+    }
+    if (playback_device) {
+        SDL_CloseAudioDevice(playback_device);
+        playback_device = 0;
     }
 
     for (int i = 0; i < num_cached; i++) {
@@ -194,7 +225,7 @@ void Audio_Shutdown(void)
 void Audio_MakeSound(const char *channel, const char *sound_name)
 {
     (void)channel;
-    if (!sound_name || !audio_stream || !UserSoundOn) return;
+    if (!sound_name || !playback_device || !UserSoundOn) return;
 
     /* Throttle repetitive drag-tool audio to prevent rapid fire stutter */
     uint64_t now = SDL_GetTicks();
