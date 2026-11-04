@@ -697,11 +697,6 @@ void MoveObjects(void)
     if (SimSpeed == 0) return;
     Cycle++;
 
-    /* Periodic background ship traffic check */
-    if ((Cycle & 127) == 0 && active_sprites[SHI].frame == 0) {
-        GenerateShip();
-    }
-
     if (active_sprites[TRA].frame) StepTrain(&active_sprites[TRA]);
     if (active_sprites[COP].frame) StepCopter(&active_sprites[COP]);
     if (active_sprites[AIR].frame) StepPlane(&active_sprites[AIR]);
