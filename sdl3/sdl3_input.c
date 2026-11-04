@@ -30,6 +30,7 @@ static float pointer_y = 0.0f;
 static bool pointer_known = false;
 static uint64_t last_edge_scroll_ms = 0;
 static bool left_tool_held = false;
+static bool right_doze_held = false;
 static int32_t pan_world_px = 0;
 static int32_t pan_world_py = 0;
 
@@ -68,18 +69,18 @@ static void ReportToolFailure(int32_t result)
     }
 }
 
-static void ApplyTool(int32_t tx, int32_t ty, bool first)
+static void ApplyTool(int16_t tool, int32_t tx, int32_t ty, bool first)
 {
     if (!TestBounds(tx, ty)) return;
 
-    if (active_tool == queryState) {
+    if (tool == queryState) {
         GUI_Dialogs_ShowQueryInspector(tx, ty);
         Audio_MakeSound("edit", "e -speed 200");
         return;
     }
 
     int32_t result;
-    switch (active_tool) {
+    switch (tool) {
     case residentialState:
     case commercialState:
     case industrialState:
@@ -90,7 +91,7 @@ static void ApplyTool(int32_t tx, int32_t ty, bool first)
     case seaportState:
     case nuclearState:
     case airportState:
-        result = PlaceZone(tx, ty, active_tool);
+        result = PlaceZone(tx, ty, tool);
         break;
 
     case wireState:
@@ -114,7 +115,7 @@ static void ApplyTool(int32_t tx, int32_t ty, bool first)
 
     if (result == 1) {
         /* Bulldozer clips are played by the core */
-        if (active_tool != dozeState) PlayToolTone(active_tool);
+        if (tool != dozeState) PlayToolTone(tool);
         return;
     }
 
@@ -122,7 +123,7 @@ static void ApplyTool(int32_t tx, int32_t ty, bool first)
     if (!first) return;
 
     /* Bulldozing empty ground is silent */
-    if (active_tool == dozeState && result == 0) return;
+    if (tool == dozeState && result == 0) return;
 
     ReportToolFailure(result);
 }
@@ -136,6 +137,7 @@ void Input_Init(void)
     pointer_known = false;
     last_edge_scroll_ms = 0;
     left_tool_held = false;
+    right_doze_held = false;
 }
 
 int16_t Input_GetActiveTool(void)
@@ -173,8 +175,8 @@ void Input_UpdateEdgeScroll(uint64_t now)
 static void UpdateMapCursor(void)
 {
     MapCursor cursor = { 0 };
-    cursor.tool = active_tool;
-    cursor.tool_pressed = left_tool_held;
+    cursor.tool = right_doze_held ? dozeState : active_tool;
+    cursor.tool_pressed = left_tool_held || right_doze_held;
     cursor.pan_visible = is_dragging;
     cursor.pan_px = pan_world_px;
     cursor.pan_py = pan_world_py;
@@ -309,24 +311,35 @@ void Input_ProcessEvents(void)
             if (event.button.button == SDL_BUTTON_LEFT) {
                 int32_t tx, ty;
                 if (Video_ScreenToTile(event.button.x, event.button.y, &tx, &ty)) {
-                    ApplyTool(tx, ty, true);
+                    ApplyTool(active_tool, tx, ty, true);
                     last_drag_tile_x = tx;
                     last_drag_tile_y = ty;
                     left_tool_held = true;
                 }
             } else if (event.button.button == SDL_BUTTON_RIGHT) {
-                is_dragging = true;
-                drag_origin_x = event.button.x;
-                drag_origin_y = event.button.y;
-                Video_GetCamera(&initial_cam_x, &initial_cam_y);
-                pan_world_px = initial_cam_x * TILE_PIXEL_SIZE + (int32_t)event.button.x;
-                pan_world_py = initial_cam_y * TILE_PIXEL_SIZE + (int32_t)event.button.y;
+                if (SDL_GetModState() & SDL_KMOD_SHIFT) {
+                    int32_t tx, ty;
+                    if (Video_ScreenToTile(event.button.x, event.button.y, &tx, &ty)) {
+                        ApplyTool(dozeState, tx, ty, true);
+                        last_drag_tile_x = tx;
+                        last_drag_tile_y = ty;
+                        right_doze_held = true;
+                    }
+                } else {
+                    is_dragging = true;
+                    drag_origin_x = event.button.x;
+                    drag_origin_y = event.button.y;
+                    Video_GetCamera(&initial_cam_x, &initial_cam_y);
+                    pan_world_px = initial_cam_x * TILE_PIXEL_SIZE + (int32_t)event.button.x;
+                    pan_world_py = initial_cam_y * TILE_PIXEL_SIZE + (int32_t)event.button.y;
+                }
             }
             break;
 
         case SDL_EVENT_MOUSE_BUTTON_UP:
             if (event.button.button == SDL_BUTTON_RIGHT) {
                 is_dragging = false;
+                right_doze_held = false;
             } else if (event.button.button == SDL_BUTTON_LEFT) {
                 left_tool_held = false;
             }
@@ -350,12 +363,14 @@ void Input_ProcessEvents(void)
                 int32_t tile_dx = (int32_t)(dx / (float)TILE_PIXEL_SIZE);
                 int32_t tile_dy = (int32_t)(dy / (float)TILE_PIXEL_SIZE);
                 Video_SetCamera(initial_cam_x - tile_dx, initial_cam_y - tile_dy);
-            } else if ((event.motion.state & SDL_BUTTON_LMASK) && !GUI_IsModalOpen() &&
-                       !Help_IsModeActive() && active_tool != queryState) {
+            } else if (!GUI_IsModalOpen() && !Help_IsModeActive() &&
+                       (right_doze_held ||
+                        ((event.motion.state & SDL_BUTTON_LMASK) && active_tool != queryState))) {
+                int16_t drag_tool = right_doze_held ? dozeState : active_tool;
                 int32_t tx, ty;
                 if (Video_ScreenToTile(event.motion.x, event.motion.y, &tx, &ty)) {
                     if (tx != last_drag_tile_x || ty != last_drag_tile_y) {
-                        ApplyTool(tx, ty, false);
+                        ApplyTool(drag_tool, tx, ty, false);
                         last_drag_tile_x = tx;
                         last_drag_tile_y = ty;
                     }

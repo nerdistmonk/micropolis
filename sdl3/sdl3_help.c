@@ -20,7 +20,7 @@ typedef struct {
 
 static const HelpEntry help_entries[HELP_TOPIC_COUNT] = {
     [HELP_NONE] = { NULL, NULL },
-    [HELP_MAP] = { "Map", "Left-click or drag to apply the selected tool. Right-drag or the arrow keys pan the view. Click the radar map to jump to a spot." },
+    [HELP_MAP] = { "Map", "Left-click or drag to apply the selected tool. Right-drag or the arrow keys pan the view. Shift+right-drag bulldozes. Click the radar map to jump to a spot." },
     [HELP_FUNDS] = { "Treasury", "Current city funds. Click to open the Budget tab for the annual budget and tax rates." },
     [HELP_CITY] = { "City Info", "Population and city statistics. Click to open the City dialog." },
     [HELP_OVERLAYS] = { "Overlays", "Color the map by power, traffic, pollution, crime, land value, population density, growth, or fire and police coverage. Residential, commercial, and industrial zone views show only that zone type's tiles. The Transportation view shows only roads and rail. Click to choose a view." },
