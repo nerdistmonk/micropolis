@@ -36,27 +36,36 @@ static void NeutralizeRoad(int32_t *tile)
     }
 }
 
+/*
+ * tally: Checks if an obstacle tile can be automatically cleared by autoBulldoze.
+ * Faithful to historic w_tool.c tally().
+ */
+static bool tally(int32_t tileValue)
+{
+    if (((tileValue >= FIRSTRIVEDGE) && (tileValue <= LASTRUBBLE)) ||
+        ((tileValue >= (POWERBASE + 2)) && (tileValue <= (POWERBASE + 12))) ||
+        ((tileValue >= TINYEXP) && (tileValue <= (LASTTINYEXP + 2)))) {
+        return true;
+    }
+    return false;
+}
+
 static bool TryAutoBulldozeTile(int32_t x, int32_t y)
 {
     if (!autoBulldoze || TotalFunds < 1) return false;
     if (!TestBounds(x, y)) return false;
 
     uint16_t raw_tile = Map[x][y];
-    if (!(raw_tile & BULLBIT)) return false;
-
     int32_t tile = raw_tile & LOMASK;
     NeutralizeRoad(&tile);
 
-    /* Clears trees, woods, rubble, or tiny explosion residue */
-    if (((tile >= TREEBASE && tile <= WOODS5)) ||
-        ((tile >= RUBBLE && tile <= LASTRUBBLE)) ||
-        ((tile >= TINYEXP && tile <= LASTTINYEXP)) ||
-        (tile < 64 && tile != DIRT && tile != RIVER && tile != REDGE && tile != CHANNEL &&
-         (tile < FIRSTRIVEDGE || tile > LASTRIVEDGE))) {
-        Map[x][y] = DIRT;
-        TotalFunds -= 1;
-        MustUpdateFunds = 1;
-        return true;
+    if (tally(tile) || (raw_tile & BULLBIT)) {
+        if (tile != DIRT && tile != RIVER && tile != REDGE && tile != CHANNEL) {
+            Map[x][y] = DIRT;
+            TotalFunds -= 1;
+            MustUpdateFunds = 1;
+            return true;
+        }
     }
 
     return false;
@@ -188,10 +197,15 @@ void FixZone(int32_t x, int32_t y)
     if (x > 0) FixSingle(x - 1, y);
 }
 
+/*
+ * CheckZoneClear: Non-destructive verification of zone footprint.
+ * Calculates auto-bulldoze cost without altering the map.
+ */
 bool CheckZoneClear(int32_t x, int32_t y, int16_t size)
 {
     int32_t start_x = x - 1;
     int32_t start_y = y - 1;
+    int32_t doze_cost = 0;
 
     for (int32_t dy = 0; dy < size; dy++) {
         for (int32_t dx = 0; dx < size; dx++) {
@@ -200,77 +214,83 @@ bool CheckZoneClear(int32_t x, int32_t y, int16_t size)
 
             if (!TestBounds(tx, ty)) return false;
 
-            /* Auto-bulldoze clearable tiles under the zone footprint */
-            TryAutoBulldozeTile(tx, ty);
-
             uint16_t tile = Map[tx][ty];
             uint16_t low = tile & LOMASK;
 
             if (low != DIRT) {
-                return false;
+                if (autoBulldoze && tally(low)) {
+                    doze_cost++;
+                } else {
+                    return false;
+                }
             }
-            if (tile & (ZONEBIT | ANIMBIT | CONDBIT | BURNBIT)) {
+            if (tile & (ZONEBIT | ANIMBIT)) {
                 return false;
             }
         }
     }
+
+    if (TotalFunds < doze_cost) {
+        return false;
+    }
+
     return true;
 }
 
 bool PlaceZone(int32_t x, int32_t y, int16_t tool_id)
 {
-    int32_t cost = 0;
+    int32_t base_cost = 0;
     int16_t base_tile = 0;
     int16_t size = 3;
 
     switch (tool_id) {
     case residentialState:
-        cost = 100;
+        base_cost = 100;
         base_tile = RESBASE;
         size = 3;
         break;
     case commercialState:
-        cost = 100;
+        base_cost = 100;
         base_tile = COMBASE;
         size = 3;
         break;
     case industrialState:
-        cost = 100;
+        base_cost = 100;
         base_tile = INDCLR - 4;
         size = 3;
         break;
     case fireState:
-        cost = 500;
+        base_cost = 500;
         base_tile = FIRESTATION - 4;
         size = 3;
         break;
     case policeState:
-        cost = 500;
+        base_cost = 500;
         base_tile = POLICESTATION - 4;
         size = 3;
         break;
     case powerState:
-        cost = 3000;
+        base_cost = 3000;
         base_tile = POWERPLANT - 4;
         size = 4;
         break;
     case stadiumState:
-        cost = 5000;
+        base_cost = 5000;
         base_tile = STADIUM - 4;
         size = 4;
         break;
     case seaportState:
-        cost = 3000;
+        base_cost = 3000;
         base_tile = PORT - 4;
         size = 4;
         break;
     case nuclearState:
-        cost = 5000;
+        base_cost = 5000;
         base_tile = NUCLEAR - 4;
         size = 4;
         break;
     case airportState:
-        cost = 10000;
+        base_cost = 10000;
         base_tile = AIRPORT - 4;
         size = 6;
         break;
@@ -278,11 +298,50 @@ bool PlaceZone(int32_t x, int32_t y, int16_t tool_id)
         return false;
     }
 
-    if (TotalFunds < cost) return false;
-    if (!CheckZoneClear(x, y, size)) return false;
+    int32_t start_x = x - 1;
+    int32_t start_y = y - 1;
+    int32_t doze_cost = 0;
 
-    TotalFunds -= cost;
+    for (int32_t dy = 0; dy < size; dy++) {
+        for (int32_t dx = 0; dx < size; dx++) {
+            int32_t tx = start_x + dx;
+            int32_t ty = start_y + dy;
+
+            if (!TestBounds(tx, ty)) return false;
+
+            uint16_t tile = Map[tx][ty];
+            uint16_t low = tile & LOMASK;
+
+            if (low != DIRT) {
+                if (autoBulldoze && tally(low)) {
+                    doze_cost++;
+                } else {
+                    return false;
+                }
+            }
+            if (tile & (ZONEBIT | ANIMBIT)) {
+                return false;
+            }
+        }
+    }
+
+    if (TotalFunds < (base_cost + doze_cost)) {
+        return false;
+    }
+
+    /* Deduct both zone and auto-bulldoze costs atomically */
+    TotalFunds -= (base_cost + doze_cost);
     MustUpdateFunds = 1;
+
+    /* Clear bulldozed footprint */
+    for (int32_t dy = 0; dy < size; dy++) {
+        for (int32_t dx = 0; dx < size; dx++) {
+            int32_t tx = start_x + dx;
+            int32_t ty = start_y + dy;
+            Map[tx][ty] = DIRT;
+        }
+    }
+
     SMapX = (int16_t)x;
     SMapY = (int16_t)y;
 

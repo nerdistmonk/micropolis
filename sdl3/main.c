@@ -30,7 +30,19 @@ static void OnAutoGoto(int16_t x, int16_t y, const char *msg)
 
 static void OnRequestBudget(void)
 {
-    GUI_Dialogs_OpenCityMgmt(CITY_TAB_BUDGET);
+    GUI_Dialogs_OpenAnnualBudget();
+}
+
+static void OnUpdateFunds(int32_t funds)
+{
+    (void)funds;
+    MustUpdateFunds = 1;
+}
+
+static void OnUpdateDate(int32_t year, int32_t month)
+{
+    (void)year;
+    (void)month;
 }
 
 int main(int argc, char **argv)
@@ -47,8 +59,8 @@ int main(int argc, char **argv)
     GUI_Init();
 
     SimCallbacks callbacks = {
-        .update_funds = NULL,
-        .update_date = NULL,
+        .update_funds = OnUpdateFunds,
+        .update_date = OnUpdateDate,
         .show_message = OnMessageReceived,
         .auto_goto = OnAutoGoto,
         .invalidate_maps = NULL,
@@ -74,11 +86,15 @@ int main(int argc, char **argv)
 
         uint64_t now = SDL_GetTicks();
 
-        /* Sim core tick */
-        if (now - last_tick_time >= tick_interval_ms) {
-            SimFrame();
-            doMessage();
-            MoveObjects();
+        /* Sim core tick - suspended while modal dialogs are open */
+        if (!GUI_Dialogs_IsModalOpen()) {
+            if (now - last_tick_time >= tick_interval_ms) {
+                SimFrame();
+                doMessage();
+                MoveObjects();
+                last_tick_time = now;
+            }
+        } else {
             last_tick_time = now;
         }
 

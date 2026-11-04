@@ -82,15 +82,15 @@ static SDL_Texture *LoadXpmFile(SDL_Renderer *renderer, const char *path, int *o
     }
   }
 
-  if (width <= 0 || height <= 0 || num_colors <= 0 || cpp <= 0 || cpp > 2) {
+  typedef struct {
+    char symbol[16];
+    uint32_t rgba;
+  } XpmCol;
+
+  if (width <= 0 || height <= 0 || num_colors <= 0 || cpp <= 0 || cpp >= (int)sizeof(((XpmCol *)0)->symbol)) {
     fclose(f);
     return NULL;
   }
-
-  typedef struct {
-    char symbol[4];
-    uint32_t rgba;
-  } XpmCol;
 
   XpmCol *cmap = (XpmCol *)calloc((size_t)num_colors, sizeof(XpmCol));
   if (!cmap) {
@@ -140,7 +140,7 @@ static SDL_Texture *LoadXpmFile(SDL_Renderer *renderer, const char *path, int *o
     if (!start) continue;
     start++;
     for (int col = 0; col < width; col++) {
-      char sym[4] = {0};
+      char sym[16] = {0};
       for (int k = 0; k < cpp; k++) sym[k] = start[col * cpp + k];
       sym[cpp] = '\0';
 

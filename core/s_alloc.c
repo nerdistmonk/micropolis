@@ -197,6 +197,7 @@ static void default_auto_goto(int16_t x, int16_t y, const char *msg) { (void)x; 
 static void default_invalidate(void) {}
 static void default_play_sound(int16_t id, int16_t x, int16_t y) { (void)id; (void)x; (void)y; }
 static void default_make_sound(const char *c, const char *s) { (void)c; (void)s; }
+static void default_request_budget_dialog(void) {}
 
 SimCallbacks EngineCallbacks = {
     .update_funds = default_update_funds,
@@ -206,7 +207,8 @@ SimCallbacks EngineCallbacks = {
     .invalidate_maps = default_invalidate,
     .invalidate_editors = default_invalidate,
     .play_sound = default_play_sound,
-    .make_sound = default_make_sound
+    .make_sound = default_make_sound,
+    .request_budget_dialog = default_request_budget_dialog
 };
 
 void Sim_RegisterCallbacks(const SimCallbacks *cb)
@@ -220,6 +222,7 @@ void Sim_RegisterCallbacks(const SimCallbacks *cb)
     if (cb->invalidate_editors) EngineCallbacks.invalidate_editors = cb->invalidate_editors;
     if (cb->play_sound) EngineCallbacks.play_sound = cb->play_sound;
     if (cb->make_sound) EngineCallbacks.make_sound = cb->make_sound;
+    if (cb->request_budget_dialog) EngineCallbacks.request_budget_dialog = cb->request_budget_dialog;
 }
 
 void AllocateMapBuffers(void)

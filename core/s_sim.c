@@ -595,9 +595,10 @@ void CollectTax(void)
         FireSpend = (int32_t)((float)FireFund * firePercent);
 
         if (!autoBudget) {
-            SetSimSpeed(0);
             if (EngineCallbacks.request_budget_dialog) {
                 EngineCallbacks.request_budget_dialog();
+            } else {
+                SetSimSpeed(0);
             }
         } else {
             ApplyBudgetCommit();

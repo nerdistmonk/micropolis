@@ -18,12 +18,12 @@
 extern const char **Micropolis_GetTilesXpmData(void);
 
 static uint32_t *tile_pixels = NULL;
-static int32_t   sheet_width = 0;
-static int32_t   sheet_height = 0;
-static bool      tiles_ready = false;
+static int32_t sheet_width = 0;
+static int32_t sheet_height = 0;
+static bool tiles_ready = false;
 
 typedef struct {
-    char     symbol[4];
+    char symbol[16];
     uint32_t rgba;
 } XpmColorMap;
 
@@ -35,9 +35,9 @@ static uint32_t ParseHexColor(const char *hex)
     if (hex[0] != '#') {
         if (SDL_strcasecmp(hex, "black") == 0) return 0xFF000000;
         if (SDL_strcasecmp(hex, "white") == 0) return 0xFFFFFFFF;
-        if (SDL_strcasecmp(hex, "red") == 0)   return 0xFF0000FF;
+        if (SDL_strcasecmp(hex, "red") == 0) return 0xFF0000FF;
         if (SDL_strcasecmp(hex, "green") == 0) return 0xFF008000;
-        if (SDL_strcasecmp(hex, "blue") == 0)  return 0xFFFF0000;
+        if (SDL_strcasecmp(hex, "blue") == 0) return 0xFFFF0000;
         return 0xFF000000;
     }
     hex++;
@@ -75,7 +75,7 @@ bool Tiles_Init(void)
         return false;
     }
 
-    if (cpp <= 0 || cpp > 2 || width <= 0 || height <= 0 || num_colors <= 0) {
+    if (cpp <= 0 || cpp >= (int)sizeof(((XpmColorMap *)0)->symbol) || width <= 0 || height <= 0 || num_colors <= 0) {
         SDL_Log("Error: Invalid XPM dimensions: w=%d h=%d colors=%d cpp=%d", width, height, num_colors, cpp);
         return false;
     }
