@@ -210,6 +210,17 @@ static void SDLCALL NativeFileCallback(void *userdata, const char *const *fileli
     }
 }
 
+/* Resolves the cities/ folder copied next to the executable by CMake. */
+static const char *CitiesDir(void)
+{
+    static char dir[1024];
+    if (!dir[0]) {
+        const char *base = SDL_GetBasePath();
+        snprintf(dir, sizeof(dir), "%scities", base ? base : "");
+    }
+    return dir;
+}
+
 void Dialog_File_RequestNative(NativeFileRequest req)
 {
     static const SDL_DialogFileFilter save_filters[] = { { "Micropolis city", "cty" } };
@@ -224,10 +235,13 @@ void Dialog_File_RequestNative(NativeFileRequest req)
 
     SDL_Window *window = Video_GetWindow();
     void *userdata = (void *)(uintptr_t)req;
+    const char *dir = CitiesDir();
     if (req == NATIVE_LOAD_FILE) {
-        SDL_ShowOpenFileDialog(NativeFileCallback, userdata, window, load_filters, 1, NULL, false);
+        SDL_ShowOpenFileDialog(NativeFileCallback, userdata, window, load_filters, 1, dir, false);
     } else {
-        SDL_ShowSaveFileDialog(NativeFileCallback, userdata, window, save_filters, 1, "mycity.cty");
+        char default_path[1100];
+        snprintf(default_path, sizeof(default_path), "%s/mycity.cty", dir);
+        SDL_ShowSaveFileDialog(NativeFileCallback, userdata, window, save_filters, 1, default_path);
     }
 }
 
