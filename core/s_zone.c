@@ -119,7 +119,8 @@ void SetSmoke(int32_t zone_power)
     static const int16_t AniThis[8] = { T, F, T, T, F, F, T, T };
     static const int16_t DX1[8]     = { -1, 0, 1, 0, 0, 0, 0, 1 };
     static const int16_t DY1[8]     = { -1, 0, -1, -1, 0, 0, -1, -1 };
-    static const int16_t AniTabA[8] = { 0, 0, 32, 40, 0, 0, 48, 56 };
+    /* Unix assigns frame A then overwrites it with frame B; only B is ever visible. */
+    static const int16_t AniTabB[8] = { 0, 0, 36, 44, 0, 0, 52, 60 };
     static const uint16_t AniTabC[8] = { IND1, 0, IND2, IND4, 0, 0, IND6, IND8 };
     static const uint16_t AniTabD[8] = { IND1, 0, IND3, IND5, 0, 0, IND7, IND9 };
 
@@ -132,7 +133,7 @@ void SetSmoke(int32_t zone_power)
         if (TestBounds(xx, yy)) {
             if (zone_power) {
                 if ((Map[xx][yy] & LOMASK) == AniTabC[z]) {
-                    Map[xx][yy] = (uint16_t)(ASCBIT | (SMOKEBASE + AniTabA[z]));
+                    Map[xx][yy] = (uint16_t)(ASCBIT | (SMOKEBASE + AniTabB[z]));
                 }
             } else {
                 if ((Map[xx][yy] & LOMASK) > AniTabC[z]) {
