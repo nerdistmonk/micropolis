@@ -31,6 +31,7 @@ typedef enum {
     FILE_TAB_SAVE_LOAD = 0,
     FILE_TAB_SCENARIOS,
     FILE_TAB_OPTIONS,
+    FILE_TAB_ABOUT,
     FILE_TAB_COUNT
 } FileDialogTab;
 

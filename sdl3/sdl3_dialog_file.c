@@ -293,7 +293,7 @@ void Dialog_File_Render(SDL_Renderer *renderer)
     SDL_RenderFillRect(renderer, &close_rect);
     GUI_DrawText(renderer, (int)close_rect.x + 6, (int)close_rect.y + 4, "X", col_white);
 
-    const char *tabs[] = { "Save / Load", "Scenarios", "Options" };
+    const char *tabs[] = { "Save / Load", "Scenarios", "Options", "About" };
     float tab_x = dx + 16.0f;
     float tab_y = dy + 42.0f;
     float tab_w = 120.0f;
@@ -449,5 +449,27 @@ void Dialog_File_Render(SDL_Renderer *renderer)
         DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 245, "Tile Animation (Map Blinking)", Settings_GetTileAnimation());
         DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 280, "Status Messages (Ticker)", Settings_GetStatusMessages());
         DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 315, "Picture Notices (Pop-ups)", Settings_GetPictureNotices());
+    } else if (active_file_tab == FILE_TAB_ABOUT) {
+        /* Credits from Unix message 300; the version matches Unix MicropolisVersion. */
+        static const char *about_lines[] = {
+            "Micropolis Version 4.0 Copyright (C) 2007",
+            "by Electronic Arts.",
+            "",
+            "Based on the Original Micropolis Concept and Design",
+            "by Will Wright.",
+            "",
+            "TCL/Tk User Interface Designed and Created",
+            "by Don Hopkins, DUX Software.",
+            "",
+            "Ported to Linux, Optimized and Adapted for OLPC",
+            "by Don Hopkins.",
+            "",
+            "Licensed under the GNU General Public License,",
+            "version 3, with additional conditions."
+        };
+        GUI_DrawText(renderer, cx, cy, "ABOUT MICROPOLIS", col_gold);
+        for (size_t i = 0; i < sizeof(about_lines) / sizeof(about_lines[0]); i++) {
+            GUI_DrawText(renderer, cx + 10, cy + 40 + (int)i * 22, about_lines[i], col_white);
+        }
     }
 }
