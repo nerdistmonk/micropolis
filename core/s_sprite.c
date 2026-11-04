@@ -230,6 +230,7 @@ void MakeMonster(void)
     s->type = GOD;
     s->frame = 1;
     s->step = 0;
+    s->dir = 0;
     s->width = 48;
     s->height = 48;
     s->x_offset = -16;
@@ -404,9 +405,15 @@ static void StepExplosion(SimSprite *s)
 
 static void StepMonster(SimSprite *s)
 {
-    if (++s->step >= 5) {
-        s->step = 0;
-        s->frame = 1 + (s->frame % 16);
+    /* Frames 1-12 are four facings of three walk frames (dir * 3 + walk + 1); 13-16 are turn frames, unused here. */
+    static const int32_t MDx[4] = { 1, 1, -1, -1 };
+    static const int32_t MDy[4] = { -1, 1, 1, -1 };
+
+    int32_t z = (s->frame - 1) % 3;
+    if (Cycle % 5 == 0) {
+        if (z == 2) s->step = 0;
+        if (z == 0) s->step = 1;
+        z = s->step ? z + 1 : z - 1;
     }
 
     if (Cycle & 1) {
@@ -414,7 +421,12 @@ static void StepMonster(SimSprite *s)
         int32_t dy = (s->dest_y > s->y) ? 1 : ((s->dest_y < s->y) ? -1 : 0);
         s->x += dx;
         s->y += dy;
+        for (int32_t d = 0; d < 4; d++) {
+            if (dx != 0 && dy != 0 && MDx[d] == dx && MDy[d] == dy) s->dir = d;
+        }
     }
+
+    s->frame = 1 + s->dir * 3 + z;
 
     DestroyTile((s->x + 24) >> 4, (s->y + 24) >> 4);
 
