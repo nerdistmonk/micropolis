@@ -434,11 +434,7 @@ static void DestroyAt(int32_t px, int32_t py)
     int32_t t = z & LOMASK;
     if (t < TREEBASE) return;
 
-    if (!(z & BURNBIT)) {
-        /* Unix quirk: an unburnable road tile becomes river. */
-        if (t >= ROADBASE && t <= LASTROAD) Map[tx][ty] = RIVER;
-        return;
-    }
+    if (!(z & BURNBIT)) return;
 
     if (z & ZONEBIT) {
         FireZone(tx, ty, t);
