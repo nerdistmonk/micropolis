@@ -164,14 +164,6 @@ void Input_ProcessEvents(void)
             case SDLK_2: SetSimSpeed(2); break;
             case SDLK_3: SetSimSpeed(3); break;
 
-            /* Scenarios */
-            case SDLK_4: GUI_LoadScenarioWithStatus(5); break; /* Tokyo 1957 (Monster) */
-            case SDLK_5: GUI_LoadScenarioWithStatus(2); break; /* San Francisco 1906 (Earthquake) */
-            case SDLK_6: GUI_LoadScenarioWithStatus(3); break; /* Hamburg 1944 (Firestorm) */
-            case SDLK_7: GUI_LoadScenarioWithStatus(4); break; /* Bern 1965 (Traffic) */
-            case SDLK_8: GUI_LoadScenarioWithStatus(6); break; /* Detroit 1972 (Crime) */
-            case SDLK_9: GUI_LoadScenarioWithStatus(7); break; /* Boston 2010 (Meltdown) */
-
             case SDLK_Q: active_tool = queryState; break;
             case SDLK_R: active_tool = residentialState; break;
             case SDLK_C: active_tool = commercialState; break;
@@ -188,32 +180,6 @@ void Input_ProcessEvents(void)
                 break;
             case SDLK_F8:
                 GUI_ShowStatus(LoadCity("quicksave.cty") ? "Quickloaded quicksave.cty" : "Quickload failed: quicksave.cty missing or unreadable");
-                break;
-
-            /* Scenario Evaluation Test Hotkeys */
-            case SDLK_F9:
-                ScoreWait = 1;
-                if (!ScoreType) ScoreType = (ScenarioID ? ScenarioID : 1);
-                SDL_Log("[DEBUG] Force-triggering scenario score evaluation on next frame.");
-                break;
-
-            case SDLK_F10:
-                if (DisasterEvent && DisasterWait > 2) {
-                    DisasterWait = 2;
-                    SDL_Log("[DEBUG] Fast-forwarded disaster wait timer.");
-                }
-                break;
-
-            case SDLK_F11:
-                if (EngineCallbacks.show_message) {
-                    EngineCallbacks.show_message(-100, 0, 0);
-                }
-                break;
-
-            case SDLK_F12:
-                if (EngineCallbacks.show_message) {
-                    EngineCallbacks.show_message(-200, 0, 0);
-                }
                 break;
 
             case SDLK_LEFT:
