@@ -18,7 +18,7 @@ void Splash_Start(void)
     const char *prefixes[] = { "", "images/", "../images/", "../../images/" };
     for (size_t i = 0; i < sizeof(prefixes) / sizeof(prefixes[0]) && !splash_texture; i++) {
         char path[256];
-        snprintf(path, sizeof(path), "%smicropolism.xpm", prefixes[i]);
+        snprintf(path, sizeof(path), "%ssplash.xpm", prefixes[i]);
         splash_texture = Video_LoadTexture(path, &splash_w, &splash_h);
     }
 

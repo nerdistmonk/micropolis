@@ -69,24 +69,57 @@ static uint32_t ParseHexColor(const char *hex)
   return (0xFFu << 24) | (b << 16) | (g << 8) | r;
 }
 
+typedef struct {
+  char symbol[16];
+  uint32_t rgba;
+} XpmCol;
+
+static int CompareXpmCol(const void *a, const void *b)
+{
+  return strcmp(((const XpmCol *)a)->symbol, ((const XpmCol *)b)->symbol);
+}
+
+/* Reads one complete line of any length; the caller frees the result. */
+static char *ReadXpmLine(FILE *f)
+{
+  size_t cap = 512, len = 0;
+  char *buf = (char *)malloc(cap);
+  if (!buf) return NULL;
+  while (fgets(buf + len, (int)(cap - len), f)) {
+    len += strlen(buf + len);
+    if (len > 0 && buf[len - 1] == '\n') return buf;
+    if (len + 1 >= cap) {
+      size_t ncap = cap * 2;
+      char *nb = (char *)realloc(buf, ncap);
+      if (!nb) {
+        free(buf);
+        return NULL;
+      }
+      buf = nb;
+      cap = ncap;
+    }
+  }
+  if (len == 0) {
+    free(buf);
+    return NULL;
+  }
+  return buf;
+}
+
 static SDL_Texture *LoadXpmFile(SDL_Renderer *renderer, const char *path, int *out_w, int *out_h)
 {
   FILE *f = fopen(path, "r");
   if (!f) return NULL;
 
-  char line[512];
+  char *line = NULL;
   int width = 0, height = 0, num_colors = 0, cpp = 0;
-  while (fgets(line, sizeof(line), f)) {
+  while ((line = ReadXpmLine(f)) != NULL) {
     char *p = strchr(line, '"');
-    if (p && sscanf(p + 1, "%d %d %d %d", &width, &height, &num_colors, &cpp) == 4) {
-      break;
-    }
+    int matched = p && sscanf(p + 1, "%d %d %d %d", &width, &height, &num_colors, &cpp) == 4;
+    free(line);
+    line = NULL;
+    if (matched) break;
   }
-
-  typedef struct {
-    char symbol[16];
-    uint32_t rgba;
-  } XpmCol;
 
   if (width <= 0 || height <= 0 || num_colors <= 0 || cpp <= 0 || cpp >= (int)sizeof(((XpmCol *)0)->symbol)) {
     fclose(f);
@@ -100,9 +133,12 @@ static SDL_Texture *LoadXpmFile(SDL_Renderer *renderer, const char *path, int *o
   }
 
   int color_idx = 0;
-  while (color_idx < num_colors && fgets(line, sizeof(line), f)) {
+  while (color_idx < num_colors && (line = ReadXpmLine(f)) != NULL) {
     char *start = strchr(line, '"');
-    if (!start) continue;
+    if (!start) {
+      free(line);
+      continue;
+    }
     start++;
     for (int k = 0; k < cpp; k++) cmap[color_idx].symbol[k] = start[k];
     cmap[color_idx].symbol[cpp] = '\0';
@@ -125,10 +161,12 @@ static SDL_Texture *LoadXpmFile(SDL_Renderer *renderer, const char *path, int *o
         cmap[color_idx].rgba = ParseHexColor(col_str);
       }
     }
+    free(line);
     color_idx++;
   }
+  qsort(cmap, (size_t)num_colors, sizeof(XpmCol), CompareXpmCol);
 
-  uint32_t *pixels = (uint32_t *)malloc((size_t)(width * height) * sizeof(uint32_t));
+  uint32_t *pixels = (uint32_t *)calloc((size_t)width * (size_t)height, sizeof(uint32_t));
   if (!pixels) {
     free(cmap);
     fclose(f);
@@ -136,24 +174,25 @@ static SDL_Texture *LoadXpmFile(SDL_Renderer *renderer, const char *path, int *o
   }
 
   int row = 0;
-  while (row < height && fgets(line, sizeof(line), f)) {
+  while (row < height && (line = ReadXpmLine(f)) != NULL) {
     char *start = strchr(line, '"');
-    if (!start) continue;
-    start++;
-    for (int col = 0; col < width; col++) {
-      char sym[16] = {0};
-      for (int k = 0; k < cpp; k++) sym[k] = start[col * cpp + k];
-      sym[cpp] = '\0';
-
-      uint32_t color = 0x00000000;
-      for (int ci = 0; ci < num_colors; ci++) {
-        if (strcmp(cmap[ci].symbol, sym) == 0) {
-          color = cmap[ci].rgba;
-          break;
-        }
-      }
-      pixels[row * width + col] = color;
+    if (!start) {
+      free(line);
+      continue;
     }
+    start++;
+    if (strlen(start) < (size_t)width * (size_t)cpp) {
+      free(line);
+      break;
+    }
+    for (int col = 0; col < width; col++) {
+      XpmCol key;
+      memcpy(key.symbol, start + col * cpp, (size_t)cpp);
+      key.symbol[cpp] = '\0';
+      XpmCol *hit = (XpmCol *)bsearch(&key, cmap, (size_t)num_colors, sizeof(XpmCol), CompareXpmCol);
+      pixels[row * width + col] = hit ? hit->rgba : 0x00000000;
+    }
+    free(line);
     row++;
   }
 

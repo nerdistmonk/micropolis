@@ -5,6 +5,14 @@
 
 static bool scenario_won = false;
 static char scenario_result_msg[256] = {0};
+static SDL_Texture *key_texture = NULL;
+static int key_w = 0;
+static int key_h = 0;
+
+static float ScenarioDialogHeight(void)
+{
+    return scenario_won ? 240.0f : 200.0f;
+}
 
 void Dialog_Scenario_Show(bool won, const char *msg)
 {
@@ -14,6 +22,14 @@ void Dialog_Scenario_Show(bool won, const char *msg)
     SetSimSpeed(0);
 
     if (won) {
+        if (!key_texture) {
+            const char *prefixes[] = { "", "images/", "../images/", "../../images/" };
+            char path[256];
+            for (size_t i = 0; i < sizeof(prefixes) / sizeof(prefixes[0]) && !key_texture; i++) {
+                snprintf(path, sizeof(path), "%skey2city.xpm", prefixes[i]);
+                key_texture = Video_LoadTexture(path, &key_w, &key_h);
+            }
+        }
         Audio_MakeSound("city", "stadium");
     } else {
         Audio_MakeSound("city", "sorry");
@@ -25,7 +41,7 @@ bool Dialog_Scenario_HandleClick(float mx, float my)
     float dx = 290.0f;
     float dy = 240.0f;
     float dw = 444.0f;
-    float dh = 200.0f;
+    float dh = ScenarioDialogHeight();
 
     SDL_FRect ok_btn = { dx + (dw - 120.0f) / 2.0f, dy + dh - 46.0f, 120.0f, 32.0f };
     if (mx >= ok_btn.x && mx <= ok_btn.x + ok_btn.w &&
@@ -41,7 +57,7 @@ void Dialog_Scenario_Render(SDL_Renderer *renderer)
     float dx = 290.0f;
     float dy = 240.0f;
     float dw = 444.0f;
-    float dh = 200.0f;
+    float dh = ScenarioDialogHeight();
 
     SDL_FRect scrim = { 0.0f, 0.0f, (float)WINDOW_DEFAULT_WIDTH, (float)WINDOW_DEFAULT_HEIGHT };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 210);
@@ -63,6 +79,11 @@ void Dialog_Scenario_Render(SDL_Renderer *renderer)
     char score_buf[64];
     snprintf(score_buf, sizeof(score_buf), "Final City Score: %d / 1000", CityScore);
     GUI_DrawText(renderer, (int)dx + 20, (int)dy + 95, score_buf, col_cyan);
+
+    if (scenario_won && key_texture) {
+        SDL_FRect key_dst = { dx + (dw - (float)key_w) / 2.0f, dy + 118.0f, (float)key_w, (float)key_h };
+        SDL_RenderTexture(renderer, key_texture, NULL, &key_dst);
+    }
 
     SDL_FRect ok_btn = { dx + (dw - 120.0f) / 2.0f, dy + dh - 46.0f, 120.0f, 32.0f };
     SDL_SetRenderDrawColor(renderer, 44, 55, 75, 255);
