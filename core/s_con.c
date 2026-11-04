@@ -493,6 +493,7 @@ int32_t LayRail(int32_t x, int32_t y)
     TryAutoBulldozeTile(x, y);
 
     int32_t tile = Map[x][y] & LOMASK;
+    NeutralizeRoad(&tile);
 
     if (tile == DIRT) {
         Map[x][y] = 226 | BULLBIT | BURNBIT;
@@ -544,6 +545,7 @@ int32_t LayWire(int32_t x, int32_t y)
     TryAutoBulldozeTile(x, y);
 
     int32_t tile = Map[x][y] & LOMASK;
+    NeutralizeRoad(&tile);
 
     if (tile == DIRT) {
         Map[x][y] = 210 | CONDBIT | BURNBIT | BULLBIT;
