@@ -276,14 +276,10 @@ static void UpdateMapCursor(void)
 void Input_ProcessEvents(void)
 {
     SDL_Event event;
-    SDL_Renderer *renderer = Video_GetRenderer();
 
     while (SDL_PollEvent(&event)) {
         Video_HandleWindowEvent(&event);
-
-        if (renderer) {
-            SDL_ConvertEventToRenderCoordinates(renderer, &event);
-        }
+        Video_ConvertEventToCanvas(&event);
 
         if (Splash_IsActive() &&
             (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)) {

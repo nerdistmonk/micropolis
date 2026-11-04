@@ -13,6 +13,7 @@
 static SDL_Window *video_window = NULL;
 static SDL_Renderer *video_renderer = NULL;
 static SDL_Texture *stream_texture = NULL;
+static SDL_Texture *canvas_texture = NULL;
 
 static int32_t cam_x = 0;
 static int32_t cam_y = 0;
@@ -304,10 +305,15 @@ bool Video_Init(int width, int height)
 
   SDL_SetRenderDrawBlendMode(video_renderer, SDL_BLENDMODE_BLEND);
 
-  /* Maintain standard 1024x768 logical resolution with letterbox scaling across arbitrary window sizes */
-  SDL_SetRenderLogicalPresentation(
-    video_renderer, WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT, SDL_LOGICAL_PRESENTATION_LETTERBOX
+  /* All drawing targets a 1024x768 canvas, which is scaled once to the window. This keeps
+     1px borders on whole canvas pixels instead of fractional physical pixels. */
+  canvas_texture = SDL_CreateTexture(
+    video_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET,
+    WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT
   );
+  if (!canvas_texture) return false;
+  SDL_SetTextureBlendMode(canvas_texture, SDL_BLENDMODE_NONE);
+  SDL_SetTextureScaleMode(canvas_texture, SDL_SCALEMODE_LINEAR);
 
   stream_texture = SDL_CreateTexture(
     video_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING,
@@ -349,6 +355,10 @@ void Video_Shutdown(void)
   if (stream_texture) {
     SDL_DestroyTexture(stream_texture);
     stream_texture = NULL;
+  }
+  if (canvas_texture) {
+    SDL_DestroyTexture(canvas_texture);
+    canvas_texture = NULL;
   }
   if (video_renderer) {
     SDL_DestroyRenderer(video_renderer);
@@ -973,13 +983,88 @@ static void RenderMapCursor(SDL_Renderer *renderer)
 static int16_t shake_seen_quakes = 0;
 static uint64_t shake_deadline_ms = 0;
 
+/* Largest 1024x768-aspect rect that fits (out_w, out_h), centred. */
+static void ComputeLetterbox(float out_w, float out_h, SDL_FRect *dst, float *scale)
+{
+  float s = out_w / (float)WINDOW_DEFAULT_WIDTH;
+  float s_h = out_h / (float)WINDOW_DEFAULT_HEIGHT;
+  if (s_h < s) s = s_h;
+  if (s < 0.0f) s = 0.0f;
+
+  dst->w = (float)WINDOW_DEFAULT_WIDTH * s;
+  dst->h = (float)WINDOW_DEFAULT_HEIGHT * s;
+  dst->x = (out_w - dst->w) * 0.5f;
+  dst->y = (out_h - dst->h) * 0.5f;
+  *scale = s;
+}
+
+static void PresentCanvas(void)
+{
+  SDL_SetRenderTarget(video_renderer, NULL);
+  SDL_SetRenderDrawColor(video_renderer, 0, 0, 0, 255);
+  SDL_RenderClear(video_renderer);
+
+  int out_pw = 0;
+  int out_ph = 0;
+  SDL_GetRenderOutputSize(video_renderer, &out_pw, &out_ph);
+
+  SDL_FRect dst;
+  float scale = 0.0f;
+  ComputeLetterbox((float)out_pw, (float)out_ph, &dst, &scale);
+  SDL_RenderTexture(video_renderer, canvas_texture, NULL, &dst);
+  SDL_RenderPresent(video_renderer);
+}
+
+void Video_SetLinearFilter(bool linear)
+{
+  if (!canvas_texture) return;
+  SDL_SetTextureScaleMode(canvas_texture, linear ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
+}
+
+void Video_ConvertEventToCanvas(SDL_Event *event)
+{
+  if (!video_window) return;
+
+  int win_pw = 0;
+  int win_ph = 0;
+  SDL_GetWindowSize(video_window, &win_pw, &win_ph);
+
+  SDL_FRect dst;
+  float scale = 0.0f;
+  ComputeLetterbox((float)win_pw, (float)win_ph, &dst, &scale);
+  if (scale <= 0.0f) return;
+
+  float inv = 1.0f / scale;
+  switch (event->type) {
+  case SDL_EVENT_MOUSE_MOTION:
+    event->motion.x = (event->motion.x - dst.x) * inv;
+    event->motion.y = (event->motion.y - dst.y) * inv;
+    event->motion.xrel *= inv;
+    event->motion.yrel *= inv;
+    break;
+  case SDL_EVENT_MOUSE_BUTTON_DOWN:
+  case SDL_EVENT_MOUSE_BUTTON_UP:
+    event->button.x = (event->button.x - dst.x) * inv;
+    event->button.y = (event->button.y - dst.y) * inv;
+    break;
+  case SDL_EVENT_MOUSE_WHEEL:
+    event->wheel.mouse_x = (event->wheel.mouse_x - dst.x) * inv;
+    event->wheel.mouse_y = (event->wheel.mouse_y - dst.y) * inv;
+    break;
+  default:
+    break;
+  }
+}
+
 void Video_RenderFrame(void)
 {
-  if (!frame_buffer || !video_renderer || !stream_texture) return;
+  if (!frame_buffer || !video_renderer || !stream_texture || !canvas_texture) return;
+
+  SDL_SetRenderTarget(video_renderer, canvas_texture);
 
   if (Splash_IsActive()) {
     Splash_Render(video_renderer);
-    SDL_RenderPresent(video_renderer);
+    PresentCanvas();
     return;
   }
 
@@ -1057,7 +1142,7 @@ void Video_RenderFrame(void)
   GUI_Render(video_renderer);
   UpdateAndRenderMinimap(video_renderer, overlay_mode);
 
-  SDL_RenderPresent(video_renderer);
+  PresentCanvas();
 }
 
 SDL_Renderer *Video_GetRenderer(void)

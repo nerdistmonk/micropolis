@@ -26,6 +26,9 @@ void Settings_ToggleStatusMessages(void);
 bool Settings_GetPictureNotices(void);
 void Settings_TogglePictureNotices(void);
 
+bool Settings_GetLinearFilter(void);
+void Settings_ToggleLinearFilter(void);
+
 SoundLevel Settings_GetSoundLevel(void);
 void Settings_CycleSoundLevel(void);
 float Settings_GetSoundGain(void);

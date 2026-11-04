@@ -13,6 +13,7 @@ static bool edge_scroll_enabled = false;
 static bool tile_animation_enabled = true;
 static bool status_messages_enabled = true;
 static bool picture_notices_enabled = true;
+static bool linear_filter_enabled = true;
 static SoundLevel sound_level = SOUND_LEVEL_FULL;
 static char settings_path[512] = {0};
 
@@ -40,6 +41,7 @@ static void Settings_Save(void)
     fprintf(f, "tile_animation=%d\n", tile_animation_enabled ? 1 : 0);
     fprintf(f, "status_messages=%d\n", status_messages_enabled ? 1 : 0);
     fprintf(f, "picture_notices=%d\n", picture_notices_enabled ? 1 : 0);
+    fprintf(f, "linear_filter=%d\n", linear_filter_enabled ? 1 : 0);
     fclose(f);
 }
 
@@ -73,6 +75,8 @@ void Settings_Load(void)
                 status_messages_enabled = (value != 0);
             } else if (sscanf(line, "picture_notices=%d", &value) == 1) {
                 picture_notices_enabled = (value != 0);
+            } else if (sscanf(line, "linear_filter=%d", &value) == 1) {
+                linear_filter_enabled = (value != 0);
             }
         }
         fclose(f);
@@ -125,6 +129,17 @@ void Settings_TogglePictureNotices(void)
 {
     picture_notices_enabled = !picture_notices_enabled;
     ApplySimFlags();
+    Settings_Save();
+}
+
+bool Settings_GetLinearFilter(void)
+{
+    return linear_filter_enabled;
+}
+
+void Settings_ToggleLinearFilter(void)
+{
+    linear_filter_enabled = !linear_filter_enabled;
     Settings_Save();
 }
 

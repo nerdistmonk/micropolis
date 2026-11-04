@@ -409,6 +409,11 @@ bool Dialog_File_HandleClick(float mx, float my)
             Settings_TogglePictureNotices();
             return true;
         }
+        if (mx >= opt_x && mx <= opt_x + 90.0f && my >= opt_y + 350.0f && my <= opt_y + 376.0f) {
+            Settings_ToggleLinearFilter();
+            Video_SetLinearFilter(Settings_GetLinearFilter());
+            return true;
+        }
     }
 
     return true;
@@ -431,7 +436,7 @@ void Dialog_File_Render(SDL_Renderer *renderer)
     float dx = 240.0f;
     float dy = 120.0f;
     float dw = 540.0f;
-    float dh = 480.0f;
+    float dh = 520.0f;
 
     SDL_FRect scrim = { 0.0f, 0.0f, (float)WINDOW_DEFAULT_WIDTH, (float)WINDOW_DEFAULT_HEIGHT };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
@@ -602,6 +607,7 @@ void Dialog_File_Render(SDL_Renderer *renderer)
         DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 245, "Tile Animation (Map Blinking)", Settings_GetTileAnimation());
         DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 280, "Status Messages (Ticker)", Settings_GetStatusMessages());
         DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 315, "Picture Notices (Pop-ups)", Settings_GetPictureNotices());
+        DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 350, "Linear Filtering (Smooth Scaling)", Settings_GetLinearFilter());
     } else if (active_file_tab == FILE_TAB_ABOUT) {
         /* Credits from Unix message 300; the version matches Unix MicropolisVersion. */
         static const char *about_lines[] = {

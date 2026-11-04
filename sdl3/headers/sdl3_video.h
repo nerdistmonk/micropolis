@@ -38,6 +38,8 @@ void Video_SetMapCursor(const MapCursor *cursor);
 
 /* Window event callback for resizing */
 void Video_HandleWindowEvent(const SDL_Event *event);
+void Video_SetLinearFilter(bool linear);
+void Video_ConvertEventToCanvas(SDL_Event *event);
 
 /* Minimap query and interaction */
 SDL_FRect Video_GetMinimapRect(void);

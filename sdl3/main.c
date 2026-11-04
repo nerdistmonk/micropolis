@@ -80,6 +80,7 @@ int main(int argc, char **argv)
     }
 
     Settings_Load();
+    Video_SetLinearFilter(Settings_GetLinearFilter());
     Audio_Init();
     Input_Init();
     GUI_Init();
