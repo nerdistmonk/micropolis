@@ -265,6 +265,25 @@ static void FreeSpriteTextures(void)
   }
 }
 
+/* Shrink the requested window (keeping its aspect ratio) so it fits on the primary display. */
+static void FitWindowToDisplay(int32_t *w, int32_t *h)
+{
+  SDL_Rect usable;
+  SDL_DisplayID display = SDL_GetPrimaryDisplay();
+  if (display == 0 || !SDL_GetDisplayUsableBounds(display, &usable)) return;
+  if (usable.w <= 0 || usable.h <= 0) return;
+
+  float max_w = (float)usable.w * 0.95f;
+  float max_h = (float)usable.h * 0.95f;
+  float scale = 1.0f;
+  if ((float)*w > max_w) scale = max_w / (float)*w;
+  if ((float)*h * scale > max_h) scale = max_h / (float)*h;
+  if (scale < 1.0f) {
+    *w = (int32_t)((float)*w * scale);
+    *h = (int32_t)((float)*h * scale);
+  }
+}
+
 bool Video_Init(int width, int height)
 {
   win_w = width;
@@ -274,6 +293,8 @@ bool Video_Init(int width, int height)
     SDL_Log("Failed to initialize SDL3 Video: %s", SDL_GetError());
     return false;
   }
+
+  FitWindowToDisplay(&win_w, &win_h);
 
   video_window = SDL_CreateWindow("Micropolis SDL3 (Arch Linux)", win_w, win_h, SDL_WINDOW_RESIZABLE);
   if (!video_window) return false;
