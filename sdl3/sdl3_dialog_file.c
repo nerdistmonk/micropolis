@@ -9,14 +9,44 @@ static bool is_editing_filename = false;
 static char file_name_input_buffer[64] = "mycity.cty";
 static char file_status_message[128] = {0};
 static SDL_Color file_status_color = { 245, 245, 250, 255 };
+static char scenario_status_message[128] = {0};
+static SDL_Color scenario_status_color = { 245, 245, 250, 255 };
 static int new_city_level = 0;
 static const char *const NewCityLevelNames[3] = { "Easy", "Medium", "Hard" };
+
+static const struct {
+    int id;
+    const char *title;
+} scenario_grid[] = {
+    { 1, "1. Dullsville (1900)" },
+    { 2, "2. San Francisco (1906)" },
+    { 3, "3. Hamburg (1944)" },
+    { 4, "4. Bern (1965)" },
+    { 5, "5. Tokyo (1957)" },
+    { 6, "6. Detroit (1972)" },
+    { 7, "7. Boston (2010)" },
+    { 8, "8. Rio de Janeiro (2047)" }
+};
+
+#define SCENARIO_GRID_COUNT (sizeof(scenario_grid) / sizeof(scenario_grid[0]))
+
+static SDL_FRect ScenarioGridRect(size_t i)
+{
+    SDL_FRect r = {
+        240.0f + 30.0f + (float)(i % 2) * 250.0f,
+        120.0f + 120.0f + (float)(i / 2) * 50.0f,
+        230.0f,
+        34.0f
+    };
+    return r;
+}
 
 void Dialog_File_Open(FileDialogTab tab)
 {
     active_file_tab = tab;
     Dialog_File_Reset();
     file_status_message[0] = '\0';
+    scenario_status_message[0] = '\0';
 }
 
 void Dialog_File_Reset(void)
@@ -104,9 +134,13 @@ bool Dialog_File_HandleClick(float mx, float my)
         if (mx >= save_btn.x && mx <= save_btn.x + save_btn.w &&
             my >= save_btn.y && my <= save_btn.y + save_btn.h) {
             if (strlen(file_name_input_buffer) > 0) {
-                SaveCity(file_name_input_buffer);
-                snprintf(file_status_message, sizeof(file_status_message), "Successfully saved city to %s", file_name_input_buffer);
-                file_status_color = col_green;
+                if (SaveCity(file_name_input_buffer)) {
+                    snprintf(file_status_message, sizeof(file_status_message), "Successfully saved city to %s", file_name_input_buffer);
+                    file_status_color = col_green;
+                } else {
+                    snprintf(file_status_message, sizeof(file_status_message), "Error: Could not save to %s", file_name_input_buffer);
+                    file_status_color = col_red;
+                }
             } else {
                 snprintf(file_status_message, sizeof(file_status_message), "Error: Filename cannot be empty");
                 file_status_color = col_red;
@@ -153,24 +187,15 @@ bool Dialog_File_HandleClick(float mx, float my)
             }
         }
     } else if (active_file_tab == FILE_TAB_SCENARIOS) {
-        struct {
-            int id;
-            SDL_FRect rect;
-        } sc_buttons[] = {
-            { 1, { dx + 30.0f, dy + 95.0f, 230.0f, 34.0f } },
-            { 2, { dx + 280.0f, dy + 95.0f, 230.0f, 34.0f } },
-            { 3, { dx + 30.0f, dy + 145.0f, 230.0f, 34.0f } },
-            { 4, { dx + 280.0f, dy + 145.0f, 230.0f, 34.0f } },
-            { 5, { dx + 30.0f, dy + 195.0f, 230.0f, 34.0f } },
-            { 6, { dx + 280.0f, dy + 195.0f, 230.0f, 34.0f } },
-            { 7, { dx + 30.0f, dy + 245.0f, 230.0f, 34.0f } }
-        };
-
-        for (size_t i = 0; i < sizeof(sc_buttons) / sizeof(sc_buttons[0]); i++) {
-            SDL_FRect r = sc_buttons[i].rect;
+        for (size_t i = 0; i < SCENARIO_GRID_COUNT; i++) {
+            SDL_FRect r = ScenarioGridRect(i);
             if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
-                GUI_LoadScenarioWithStatus((int16_t)sc_buttons[i].id);
-                GUI_Dialogs_Close();
+                if (GUI_LoadScenarioWithStatus((int16_t)scenario_grid[i].id)) {
+                    GUI_Dialogs_Close();
+                } else {
+                    snprintf(scenario_status_message, sizeof(scenario_status_message), "Error: Scenario files could not be loaded");
+                    scenario_status_color = col_red;
+                }
                 return true;
             }
         }
@@ -318,26 +343,17 @@ void Dialog_File_Render(SDL_Renderer *renderer)
     } else if (active_file_tab == FILE_TAB_SCENARIOS) {
         GUI_DrawText(renderer, cx, cy, "HISTORICAL CRISIS SCENARIOS", col_gold);
 
-        struct {
-            const char *title;
-            SDL_FRect rect;
-        } sc_display[] = {
-            { "1. Dullsville (1900)", { dx + 30.0f, dy + 95.0f, 230.0f, 34.0f } },
-            { "2. San Francisco (1906)", { dx + 280.0f, dy + 95.0f, 230.0f, 34.0f } },
-            { "3. Hamburg (1944)", { dx + 30.0f, dy + 145.0f, 230.0f, 34.0f } },
-            { "4. Bern (1965)", { dx + 280.0f, dy + 145.0f, 230.0f, 34.0f } },
-            { "5. Tokyo (1957)", { dx + 30.0f, dy + 195.0f, 230.0f, 34.0f } },
-            { "6. Detroit (1972)", { dx + 280.0f, dy + 195.0f, 230.0f, 34.0f } },
-            { "7. Boston (2010)", { dx + 30.0f, dy + 245.0f, 230.0f, 34.0f } }
-        };
-
-        for (size_t i = 0; i < sizeof(sc_display) / sizeof(sc_display[0]); i++) {
-            SDL_FRect r = sc_display[i].rect;
+        for (size_t i = 0; i < SCENARIO_GRID_COUNT; i++) {
+            SDL_FRect r = ScenarioGridRect(i);
             SDL_SetRenderDrawColor(renderer, 35, 45, 62, 255);
             SDL_RenderFillRect(renderer, &r);
             SDL_SetRenderDrawColor(renderer, 70, 90, 130, 255);
             SDL_RenderRect(renderer, &r);
-            GUI_DrawText(renderer, (int)r.x + 12, (int)r.y + 8, sc_display[i].title, col_white);
+            GUI_DrawText(renderer, (int)r.x + 12, (int)r.y + 8, scenario_grid[i].title, col_white);
+        }
+
+        if (scenario_status_message[0]) {
+            GUI_DrawText(renderer, cx, (int)dy + 330, scenario_status_message, scenario_status_color);
         }
     } else if (active_file_tab == FILE_TAB_OPTIONS) {
         GUI_DrawText(renderer, cx, cy, "SIMULATION PREFERENCES & TOGGLES", col_gold);
