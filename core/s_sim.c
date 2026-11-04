@@ -1164,6 +1164,37 @@ static void SetCommonInits(void)
     TaxFund = 0;
 }
 
+static void ClearCityMemory(void)
+{
+    InitSprites();
+
+    for (int16_t x = 0; x < HWLDX; x++) {
+        for (int16_t y = 0; y < HWLDY; y++) {
+            PopDensity[x][y]   = 0;
+            TrfDensity[x][y]   = 0;
+            PollutionMem[x][y] = 0;
+            LandValueMem[x][y] = 0;
+            CrimeMem[x][y]     = 0;
+        }
+    }
+
+    for (int16_t x = 0; x < QWX; x++) {
+        for (int16_t y = 0; y < QWY; y++) {
+            TerrainMem[x][y] = 0;
+        }
+    }
+
+    for (int16_t x = 0; x < SmX; x++) {
+        for (int16_t y = 0; y < SmY; y++) {
+            RateOGMem[x][y]       = 0;
+            FireRate[x][y]        = 0;
+            ComRate[x][y]         = 0;
+            PoliceMap[x][y]       = 0;
+            PoliceMapEffect[x][y] = 0;
+        }
+    }
+}
+
 void Sim_InitEngine(void)
 {
     AllocateMapBuffers();
@@ -1172,6 +1203,7 @@ void Sim_InitEngine(void)
     Scycle = 0;
     Spdcycle = 0;
 
+    ClearCityMemory();
     SetCommonInits();
 
     for (int16_t x = 0; x < 240; x++) {
