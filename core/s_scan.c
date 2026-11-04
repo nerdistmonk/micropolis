@@ -330,7 +330,7 @@ static void SmoothTerrain(void)
                 if (x < (QWX - 1))  z += Qtem[x + 1][y];
                 if (y > 0)          z += Qtem[x][y - 1];
                 if (y < (QWY - 1))  z += Qtem[x][y + 1];
-                TerrainMem[x][y] = (Byte)(((z >> 2) + Qtem[x][y]) >> 1);
+                TerrainMem[x][y] = (Byte)(((z >> 2) + Qtem[x][y]) & 0xFF) >> 1;
             }
         }
     }
@@ -386,7 +386,7 @@ static void DoSmooth2(void)
                      tem2[x][(y == 0) ? 0 : (y - 1)] +
                      tem2[x][(y == (HWLDY - 1)) ? y : (y + 1)] +
                      tem2[x][y];
-                tem[x][y] = (Byte)(((uint32_t)z) >> 2);
+                tem[x][y] = (Byte)((Byte)z >> 2);
                 z &= 3;
             }
             dir = -dir;
