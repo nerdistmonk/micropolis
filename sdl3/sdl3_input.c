@@ -343,13 +343,6 @@ void Input_ProcessEvents(void)
             case SDLK_2: SetSimSpeed(2); Audio_PlayRunningSound(SimSpeed); break;
             case SDLK_3: SetSimSpeed(3); Audio_PlayRunningSound(SimSpeed); break;
 
-            case SDLK_Q: active_tool = queryState; break;
-            case SDLK_C: active_tool = commercialState; break;
-            case SDLK_I: active_tool = industrialState; break;
-            case SDLK_F: active_tool = fireState; break;
-            case SDLK_W: active_tool = wireState; break;
-            case SDLK_D: active_tool = dozeState; break;
-
             /* Hold-to-use tools, matching Unix w_keys.c: released to restore the previous tool */
             case SDLK_B: BeginToolHold(dozeState); break;
             case SDLK_R: BeginToolHold(roadState); break;
