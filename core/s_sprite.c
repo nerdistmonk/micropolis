@@ -153,21 +153,34 @@ void GeneratePlane(int16_t x, int16_t y)
     s->count = 0;
 }
 
-static void SpawnShip(int32_t x, int32_t y, int16_t frame, int16_t dir)
+static void SpawnShip(int32_t tx, int32_t ty)
 {
+    /* Unix MakeShipHere: MakeSprite(SHI, (tx<<4)-47, ty<<4); InitSprite picks the heading from the edge.
+     * Converted to core space with the SHI shift (48, 0). */
+    int32_t ux = (tx << 4) - 47;
+    int32_t uy = ty << 4;
+    int16_t frame;
+    if (ux < (4 << 4)) frame = 3;
+    else if (ux >= ((WORLD_X - 4) << 4)) frame = 7;
+    else if (uy < (4 << 4)) frame = 5;
+    else if (uy >= ((WORLD_Y - 4) << 4)) frame = 1;
+    else frame = 3;
+
     SimSprite *s = &active_sprites[SHI];
     s->type = SHI;
     s->frame = frame;
-    s->dir = dir;
-    s->x = (x << 4);
-    s->y = (y << 4);
+    s->new_dir = frame;
+    s->dir = 10;
+    s->x = ux + 48;
+    s->y = uy;
     s->width = 48;
     s->height = 48;
     s->x_offset = -16;
     s->y_offset = -16;
     s->x_hot = 0;
     s->y_hot = 0;
-    s->count = 300;
+    s->count = 1;
+    s->sound_count = 0;
 }
 
 void GenerateShip(void)
@@ -175,47 +188,20 @@ void GenerateShip(void)
     SimSprite *s = &active_sprites[SHI];
     if (s->frame != 0) return;
 
-    /* 1. North Edge (headed South) */
-    for (int32_t x = 4; x < (WORLD_X - 4); x++) {
-        if ((Map[x][0] & LOMASK) == CHANNEL || (Map[x][1] & LOMASK) == CHANNEL) {
-            SpawnShip(x, 1, 5, 2);
-            return;
-        }
-    }
-
-    /* 2. West Edge (Golden Gate / San Francisco headed East) */
-    for (int32_t y = 4; y < (WORLD_Y - 4); y++) {
-        if ((Map[0][y] & LOMASK) == CHANNEL || (Map[1][y] & LOMASK) == CHANNEL) {
-            SpawnShip(1, y, 3, 1);
-            return;
-        }
-    }
-
-    /* 3. South Edge (headed North) */
-    for (int32_t x = 4; x < (WORLD_X - 4); x++) {
-        if ((Map[x][WORLD_Y - 1] & LOMASK) == CHANNEL || (Map[x][WORLD_Y - 2] & LOMASK) == CHANNEL) {
-            SpawnShip(x, WORLD_Y - 2, 1, 0);
-            return;
-        }
-    }
-
-    /* 4. East Edge (headed West) */
-    for (int32_t y = 4; y < (WORLD_Y - 4); y++) {
-        if ((Map[WORLD_X - 1][y] & LOMASK) == CHANNEL || (Map[WORLD_X - 2][y] & LOMASK) == CHANNEL) {
-            SpawnShip(WORLD_X - 2, y, 7, 3);
-            return;
-        }
-    }
-
-    /* Fallback: any open channel in the world */
-    for (int32_t y = 10; y < (WORLD_Y - 10); y += 4) {
-        for (int32_t x = 10; x < (WORLD_X - 10); x += 4) {
-            if ((Map[x][y] & LOMASK) == CHANNEL) {
-                SpawnShip(x, y, 3, 1);
-                return;
-            }
-        }
-    }
+    /* Unix GenerateShip: each edge is tried with a 1-in-4 chance; the first channel tile found spawns a ship. */
+    int32_t x, y;
+    if (!(Rand16() & 3))
+        for (x = 4; x < WORLD_X - 2; x++)
+            if ((Map[x][0] & LOMASK) == CHANNEL) { SpawnShip(x, 0); return; }
+    if (!(Rand16() & 3))
+        for (y = 1; y < WORLD_Y - 2; y++)
+            if ((Map[0][y] & LOMASK) == CHANNEL) { SpawnShip(0, y); return; }
+    if (!(Rand16() & 3))
+        for (x = 4; x < WORLD_X - 2; x++)
+            if ((Map[x][WORLD_Y - 1] & LOMASK) == CHANNEL) { SpawnShip(x, WORLD_Y - 1); return; }
+    if (!(Rand16() & 3))
+        for (y = 1; y < WORLD_Y - 2; y++)
+            if ((Map[WORLD_X - 1][y] & LOMASK) == CHANNEL) { SpawnShip(WORLD_X - 1, y); return; }
 }
 
 static SimSprite *FindFreeExplosion(void)
@@ -538,40 +524,79 @@ static void StepPlane(SimSprite *s)
     if (SpriteNotInBounds(s)) s->frame = 0;
 }
 
+static bool ShipTryOther(int16_t tile, int32_t told, int32_t tnew)
+{
+    int32_t z = told + 4;
+    if (z > 8) z -= 8;
+    if (tnew != z) return false;
+    return tile == POWERBASE || tile == POWERBASE + 1 || tile == RAILBASE || tile == RAILBASE + 1;
+}
+
 static void StepShip(SimSprite *s)
 {
-    static const int16_t Dx[4] = { 0, 2, 0, -2 };
-    static const int16_t Dy[4] = { -2, 0, 2, 0 };
-    static const int16_t ShipFrames[4] = { 1, 3, 5, 7 }; /* N, E, S, W */
+    /* Unix DoShipSprite tables; headings 1..8 are N, NE, E, SE, S, SW, W, NW */
+    static const int16_t BDx[9] = { 0, 0, 1, 1, 1, 0, -1, -1, -1 };
+    static const int16_t BDy[9] = { 0, -1, -1, 0, 1, 1, 1, 0, -1 };
+    static const int16_t BPx[9] = { 0, 0, 2, 2, 2, 0, -2, -2, -2 };
+    static const int16_t BPy[9] = { 0, -2, -2, 0, 2, 2, 2, 0, -2 };
+    static const int16_t BtClrTab[8] = { RIVER, CHANNEL, POWERBASE, POWERBASE + 1,
+                                         RAILBASE, RAILBASE + 1, BRWH, BRWV };
+    int16_t t = RIVER;
 
-    s->x += Dx[s->dir & 3];
-    s->y += Dy[s->dir & 3];
-    s->frame = ShipFrames[s->dir & 3];
-
-    /* Probe 1 tile ahead for navigable waterway */
-    int16_t ahead = GetChar(s->x + (Dx[s->dir & 3] * 16) + 8, s->y + (Dy[s->dir & 3] * 16) + 8);
-    if (ahead != CHANNEL && ahead != RIVER && ahead != HBRIDGE && ahead != VBRIDGE &&
-        ahead != BRWH && ahead != BRWV) {
-        int16_t d1 = (s->dir + 1) & 3;
-        int16_t d2 = (s->dir + 3) & 3;
-        int16_t c1 = GetChar(s->x + (Dx[d1] * 16) + 8, s->y + (Dy[d1] * 16) + 8);
-        if (c1 == CHANNEL || c1 == RIVER || c1 == HBRIDGE || c1 == VBRIDGE || c1 == BRWH || c1 == BRWV) {
-            s->dir = d1;
-        } else {
-            s->dir = d2;
-        }
+    if (s->sound_count > 0) s->sound_count--;
+    if (s->sound_count == 0) {
+        if ((Rand16() & 3) == 1) Audio_MakeSound("city", "HonkHonk-Low");
+        s->sound_count = 200;
     }
 
-    /* Keep within bounds */
-    if (s->x < 0 || s->x >= (WORLD_X << 4) || s->y < 0 || s->y >= (WORLD_Y << 4)) {
+    if (s->count > 0) s->count--;
+    if (s->count == 0) {
+        s->count = 9;
+        if (s->frame != s->new_dir) {
+            s->frame = TurnTo((int16_t)s->frame, (int16_t)s->new_dir);
+            return;
+        }
+
+        int32_t tem = Rand16() & 7;
+        int32_t pem;
+        for (pem = tem; pem < tem + 8; pem++) {
+            int32_t z = (pem & 7) + 1;
+            if (z == s->dir) continue;
+
+            /* Probe tile from the Unix logical position: core x is Unix x + 48, so (Unix x + 47) >> 4 is (core x - 1) >> 4 */
+            int32_t tx = ((s->x - 1) >> 4) + BDx[z];
+            int32_t ty = (s->y >> 4) + BDy[z];
+            if (TestBounds(tx, ty)) {
+                t = (int16_t)(Map[tx][ty] & LOMASK);
+                if (t == CHANNEL || t == BRWH || t == BRWV || ShipTryOther(t, s->dir, z)) {
+                    s->new_dir = z;
+                    s->frame = TurnTo((int16_t)s->frame, (int16_t)s->new_dir);
+                    s->dir = z + 4;
+                    if (s->dir > 8) s->dir -= 8;
+                    break;
+                }
+            }
+        }
+        if (pem == tem + 8) {
+            s->dir = 10;
+            s->new_dir = (Rand16() & 7) + 1;
+        }
+    } else if (s->frame == s->new_dir) {
+        s->x += BPx[s->frame];
+        s->y += BPy[s->frame];
+    }
+
+    if (SpriteNotInBounds(s)) {
         s->frame = 0;
         return;
     }
 
-    /* Unix explodes a ship that is off the waterway and calls Destroy at its position.
-     * Approximation: Unix tests the last tile probed by its turn search; this checks the hotspot tile. */
-    int16_t under = GetChar(s->x, s->y);
-    if (under != RIVER && under != CHANNEL && !IsWetTile(under)) {
+    /* Unix explodes the ship and calls Destroy when the last probed tile is not waterway or bridge */
+    bool on_water = false;
+    for (int32_t z = 0; z < 8; z++) {
+        if (t == BtClrTab[z]) { on_water = true; break; }
+    }
+    if (!on_water) {
         ExplodeSprite(s);
         DestroyAt(s->x, s->y);
     }
