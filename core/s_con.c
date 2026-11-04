@@ -378,6 +378,62 @@ static int32_t WaterBridgeFor(int32_t x, int32_t y)
     return 0;
 }
 
+/* Tunnel orientation for rail on water, from an adjacent rail or power tile (E, W, S, N). Returns 0 if none. */
+static int32_t WaterRailFor(int32_t x, int32_t y)
+{
+    int32_t t;
+
+    if (x < WORLD_X - 1) {
+        t = Map[x + 1][y] & LOMASK;
+        NeutralizeRoad(&t);
+        if (t == 221 || t == 224 || (t >= 226 && t <= 237)) return 224;
+    }
+    if (x > 0) {
+        t = Map[x - 1][y] & LOMASK;
+        NeutralizeRoad(&t);
+        if (t == 221 || t == 224 || (t >= 226 && t <= 237)) return 224;
+    }
+    if (y < WORLD_Y - 1) {
+        t = Map[x][y + 1] & LOMASK;
+        NeutralizeRoad(&t);
+        if (t == 222 || t == 238 || (t >= 225 && t <= 236)) return 225;
+    }
+    if (y > 0) {
+        t = Map[x][y - 1] & LOMASK;
+        NeutralizeRoad(&t);
+        if (t == 222 || t == 238 || (t >= 225 && t <= 236)) return 225;
+    }
+    return 0;
+}
+
+/* Underwater wire orientation from an adjacent powered wire (E, W, S, N). Returns 0 if none. */
+static int32_t WaterWireFor(int32_t x, int32_t y)
+{
+    int32_t t;
+
+    if (x < WORLD_X - 1 && (Map[x + 1][y] & CONDBIT)) {
+        t = Map[x + 1][y] & LOMASK;
+        NeutralizeRoad(&t);
+        if (t != 77 && t != 221 && t != 208) return 209;
+    }
+    if (x > 0 && (Map[x - 1][y] & CONDBIT)) {
+        t = Map[x - 1][y] & LOMASK;
+        NeutralizeRoad(&t);
+        if (t != 77 && t != 221 && t != 208) return 209;
+    }
+    if (y < WORLD_Y - 1 && (Map[x][y + 1] & CONDBIT)) {
+        t = Map[x][y + 1] & LOMASK;
+        NeutralizeRoad(&t);
+        if (t != 78 && t != 222 && t != 209) return 208;
+    }
+    if (y > 0 && (Map[x][y - 1] & CONDBIT)) {
+        t = Map[x][y - 1] & LOMASK;
+        NeutralizeRoad(&t);
+        if (t != 78 && t != 222 && t != 209) return 208;
+    }
+    return 0;
+}
+
 int32_t LayRoad(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return 0;
@@ -449,7 +505,9 @@ int32_t LayRail(int32_t x, int32_t y)
 
     if (tile == RIVER || tile == REDGE || tile == CHANNEL) {
         if (TotalFunds < 100) return -2;
-        Map[x][y] = 224 | BULLBIT;
+        int32_t tunnel = WaterRailFor(x, y);
+        if (!tunnel) return 0;
+        Map[x][y] = tunnel | BULLBIT;
         TotalFunds -= 100;
         MustUpdateFunds = 1;
         FixZone(x, y);
@@ -498,7 +556,9 @@ int32_t LayWire(int32_t x, int32_t y)
 
     if (tile == RIVER || tile == REDGE || tile == CHANNEL) {
         if (TotalFunds < 25) return -2;
-        Map[x][y] = 208 | CONDBIT | BULLBIT;
+        int32_t underwater = WaterWireFor(x, y);
+        if (!underwater) return 0;
+        Map[x][y] = underwater | CONDBIT | BULLBIT;
         TotalFunds -= 25;
         MustUpdateFunds = 1;
         FixZone(x, y);
