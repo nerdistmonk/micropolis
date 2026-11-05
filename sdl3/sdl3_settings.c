@@ -22,7 +22,8 @@ static char settings_path[512] = {0};
 static const float sound_level_gains[SOUND_LEVEL_COUNT] = { 0.25f, 0.5f, 0.75f, 1.0f };
 static const char *sound_level_names[SOUND_LEVEL_COUNT] = { "LOW", "MEDIUM", "HIGH", "FULL" };
 
-static const float music_volume_gains[MUSIC_VOLUME_COUNT] = { 0.0f, 0.25f, 0.5f, 1.0f };
+/* Music is scaled well below the SFX levels so it sits under the effects at every setting. */
+static const float music_volume_gains[MUSIC_VOLUME_COUNT] = { 0.0f, 0.08f, 0.16f, 0.3f };
 static const char *music_volume_names[MUSIC_VOLUME_COUNT] = { "OFF", "LOW", "MEDIUM", "HIGH" };
 
 static void ApplySimFlags(void)
