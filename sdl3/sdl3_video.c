@@ -244,15 +244,20 @@ static void LoadSpriteTextures(SDL_Renderer *renderer)
     [BUS] = 4
   };
 
+  const char *base = SDL_GetBasePath();
+
   for (int type = 1; type < OBJN; type++) {
     for (int frame = 0; frame < frame_counts[type]; frame++) {
       char path[512];
-      for (size_t p = 0; p < sizeof(prefixes) / sizeof(prefixes[0]); p++) {
+      snprintf(path, sizeof(path), "%simages/obj%d-%d.xpm", base ? base : "", type, frame);
+      sprite_textures[type][frame] = LoadXpmFile(
+        renderer, path, &sprite_w[type][frame], &sprite_h[type][frame]
+      );
+      for (size_t p = 0; !sprite_textures[type][frame] && p < sizeof(prefixes) / sizeof(prefixes[0]); p++) {
         snprintf(path, sizeof(path), "%sobj%d-%d.xpm", prefixes[p], type, frame);
         sprite_textures[type][frame] = LoadXpmFile(
           renderer, path, &sprite_w[type][frame], &sprite_h[type][frame]
         );
-        if (sprite_textures[type][frame]) break;
       }
     }
   }
