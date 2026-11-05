@@ -67,5 +67,8 @@ add_custom_command(TARGET micropolis_sdl3 POST_BUILD
    COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/manual"
         "$<TARGET_FILE_DIR:micropolis_sdl3>/manual"
-    COMMENT "Synchronizing fonts, images, and scenarios to build directory"
+   COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/music"
+        "$<TARGET_FILE_DIR:micropolis_sdl3>/music"
+    COMMENT "Synchronizing game assets to build directory"
 )
