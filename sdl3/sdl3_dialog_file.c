@@ -38,11 +38,11 @@ static const struct {
 
 #define SCENARIO_GRID_COUNT (sizeof(scenario_grid) / sizeof(scenario_grid[0]))
 
-static SDL_FRect ScenarioGridRect(size_t i)
+static SDL_FRect ScenarioGridRect(float dx, float dy, size_t i)
 {
     SDL_FRect r = {
-        240.0f + 30.0f + (float)(i % 2) * 250.0f,
-        120.0f + 120.0f + (float)(i / 2) * 50.0f,
+        dx + 30.0f + (float)(i % 2) * 250.0f,
+        dy + 120.0f + (float)(i / 2) * 50.0f,
         230.0f,
         34.0f
     };
@@ -95,11 +95,11 @@ static SDL_FRect FileDifficultyRect(float dx, float dy, int i)
     return FileActionRect(dx + 120.0f + (float)i * 140.0f, dy + 318.0f, NewCityLevelNames[i], 20.0f, 28.0f);
 }
 
-static SDL_FRect TerrainOptRect(int i)
+static SDL_FRect TerrainOptRect(float dx, float dy, int i)
 {
     SDL_FRect r = {
-        240.0f + 60.0f + (float)(i % 2) * 210.0f,
-        120.0f + 370.0f + (float)(i / 2) * 36.0f,
+        dx + 60.0f + (float)(i % 2) * 210.0f,
+        dy + 370.0f + (float)(i / 2) * 36.0f,
         200.0f,
         28.0f
     };
@@ -350,7 +350,7 @@ bool Dialog_File_HandleClick(float mx, float my)
         }
 
         for (int i = 0; i < TERRAIN_OPT_COUNT; i++) {
-            SDL_FRect opt = TerrainOptRect(i);
+            SDL_FRect opt = TerrainOptRect(dx, dy, i);
             if (mx >= opt.x && mx <= opt.x + opt.w && my >= opt.y && my <= opt.y + opt.h) {
                 terrain_opt_index[i] = (terrain_opt_index[i] + 1) % terrain_opt_count[i];
                 return true;
@@ -358,7 +358,7 @@ bool Dialog_File_HandleClick(float mx, float my)
         }
     } else if (active_file_tab == FILE_TAB_SCENARIOS) {
         for (size_t i = 0; i < SCENARIO_GRID_COUNT; i++) {
-            SDL_FRect r = ScenarioGridRect(i);
+            SDL_FRect r = ScenarioGridRect(dx, dy, i);
             if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
                 GUI_Dialogs_OpenChooseCity(ScenarioConfirmed, scenario_grid[i].id);
                 return true;
@@ -527,7 +527,7 @@ void Dialog_File_Render(SDL_Renderer *renderer)
 
         GUI_DrawText(renderer, (int)dx + 60, (int)dy + 352, "New city terrain:", col_white);
         for (int i = 0; i < TERRAIN_OPT_COUNT; i++) {
-            SDL_FRect opt = TerrainOptRect(i);
+            SDL_FRect opt = TerrainOptRect(dx, dy, i);
             bool changed = (terrain_opt_index[i] != 0);
             SDL_SetRenderDrawColor(renderer, changed ? 70 : 35, changed ? 55 : 45, changed ? 25 : 62, 255);
             SDL_RenderFillRect(renderer, &opt);
@@ -546,7 +546,7 @@ void Dialog_File_Render(SDL_Renderer *renderer)
         GUI_DrawText(renderer, cx, cy, "HISTORICAL CRISIS SCENARIOS", col_gold);
 
         for (size_t i = 0; i < SCENARIO_GRID_COUNT; i++) {
-            SDL_FRect r = ScenarioGridRect(i);
+            SDL_FRect r = ScenarioGridRect(dx, dy, i);
             SDL_SetRenderDrawColor(renderer, 35, 45, 62, 255);
             SDL_RenderFillRect(renderer, &r);
             SDL_SetRenderDrawColor(renderer, 70, 90, 130, 255);

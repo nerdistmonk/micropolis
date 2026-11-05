@@ -39,16 +39,16 @@ static float OverlayColumnWidth(size_t col)
     return w;
 }
 
-static SDL_FRect OverlayButtonRect(size_t i)
+static SDL_FRect OverlayButtonRect(float dx, float dy, size_t i)
 {
     size_t col = i % OVERLAY_COLS;
     float grid_w = OverlayColumnWidth(0) + OVERLAY_BTN_GAP + OverlayColumnWidth(1);
-    float x = 280.0f + (460.0f - grid_w) / 2.0f;
+    float x = dx + (460.0f - grid_w) / 2.0f;
     if (col == 1) x += OverlayColumnWidth(0) + OVERLAY_BTN_GAP;
 
     SDL_FRect r = {
         x,
-        150.0f + 60.0f + (float)(i / OVERLAY_COLS) * 45.0f,
+        dy + 60.0f + (float)(i / OVERLAY_COLS) * 45.0f,
         OverlayColumnWidth(col),
         36.0f
     };
@@ -80,7 +80,7 @@ bool Dialog_Overlays_HandleClick(float mx, float my)
     }
 
     for (size_t i = 0; i < OVERLAY_CHOICE_COUNT; i++) {
-        SDL_FRect r = OverlayButtonRect(i);
+        SDL_FRect r = OverlayButtonRect(dx, dy, i);
         if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
             GUI_Dialogs_SetActiveOverlay(overlay_choices[i].mode);
             GUI_Dialogs_Close();
@@ -120,7 +120,7 @@ void Dialog_Overlays_Render(SDL_Renderer *renderer)
 
     for (size_t i = 0; i < OVERLAY_CHOICE_COUNT; i++) {
         bool selected = (active_overlay == overlay_choices[i].mode);
-        SDL_FRect r = OverlayButtonRect(i);
+        SDL_FRect r = OverlayButtonRect(dx, dy, i);
 
         if (selected) {
             SDL_SetRenderDrawColor(renderer, 48, 85, 140, 255);
