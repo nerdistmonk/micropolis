@@ -69,9 +69,9 @@ void Dialog_Overlays_Open(void)
 
 bool Dialog_Overlays_HandleClick(float mx, float my)
 {
-    float dx = DialogOriginX(280.0f);
-    float dy = DialogOriginY(150.0f);
     float dw = 460.0f;
+    float dx = DialogCenteredX(dw);
+    float dy = DialogCenteredY(400.0f);
 
     if (mx >= dx + dw - 32.0f && mx <= dx + dw - 8.0f &&
         my >= dy + 8.0f && my <= dy + 32.0f) {
@@ -93,10 +93,10 @@ bool Dialog_Overlays_HandleClick(float mx, float my)
 
 void Dialog_Overlays_Render(SDL_Renderer *renderer)
 {
-    float dx = DialogOriginX(280.0f);
-    float dy = DialogOriginY(150.0f);
     float dw = 460.0f;
     float dh = 400.0f;
+    float dx = DialogCenteredX(dw);
+    float dy = DialogCenteredY(dh);
 
     SDL_FRect scrim = { 0.0f, 0.0f, (float)Video_GetCanvasWidth(), (float)Video_GetCanvasHeight() };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);

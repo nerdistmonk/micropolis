@@ -295,9 +295,9 @@ bool Dialog_File_HandleNativeEvent(const SDL_Event *event)
 
 bool Dialog_File_HandleClick(float mx, float my)
 {
-    float dx = DialogOriginX(240.0f);
-    float dy = DialogOriginY(120.0f);
     float dw = 540.0f;
+    float dx = DialogCenteredX(dw);
+    float dy = DialogCenteredY(520.0f);
 
     if (mx >= dx + dw - 32.0f && mx <= dx + dw - 8.0f &&
         my >= dy + 8.0f && my <= dy + 32.0f) {
@@ -433,10 +433,10 @@ static void DrawOptionRow(SDL_Renderer *renderer, int cx, float opt_x, int row_y
 
 void Dialog_File_Render(SDL_Renderer *renderer)
 {
-    float dx = DialogOriginX(240.0f);
-    float dy = DialogOriginY(120.0f);
     float dw = 540.0f;
     float dh = 520.0f;
+    float dx = DialogCenteredX(dw);
+    float dy = DialogCenteredY(dh);
 
     SDL_FRect scrim = { 0.0f, 0.0f, (float)Video_GetCanvasWidth(), (float)Video_GetCanvasHeight() };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);

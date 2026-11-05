@@ -23,15 +23,15 @@ static const SDL_Color col_cyan  = { 90, 210, 255, 255 };
 static const SDL_Color col_red   = { 255, 90, 90, 255 };
 static const SDL_Color col_gray  = { 160, 168, 185, 255 };
 
-/* Dialog origins authored for a 1024x768 canvas, shifted to stay centered on the live canvas. */
-static inline float DialogOriginX(float authored_x)
+/* Top-left origin that centers a dialog of the given size on the live canvas. */
+static inline float DialogCenteredX(float width)
 {
-    return authored_x + ((float)Video_GetCanvasWidth() - (float)WINDOW_DEFAULT_WIDTH) / 2.0f;
+    return ((float)Video_GetCanvasWidth() - width) / 2.0f;
 }
 
-static inline float DialogOriginY(float authored_y)
+static inline float DialogCenteredY(float height)
 {
-    return authored_y + ((float)Video_GetCanvasHeight() - (float)WINDOW_DEFAULT_HEIGHT) / 2.0f;
+    return ((float)Video_GetCanvasHeight() - height) / 2.0f;
 }
 
 /* Modal Module Handlers */

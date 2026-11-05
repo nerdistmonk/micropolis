@@ -45,10 +45,10 @@ static SDL_FRect ScenarioOkRect(float dx, float dy, float dw, float dh)
 
 bool Dialog_Scenario_HandleClick(float mx, float my)
 {
-    float dx = DialogOriginX(290.0f);
-    float dy = DialogOriginY(240.0f);
     float dw = 444.0f;
     float dh = ScenarioDialogHeight();
+    float dx = DialogCenteredX(dw);
+    float dy = DialogCenteredY(dh);
 
     SDL_FRect ok_btn = ScenarioOkRect(dx, dy, dw, dh);
     if (mx >= ok_btn.x && mx <= ok_btn.x + ok_btn.w &&
@@ -61,10 +61,10 @@ bool Dialog_Scenario_HandleClick(float mx, float my)
 
 void Dialog_Scenario_Render(SDL_Renderer *renderer)
 {
-    float dx = DialogOriginX(290.0f);
-    float dy = DialogOriginY(240.0f);
     float dw = 444.0f;
     float dh = ScenarioDialogHeight();
+    float dx = DialogCenteredX(dw);
+    float dy = DialogCenteredY(dh);
 
     SDL_FRect scrim = { 0.0f, 0.0f, (float)Video_GetCanvasWidth(), (float)Video_GetCanvasHeight() };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 210);

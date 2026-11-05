@@ -140,9 +140,9 @@ bool Dialog_City_HandleKeyDown(SDL_Keycode key)
 
 bool Dialog_City_HandleClick(float mx, float my)
 {
-    float dx = DialogOriginX(220.0f);
-    float dy = DialogOriginY(110.0f);
     float dw = 580.0f;
+    float dx = DialogCenteredX(dw);
+    float dy = DialogCenteredY(430.0f);
 
     if (mx >= dx + dw - 32.0f && mx <= dx + dw - 8.0f &&
         my >= dy + 8.0f && my <= dy + 32.0f) {
@@ -392,10 +392,10 @@ static void RenderGraphsTab(SDL_Renderer *renderer, float dx, float dy, float dw
 
 void Dialog_City_Render(SDL_Renderer *renderer)
 {
-    float dx = DialogOriginX(220.0f);
-    float dy = DialogOriginY(110.0f);
     float dw = 580.0f;
     float dh = 430.0f;
+    float dx = DialogCenteredX(dw);
+    float dy = DialogCenteredY(dh);
 
     SDL_FRect scrim = { 0.0f, 0.0f, (float)Video_GetCanvasWidth(), (float)Video_GetCanvasHeight() };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);

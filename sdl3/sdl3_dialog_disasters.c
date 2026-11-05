@@ -9,9 +9,9 @@ void Dialog_Disasters_Open(void)
 
 bool Dialog_Disasters_HandleClick(float mx, float my)
 {
-    float dx = DialogOriginX(300.0f);
-    float dy = DialogOriginY(160.0f);
     float dw = 424.0f;
+    float dx = DialogCenteredX(dw);
+    float dy = DialogCenteredY(240.0f);
 
     if (mx >= dx + dw - 28.0f && mx <= dx + dw - 8.0f &&
         my >= dy + 8.0f && my <= dy + 28.0f) {
@@ -45,10 +45,10 @@ bool Dialog_Disasters_HandleClick(float mx, float my)
 
 void Dialog_Disasters_Render(SDL_Renderer *renderer)
 {
-    float dx = DialogOriginX(300.0f);
-    float dy = DialogOriginY(160.0f);
     float dw = 424.0f;
     float dh = 240.0f;
+    float dx = DialogCenteredX(dw);
+    float dy = DialogCenteredY(dh);
 
     SDL_FRect scrim = { 0.0f, 0.0f, (float)Video_GetCanvasWidth(), (float)Video_GetCanvasHeight() };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 190);
