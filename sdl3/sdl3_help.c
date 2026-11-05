@@ -169,8 +169,8 @@ static void RenderPopup(SDL_Renderer *renderer)
 
     float x = popup_x + HELP_OFFSET;
     float y = popup_y + HELP_OFFSET;
-    if (x + box_w > (float)WINDOW_DEFAULT_WIDTH) x = popup_x - HELP_OFFSET - box_w;
-    if (y + box_h > (float)WINDOW_DEFAULT_HEIGHT) y = popup_y - HELP_OFFSET - box_h;
+    if (x + box_w > (float)Video_GetCanvasWidth()) x = popup_x - HELP_OFFSET - box_w;
+    if (y + box_h > (float)Video_GetCanvasHeight()) y = popup_y - HELP_OFFSET - box_h;
     if (x < 0.0f) x = 0.0f;
     if (y < 0.0f) y = 0.0f;
 
@@ -191,7 +191,7 @@ static void RenderBanner(SDL_Renderer *renderer)
 {
     const char *text = "HELP MODE: click a control for help. F1 or Esc exits.";
     const float x = 300.0f;
-    const float y = (float)WINDOW_DEFAULT_HEIGHT - 26.0f;
+    const float y = (float)Video_GetCanvasHeight() - 26.0f;
     SDL_FRect bg = { x, y, (float)GUI_GetTextWidth(text) + 16.0f, 20.0f };
 
     SDL_SetRenderDrawColor(renderer, help_bg_color.r, help_bg_color.g, help_bg_color.b, 255);

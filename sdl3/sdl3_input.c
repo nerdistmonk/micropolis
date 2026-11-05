@@ -245,9 +245,9 @@ void Input_UpdateEdgeScroll(uint64_t now)
     int32_t dx = 0;
     int32_t dy = 0;
     if (pointer_x < (float)TOOLBAR_WIDTH + EDGE_SCROLL_ZONE_PX) dx = -1;
-    else if (pointer_x >= (float)WINDOW_DEFAULT_WIDTH - EDGE_SCROLL_ZONE_PX) dx = 1;
+    else if (pointer_x >= (float)Video_GetCanvasWidth() - EDGE_SCROLL_ZONE_PX) dx = 1;
     if (pointer_y < (float)STATUS_BAR_HEIGHT + EDGE_SCROLL_ZONE_PX) dy = -1;
-    else if (pointer_y >= (float)WINDOW_DEFAULT_HEIGHT - EDGE_SCROLL_ZONE_PX) dy = 1;
+    else if (pointer_y >= (float)Video_GetCanvasHeight() - EDGE_SCROLL_ZONE_PX) dy = 1;
 
     if (dx || dy) Video_PanCamera(dx, dy);
 }

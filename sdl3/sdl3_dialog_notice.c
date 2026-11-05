@@ -4,7 +4,7 @@
 #include "sdl3_dialog_common.h"
 
 #define NOTICE_W 440.0f
-#define NOTICE_X ((WINDOW_DEFAULT_WIDTH - NOTICE_W) / 2.0f)
+#define NOTICE_X ((Video_GetCanvasWidth() - NOTICE_W) / 2.0f)
 #define NOTICE_Y 70.0f
 #define NOTICE_PAD 14.0f
 #define NOTICE_LINE_H 18.0f

@@ -5,7 +5,7 @@
 
 #define QUIT_W 440.0f
 #define QUIT_H 180.0f
-#define QUIT_X ((WINDOW_DEFAULT_WIDTH - QUIT_W) / 2.0f)
+#define QUIT_X ((Video_GetCanvasWidth() - QUIT_W) / 2.0f)
 #define QUIT_Y 200.0f
 #define QUIT_BTN_H 32.0f
 #define QUIT_BTN_PAD 16.0f
@@ -84,7 +84,7 @@ void Dialog_Quit_SaveFinished(bool saved, const char *name)
 
 void Dialog_Quit_Render(SDL_Renderer *renderer)
 {
-    SDL_FRect scrim = { 0.0f, 0.0f, (float)WINDOW_DEFAULT_WIDTH, (float)WINDOW_DEFAULT_HEIGHT };
+    SDL_FRect scrim = { 0.0f, 0.0f, (float)Video_GetCanvasWidth(), (float)Video_GetCanvasHeight() };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 210);
     SDL_RenderFillRect(renderer, &scrim);
 

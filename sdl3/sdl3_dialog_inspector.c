@@ -104,8 +104,8 @@ static SDL_FRect InspectorOkRect(float dx, float dy, float dw, float dh)
 
 bool Dialog_Inspector_HandleClick(float mx, float my)
 {
-    float dx = 310.0f;
-    float dy = 220.0f;
+    float dx = DialogOriginX(310.0f);
+    float dy = DialogOriginY(220.0f);
     float dw = 404.0f;
     float dh = 300.0f;
 
@@ -132,12 +132,12 @@ bool Dialog_Inspector_HandleClick(float mx, float my)
 
 void Dialog_Inspector_Render(SDL_Renderer *renderer)
 {
-    float dx = 310.0f;
-    float dy = 220.0f;
+    float dx = DialogOriginX(310.0f);
+    float dy = DialogOriginY(220.0f);
     float dw = 404.0f;
     float dh = 300.0f;
 
-    SDL_FRect scrim = { 0.0f, 0.0f, (float)WINDOW_DEFAULT_WIDTH, (float)WINDOW_DEFAULT_HEIGHT };
+    SDL_FRect scrim = { 0.0f, 0.0f, (float)Video_GetCanvasWidth(), (float)Video_GetCanvasHeight() };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
     SDL_RenderFillRect(renderer, &scrim);
 

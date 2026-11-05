@@ -8,13 +8,21 @@
 #include <stdint.h>
 #include <SDL3/SDL.h>
 
+/* Initial window size; the drawing canvas then follows the live window size */
 #define WINDOW_DEFAULT_WIDTH 1024
 #define WINDOW_DEFAULT_HEIGHT 768
+/* Smallest window the HUD supports: the 4:3 default width and the 1280x720 widescreen height */
+#define WINDOW_MIN_WIDTH 1024
+#define WINDOW_MIN_HEIGHT 720
 #define TILE_PIXEL_SIZE 16
 
 bool Video_Init(int width, int height);
 void Video_Shutdown(void);
 void Video_RenderFrame(void);
+
+/* Current drawing canvas size in logical pixels, equal to the window size */
+int32_t Video_GetCanvasWidth(void);
+int32_t Video_GetCanvasHeight(void);
 
 void Video_SetCamera(int32_t tile_x, int32_t tile_y);
 void Video_GetCamera(int32_t *tile_x, int32_t *tile_y);

@@ -48,12 +48,14 @@ static float cursor_x = 0.0f;
 static float cursor_y = 0.0f;
 
 /* Status bar buttons */
-static const SDL_FRect rect_funds_btn     = { 135.0f, 2.0f, 150.0f, 24.0f };
-static const SDL_FRect rect_city_btn      = { 290.0f, 2.0f, 260.0f, 24.0f };
-static const SDL_FRect rect_overlays_btn  = { 560.0f, 2.0f, 110.0f, 24.0f };
-static const SDL_FRect rect_disasters_btn = { 680.0f, 2.0f,  96.0f, 24.0f };
-static const SDL_FRect rect_file_btn      = { 784.0f, 2.0f,  84.0f, 24.0f };
-static const SDL_FRect rect_speed_btn     = { 876.0f, 2.0f, 140.0f, 24.0f };
+/* Status-bar buttons are anchored to the right edge, and the query and RCI panels sit above the radar map.
+   These are refreshed by UpdateLayout() on each entry point, so the defaults match a 1024x768 window. */
+static SDL_FRect rect_funds_btn     = { 135.0f, 2.0f, 150.0f, 24.0f };
+static SDL_FRect rect_city_btn      = { 290.0f, 2.0f, 260.0f, 24.0f };
+static SDL_FRect rect_overlays_btn  = { 560.0f, 2.0f, 110.0f, 24.0f };
+static SDL_FRect rect_disasters_btn = { 680.0f, 2.0f,  96.0f, 24.0f };
+static SDL_FRect rect_file_btn      = { 784.0f, 2.0f,  84.0f, 24.0f };
+static SDL_FRect rect_speed_btn     = { 876.0f, 2.0f, 140.0f, 24.0f };
 
 /* Ticker & Notification State */
 static uint64_t ticker_start_time = 0;
@@ -92,9 +94,22 @@ bool GUI_LoadScenarioWithStatus(int16_t id)
 #define TICKER_DURATION_MS 12000
 #define TICKER_FADE_MS     3000
 
-/* Query Tool and RCI Gauge Rectangles directly above the Radar Map (which is at Y=656, X=6, W=120) */
-static const SDL_FRect rect_query_btn = { 6.0f, 538.0f, 120.0f, 30.0f };
-static const SDL_FRect rect_rci_box   = { 6.0f, 574.0f, 120.0f, 60.0f };
+/* Query Tool and RCI Gauge Rectangles directly above the Radar Map (which is at X=6, W=120) */
+static SDL_FRect rect_query_btn = { 6.0f, 538.0f, 120.0f, 30.0f };
+static SDL_FRect rect_rci_box   = { 6.0f, 574.0f, 120.0f, 60.0f };
+
+static void UpdateLayout(void)
+{
+  float cw = (float)Video_GetCanvasWidth();
+  float radar_y = Video_GetMinimapRect().y;
+
+  rect_speed_btn.x = cw - 148.0f;
+  rect_file_btn.x = cw - 240.0f;
+  rect_disasters_btn.x = cw - 344.0f;
+  rect_overlays_btn.x = cw - 464.0f;
+  rect_query_btn.y = radar_y - 118.0f;
+  rect_rci_box.y = radar_y - 82.0f;
+}
 
 static const SDL_Color col_white = { 245, 245, 250, 255 };
 static const SDL_Color col_gold  = { 255, 215, 0, 255 };
@@ -195,6 +210,7 @@ void GUI_SetActiveOverlayMode(OverlayViewMode mode)
 
 void GUI_HandleMotion(float mouse_x, float mouse_y)
 {
+  UpdateLayout();
   cursor_x = mouse_x;
   cursor_y = mouse_y;
 
@@ -243,6 +259,7 @@ static bool TickerVisible(void)
 bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
 {
   if (button != SDL_BUTTON_LEFT) return false;
+  UpdateLayout();
 
   if (GUI_Dialogs_HandleClick(mouse_x, mouse_y)) {
     return true;
@@ -346,10 +363,10 @@ static void RenderTooltip(SDL_Renderer *renderer, int tool_idx)
   float tx = cursor_x + 14.0f;
   float ty = cursor_y + 10.0f;
 
-  if (tx + (float)box_w > (float)WINDOW_DEFAULT_WIDTH) {
-    tx = (float)WINDOW_DEFAULT_WIDTH - (float)box_w - 6.0f;
+  if (tx + (float)box_w > (float)Video_GetCanvasWidth()) {
+    tx = (float)Video_GetCanvasWidth() - (float)box_w - 6.0f;
   }
-  if (ty + (float)box_h > (float)WINDOW_DEFAULT_HEIGHT) {
+  if (ty + (float)box_h > (float)Video_GetCanvasHeight()) {
     ty = cursor_y - (float)box_h - 4.0f;
   }
 
@@ -446,14 +463,15 @@ static void RenderQueryToolButton(SDL_Renderer *renderer)
 void GUI_Render(SDL_Renderer *renderer)
 {
   if (!renderer) return;
+  UpdateLayout();
 
   /* 1. Status Bar */
-  SDL_FRect status_rect = { 0.0f, 0.0f, (float)WINDOW_DEFAULT_WIDTH, (float)STATUS_BAR_HEIGHT };
+  SDL_FRect status_rect = { 0.0f, 0.0f, (float)Video_GetCanvasWidth(), (float)STATUS_BAR_HEIGHT };
   SDL_SetRenderDrawColor(renderer, 24, 28, 36, 245);
   SDL_RenderFillRect(renderer, &status_rect);
 
   SDL_SetRenderDrawColor(renderer, 60, 72, 92, 255);
-  SDL_RenderLine(renderer, 0.0f, (float)STATUS_BAR_HEIGHT, (float)WINDOW_DEFAULT_WIDTH, (float)STATUS_BAR_HEIGHT);
+  SDL_RenderLine(renderer, 0.0f, (float)STATUS_BAR_HEIGHT, (float)Video_GetCanvasWidth(), (float)STATUS_BAR_HEIGHT);
 
   static const char *months[12] = {
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -549,7 +567,7 @@ void GUI_Render(SDL_Renderer *renderer)
       if (box_w < 260.0f) box_w = 260.0f;
       if (box_w > 640.0f) box_w = 640.0f;
       rect_ticker_box.w = box_w;
-      rect_ticker_box.x = ((float)WINDOW_DEFAULT_WIDTH - box_w) / 2.0f;
+      rect_ticker_box.x = ((float)Video_GetCanvasWidth() - box_w) / 2.0f;
       rect_ticker_dismiss.x = rect_ticker_box.x + box_w - 24.0f;
 
       /* Box background & border */
@@ -571,12 +589,12 @@ void GUI_Render(SDL_Renderer *renderer)
   }
 
   /* 3. Tool Palette sidebar */
-  SDL_FRect tool_bg = { 0.0f, (float)STATUS_BAR_HEIGHT, (float)TOOLBAR_WIDTH, (float)(WINDOW_DEFAULT_HEIGHT - STATUS_BAR_HEIGHT) };
+  SDL_FRect tool_bg = { 0.0f, (float)STATUS_BAR_HEIGHT, (float)TOOLBAR_WIDTH, (float)(Video_GetCanvasHeight() - STATUS_BAR_HEIGHT) };
   SDL_SetRenderDrawColor(renderer, 20, 24, 30, 240);
   SDL_RenderFillRect(renderer, &tool_bg);
 
   SDL_SetRenderDrawColor(renderer, 60, 72, 92, 255);
-  SDL_RenderLine(renderer, (float)TOOLBAR_WIDTH, (float)STATUS_BAR_HEIGHT, (float)TOOLBAR_WIDTH, (float)WINDOW_DEFAULT_HEIGHT);
+  SDL_RenderLine(renderer, (float)TOOLBAR_WIDTH, (float)STATUS_BAR_HEIGHT, (float)TOOLBAR_WIDTH, (float)Video_GetCanvasHeight());
 
   /* Tool Buttons */
   int16_t cur_tool = Input_GetActiveTool();
@@ -636,6 +654,7 @@ static bool RectContainsPoint(SDL_FRect r, float x, float y)
 
 HelpTopic GUI_HelpTopicAt(float mouse_x, float mouse_y)
 {
+  UpdateLayout();
   if (mouse_y <= (float)STATUS_BAR_HEIGHT) {
     if (RectContainsPoint(rect_funds_btn, mouse_x, mouse_y)) return HELP_FUNDS;
     if (RectContainsPoint(rect_city_btn, mouse_x, mouse_y)) return HELP_CITY;

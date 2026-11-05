@@ -5,7 +5,7 @@
 
 #define CHOOSE_W 460.0f
 #define CHOOSE_H 150.0f
-#define CHOOSE_X ((WINDOW_DEFAULT_WIDTH - CHOOSE_W) / 2.0f)
+#define CHOOSE_X ((Video_GetCanvasWidth() - CHOOSE_W) / 2.0f)
 #define CHOOSE_Y 200.0f
 #define CHOOSE_BTN_H 32.0f
 #define CHOOSE_BTN_PAD 16.0f
@@ -63,7 +63,7 @@ bool Dialog_ChooseCity_HandleClick(float mx, float my)
 
 void Dialog_ChooseCity_Render(SDL_Renderer *renderer)
 {
-    SDL_FRect scrim = { 0.0f, 0.0f, (float)WINDOW_DEFAULT_WIDTH, (float)WINDOW_DEFAULT_HEIGHT };
+    SDL_FRect scrim = { 0.0f, 0.0f, (float)Video_GetCanvasWidth(), (float)Video_GetCanvasHeight() };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 210);
     SDL_RenderFillRect(renderer, &scrim);
 

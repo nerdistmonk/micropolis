@@ -55,8 +55,8 @@ void Splash_Render(SDL_Renderer *renderer)
     if (!splash_texture) return;
 
     SDL_FRect dst = {
-        ((float)WINDOW_DEFAULT_WIDTH - (float)splash_w) / 2.0f,
-        ((float)WINDOW_DEFAULT_HEIGHT - (float)splash_h) / 2.0f,
+        ((float)Video_GetCanvasWidth() - (float)splash_w) / 2.0f,
+        ((float)Video_GetCanvasHeight() - (float)splash_h) / 2.0f,
         (float)splash_w,
         (float)splash_h
     };

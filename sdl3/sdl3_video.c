@@ -17,8 +17,9 @@ static SDL_Texture *canvas_texture = NULL;
 
 static int32_t cam_x = 0;
 static int32_t cam_y = 0;
-static int32_t win_w = WINDOW_DEFAULT_WIDTH;
-static int32_t win_h = WINDOW_DEFAULT_HEIGHT;
+static int32_t canvas_w = WINDOW_DEFAULT_WIDTH;
+static int32_t canvas_h = WINDOW_DEFAULT_HEIGHT;
+static bool canvas_linear = true;
 
 static uint32_t *frame_buffer = NULL;
 
@@ -31,7 +32,10 @@ static uint32_t *minimap_pixels = NULL;
 #define MINIMAP_W 120.0f
 #define MINIMAP_H 100.0f
 #define MINIMAP_X 6.0f
-#define MINIMAP_Y (WINDOW_DEFAULT_HEIGHT - MINIMAP_H - 12.0f) /* 656.0f */
+static float MinimapY(void)
+{
+  return (float)canvas_h - MINIMAP_H - 12.0f;
+}
 
 #define MAX_SPRITE_FRAMES 16
 static SDL_Texture *sprite_textures[OBJN][MAX_SPRITE_FRAMES];
@@ -285,10 +289,76 @@ static void FitWindowToDisplay(int32_t *w, int32_t *h)
   }
 }
 
+static void DestroyCanvasTargets(void)
+{
+  if (frame_buffer) {
+    free(frame_buffer);
+    frame_buffer = NULL;
+  }
+  if (stream_texture) {
+    SDL_DestroyTexture(stream_texture);
+    stream_texture = NULL;
+  }
+  if (canvas_texture) {
+    SDL_DestroyTexture(canvas_texture);
+    canvas_texture = NULL;
+  }
+}
+
+static bool CreateCanvasTargets(int32_t w, int32_t h)
+{
+  canvas_texture = SDL_CreateTexture(
+    video_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, w, h
+  );
+  if (!canvas_texture) return false;
+  SDL_SetTextureBlendMode(canvas_texture, SDL_BLENDMODE_NONE);
+  SDL_SetTextureScaleMode(canvas_texture, canvas_linear ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
+
+  stream_texture = SDL_CreateTexture(
+    video_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h
+  );
+  if (!stream_texture) return false;
+
+  frame_buffer = (uint32_t *)calloc((size_t)w * (size_t)h, sizeof(uint32_t));
+  if (!frame_buffer) return false;
+
+  canvas_w = w;
+  canvas_h = h;
+  return true;
+}
+
+/* Rebuilds the canvas whenever the window's logical size changes, so the map and HUD fill the window */
+static void SyncCanvasToWindow(void)
+{
+  if (!video_window || !video_renderer) return;
+
+  int w = 0;
+  int h = 0;
+  if (!SDL_GetWindowSize(video_window, &w, &h)) return;
+  if (w <= 0 || h <= 0) return;
+  if (canvas_texture && w == canvas_w && h == canvas_h) return;
+
+  DestroyCanvasTargets();
+  if (!CreateCanvasTargets(w, h)) {
+    SDL_Log("Failed to create %dx%d canvas: %s", w, h, SDL_GetError());
+    DestroyCanvasTargets();
+  }
+}
+
+int32_t Video_GetCanvasWidth(void)
+{
+  return canvas_w;
+}
+
+int32_t Video_GetCanvasHeight(void)
+{
+  return canvas_h;
+}
+
 bool Video_Init(int width, int height)
 {
-  win_w = width;
-  win_h = height;
+  int32_t win_w = width;
+  int32_t win_h = height;
 
   if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
     SDL_Log("Failed to initialize SDL3 Video: %s", SDL_GetError());
@@ -299,30 +369,17 @@ bool Video_Init(int width, int height)
 
   video_window = SDL_CreateWindow("Micropolis SDL3", win_w, win_h, SDL_WINDOW_RESIZABLE);
   if (!video_window) return false;
+  SDL_SetWindowMinimumSize(video_window, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT);
 
   video_renderer = SDL_CreateRenderer(video_window, NULL);
   if (!video_renderer) return false;
 
   SDL_SetRenderDrawBlendMode(video_renderer, SDL_BLENDMODE_BLEND);
 
-  /* All drawing targets a 1024x768 canvas, which is scaled once to the window. This keeps
+  /* Drawing targets a canvas sized to the window, which is then presented 1:1. This keeps
      1px borders on whole canvas pixels instead of fractional physical pixels. */
-  canvas_texture = SDL_CreateTexture(
-    video_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET,
-    WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT
-  );
-  if (!canvas_texture) return false;
-  SDL_SetTextureBlendMode(canvas_texture, SDL_BLENDMODE_NONE);
-  SDL_SetTextureScaleMode(canvas_texture, SDL_SCALEMODE_LINEAR);
-
-  stream_texture = SDL_CreateTexture(
-    video_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING,
-    WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT
-  );
-  if (!stream_texture) return false;
-
-  frame_buffer = (uint32_t *)calloc((size_t)(WINDOW_DEFAULT_WIDTH * WINDOW_DEFAULT_HEIGHT), sizeof(uint32_t));
-  if (!frame_buffer) return false;
+  SyncCanvasToWindow();
+  if (!canvas_texture || !stream_texture || !frame_buffer) return false;
 
   minimap_texture = SDL_CreateTexture(
     video_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING,
@@ -348,18 +405,7 @@ void Video_Shutdown(void)
     SDL_DestroyTexture(minimap_texture);
     minimap_texture = NULL;
   }
-  if (frame_buffer) {
-    free(frame_buffer);
-    frame_buffer = NULL;
-  }
-  if (stream_texture) {
-    SDL_DestroyTexture(stream_texture);
-    stream_texture = NULL;
-  }
-  if (canvas_texture) {
-    SDL_DestroyTexture(canvas_texture);
-    canvas_texture = NULL;
-  }
+  DestroyCanvasTargets();
   if (video_renderer) {
     SDL_DestroyRenderer(video_renderer);
     video_renderer = NULL;
@@ -375,15 +421,14 @@ void Video_HandleWindowEvent(const SDL_Event *event)
 {
   if (!event) return;
   if (event->type == SDL_EVENT_WINDOW_RESIZED || event->type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED) {
-    win_w = event->window.data1;
-    win_h = event->window.data2;
+    SyncCanvasToWindow();
   }
 }
 
 void Video_SetCamera(int32_t tile_x, int32_t tile_y)
 {
-  int32_t max_x = WORLD_X - (WINDOW_DEFAULT_WIDTH / TILE_PIXEL_SIZE);
-  int32_t max_y = WORLD_Y - (WINDOW_DEFAULT_HEIGHT / TILE_PIXEL_SIZE);
+  int32_t max_x = WORLD_X - (canvas_w / TILE_PIXEL_SIZE);
+  int32_t max_y = WORLD_Y - (canvas_h / TILE_PIXEL_SIZE);
 
   if (max_x < 0) max_x = 0;
   if (max_y < 0) max_y = 0;
@@ -411,8 +456,8 @@ void Video_PanCamera(int32_t delta_x, int32_t delta_y)
 
 void Video_CenterOnTile(int32_t tile_x, int32_t tile_y)
 {
-  int32_t view_w_tiles = WINDOW_DEFAULT_WIDTH / TILE_PIXEL_SIZE;
-  int32_t view_h_tiles = WINDOW_DEFAULT_HEIGHT / TILE_PIXEL_SIZE;
+  int32_t view_w_tiles = canvas_w / TILE_PIXEL_SIZE;
+  int32_t view_h_tiles = canvas_h / TILE_PIXEL_SIZE;
 
   /* Shift target tile slightly right to compensate for the left HUD toolbar */
   int32_t toolbar_tiles = TOOLBAR_WIDTH / TILE_PIXEL_SIZE;
@@ -439,7 +484,7 @@ bool Video_ScreenToTile(float screen_x, float screen_y, int32_t *tile_x, int32_t
 
 SDL_FRect Video_GetMinimapRect(void)
 {
-  SDL_FRect r = { MINIMAP_X, MINIMAP_Y, MINIMAP_W, MINIMAP_H };
+  SDL_FRect r = { MINIMAP_X, MinimapY(), MINIMAP_W, MINIMAP_H };
   return r;
 }
 
@@ -463,8 +508,8 @@ static void DrawSpriteSlot(SDL_Renderer *renderer, const SimSprite *s, int32_t c
   float sx = (float)(s->x + s->x_offset - cam_pixel_x);
   float sy = (float)(s->y + s->y_offset - cam_pixel_y);
 
-  if (sx + 48.0f < 0 || sx > (float)WINDOW_DEFAULT_WIDTH ||
-      sy + 48.0f < 0 || sy > (float)WINDOW_DEFAULT_HEIGHT) {
+  if (sx + 48.0f < 0 || sx > (float)canvas_w ||
+      sy + 48.0f < 0 || sy > (float)canvas_h) {
     return;
   }
 
@@ -748,7 +793,7 @@ static void UpdateAndRenderMinimap(SDL_Renderer *renderer, OverlayViewMode mode)
   SDL_UpdateTexture(minimap_texture, NULL, minimap_pixels, WORLD_X * (int)sizeof(uint32_t));
 
   /* Minimap frame and background */
-  SDL_FRect bg = { MINIMAP_X - 2.0f, MINIMAP_Y - 18.0f, MINIMAP_W + 4.0f, MINIMAP_H + 20.0f };
+  SDL_FRect bg = { MINIMAP_X - 2.0f, MinimapY() - 18.0f, MINIMAP_W + 4.0f, MINIMAP_H + 20.0f };
   SDL_SetRenderDrawColor(renderer, 18, 22, 30, 245);
   SDL_RenderFillRect(renderer, &bg);
 
@@ -756,20 +801,20 @@ static void UpdateAndRenderMinimap(SDL_Renderer *renderer, OverlayViewMode mode)
   SDL_RenderRect(renderer, &bg);
 
   SDL_Color col_gold = { 255, 215, 0, 255 };
-  GUI_DrawText(renderer, (int)MINIMAP_X, (int)MINIMAP_Y - 16, "RADAR MAP", col_gold);
+  GUI_DrawText(renderer, (int)MINIMAP_X, (int)MinimapY() - 16, "RADAR MAP", col_gold);
 
-  SDL_FRect dst = { MINIMAP_X, MINIMAP_Y, MINIMAP_W, MINIMAP_H };
+  SDL_FRect dst = { MINIMAP_X, MinimapY(), MINIMAP_W, MINIMAP_H };
   SDL_RenderTexture(renderer, minimap_texture, NULL, &dst);
 
   SDL_SetRenderDrawColor(renderer, 80, 95, 125, 255);
   SDL_RenderRect(renderer, &dst);
 
   /* Render camera viewport rectangle on radar */
-  float view_tiles_w = (float)WINDOW_DEFAULT_WIDTH / (float)TILE_PIXEL_SIZE;
-  float view_tiles_h = (float)WINDOW_DEFAULT_HEIGHT / (float)TILE_PIXEL_SIZE;
+  float view_tiles_w = (float)canvas_w / (float)TILE_PIXEL_SIZE;
+  float view_tiles_h = (float)canvas_h / (float)TILE_PIXEL_SIZE;
 
   float cam_box_x = MINIMAP_X + ((float)cam_x * MINIMAP_SCALE);
-  float cam_box_y = MINIMAP_Y + ((float)cam_y * MINIMAP_SCALE);
+  float cam_box_y = MinimapY() + ((float)cam_y * MINIMAP_SCALE);
   float cam_box_w = view_tiles_w * MINIMAP_SCALE;
   float cam_box_h = view_tiles_h * MINIMAP_SCALE;
 
@@ -983,16 +1028,16 @@ static void RenderMapCursor(SDL_Renderer *renderer)
 static int16_t shake_seen_quakes = 0;
 static uint64_t shake_deadline_ms = 0;
 
-/* Largest 1024x768-aspect rect that fits (out_w, out_h), centred. */
+/* Largest rect with the canvas aspect ratio that fits (out_w, out_h), centred. */
 static void ComputeLetterbox(float out_w, float out_h, SDL_FRect *dst, float *scale)
 {
-  float s = out_w / (float)WINDOW_DEFAULT_WIDTH;
-  float s_h = out_h / (float)WINDOW_DEFAULT_HEIGHT;
+  float s = out_w / (float)canvas_w;
+  float s_h = out_h / (float)canvas_h;
   if (s_h < s) s = s_h;
   if (s < 0.0f) s = 0.0f;
 
-  dst->w = (float)WINDOW_DEFAULT_WIDTH * s;
-  dst->h = (float)WINDOW_DEFAULT_HEIGHT * s;
+  dst->w = (float)canvas_w * s;
+  dst->h = (float)canvas_h * s;
   dst->x = (out_w - dst->w) * 0.5f;
   dst->y = (out_h - dst->h) * 0.5f;
   *scale = s;
@@ -1017,6 +1062,7 @@ static void PresentCanvas(void)
 
 void Video_SetLinearFilter(bool linear)
 {
+  canvas_linear = linear;
   if (!canvas_texture) return;
   SDL_SetTextureScaleMode(canvas_texture, linear ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
 }
@@ -1058,6 +1104,7 @@ void Video_ConvertEventToCanvas(SDL_Event *event)
 
 void Video_RenderFrame(void)
 {
+  SyncCanvasToWindow();
   if (!frame_buffer || !video_renderer || !stream_texture || !canvas_texture) return;
 
   SDL_SetRenderTarget(video_renderer, canvas_texture);
@@ -1072,11 +1119,11 @@ void Video_RenderFrame(void)
   bool show_bolt = (flagBlink <= 0);
   OverlayViewMode overlay_mode = GUI_GetActiveOverlayMode();
 
-  for (int32_t sy = 0; sy < WINDOW_DEFAULT_HEIGHT; sy++) {
+  for (int32_t sy = 0; sy < canvas_h; sy++) {
     int32_t ty = cam_y + (sy / TILE_PIXEL_SIZE);
     int32_t py = sy % TILE_PIXEL_SIZE;
 
-    for (int32_t sx = 0; sx < WINDOW_DEFAULT_WIDTH; sx++) {
+    for (int32_t sx = 0; sx < canvas_w; sx++) {
       int32_t tx = cam_x + (sx / TILE_PIXEL_SIZE);
       int32_t px = sx % TILE_PIXEL_SIZE;
       uint32_t pixel;
@@ -1106,11 +1153,11 @@ void Video_RenderFrame(void)
         pixel = 0xFF000000;
       }
 
-      frame_buffer[sy * WINDOW_DEFAULT_WIDTH + sx] = pixel;
+      frame_buffer[sy * canvas_w + sx] = pixel;
     }
   }
 
-  SDL_UpdateTexture(stream_texture, NULL, frame_buffer, WINDOW_DEFAULT_WIDTH * (int)sizeof(uint32_t));
+  SDL_UpdateTexture(stream_texture, NULL, frame_buffer, canvas_w * (int)sizeof(uint32_t));
 
   SDL_SetRenderDrawColor(video_renderer, 0, 0, 0, 255);
   SDL_RenderClear(video_renderer);
@@ -1125,7 +1172,7 @@ void Video_RenderFrame(void)
     shake_seen_quakes = 0;
   }
 
-  SDL_FRect map_dest = { 0.0f, 0.0f, (float)WINDOW_DEFAULT_WIDTH, (float)WINDOW_DEFAULT_HEIGHT };
+  SDL_FRect map_dest = { 0.0f, 0.0f, (float)canvas_w, (float)canvas_h };
   if (ShakeNow > 0) {
     map_dest.x += (float)(Rand(9) - 4);
     map_dest.y += (float)(Rand(9) - 4);
