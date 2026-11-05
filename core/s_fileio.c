@@ -57,10 +57,17 @@ static int32_t SaveShortStream(const int16_t *buf, size_t len, FILE *f)
     return (written == len) ? 1 : 0;
 }
 
+static char data_root[512];
+
+void SetDataRoot(const char *root)
+{
+    snprintf(data_root, sizeof(data_root), "%s", root ? root : "");
+}
+
 static int32_t LoadFileInternal(const char *filename)
 {
     FILE *f = NULL;
-    char path[512];
+    char path[1024];
 
     const char *prefixes[] = {
         "",
@@ -73,10 +80,19 @@ static int32_t LoadFileInternal(const char *filename)
         "../res/"
     };
 
-    for (size_t i = 0; i < sizeof(prefixes) / sizeof(prefixes[0]); i++) {
+    /* Data root (the executable's directory) comes first so loading works from any cwd. */
+    if (data_root[0]) {
+        snprintf(path, sizeof(path), "%sscenarios/%s", data_root, filename);
+        f = fopen(path, "rb");
+        if (!f) {
+            snprintf(path, sizeof(path), "%scities/%s", data_root, filename);
+            f = fopen(path, "rb");
+        }
+    }
+
+    for (size_t i = 0; !f && i < sizeof(prefixes) / sizeof(prefixes[0]); i++) {
         snprintf(path, sizeof(path), "%s%s", prefixes[i], filename);
         f = fopen(path, "rb");
-        if (f) break;
     }
 
     if (!f) return 0;

@@ -641,6 +641,8 @@ void DoLoseGame(void);
 void DoWinGame(void);
 
 /* File IO & Scenarios */
+/* Directory holding scenarios/ and cities/ (the executable's directory). */
+void SetDataRoot(const char *root);
 int32_t LoadCity(const char *filename);
 int32_t SaveCity(const char *filename);
 int32_t LoadScenario(int16_t s);

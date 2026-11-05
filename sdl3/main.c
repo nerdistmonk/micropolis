@@ -76,6 +76,8 @@ int main(int argc, char **argv)
     (void)argc;
     (void)argv;
 
+    SetDataRoot(SDL_GetBasePath());
+
     if (!Video_Init(WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT)) {
         return 1;
     }
