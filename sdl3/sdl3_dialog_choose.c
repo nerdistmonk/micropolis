@@ -6,7 +6,7 @@
 #define CHOOSE_W 460.0f
 #define CHOOSE_H 150.0f
 #define CHOOSE_X ((Video_GetCanvasWidth() - CHOOSE_W) / 2.0f)
-#define CHOOSE_Y 200.0f
+#define CHOOSE_Y ((Video_GetCanvasHeight() - CHOOSE_H) / 2.0f)
 #define CHOOSE_BTN_H 32.0f
 #define CHOOSE_BTN_PAD 16.0f
 #define CHOOSE_BTN_GAP 20.0f

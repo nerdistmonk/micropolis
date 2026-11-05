@@ -6,7 +6,7 @@
 #define QUIT_W 440.0f
 #define QUIT_H 180.0f
 #define QUIT_X ((Video_GetCanvasWidth() - QUIT_W) / 2.0f)
-#define QUIT_Y 200.0f
+#define QUIT_Y ((Video_GetCanvasHeight() - QUIT_H) / 2.0f)
 #define QUIT_BTN_H 32.0f
 #define QUIT_BTN_PAD 16.0f
 #define QUIT_BTN_GAP 20.0f
