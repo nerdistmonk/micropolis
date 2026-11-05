@@ -2,6 +2,7 @@
  */
 
 #include "sdl3_dialog_common.h"
+#include "sdl3_paths.h"
 
 static bool scenario_won = false;
 static char scenario_result_msg[256] = {0};
@@ -23,10 +24,8 @@ void Dialog_Scenario_Show(bool won, const char *msg)
 
     if (won) {
         if (!key_texture) {
-            const char *prefixes[] = { "", "images/", "../images/", "../../images/" };
             char path[256];
-            for (size_t i = 0; i < sizeof(prefixes) / sizeof(prefixes[0]) && !key_texture; i++) {
-                snprintf(path, sizeof(path), "%skey2city.xpm", prefixes[i]);
+            if (Res_Path(path, sizeof(path), "images/key2city.xpm")) {
                 key_texture = Video_LoadTexture(path, &key_w, &key_h);
             }
         }

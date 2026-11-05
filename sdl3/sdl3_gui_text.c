@@ -1,6 +1,7 @@
 /* sdl3_gui_text.c: TTF font rendering with DejaVu LGC and 8x8 fallback.
  */
 
+#include "sdl3_paths.h"
 #include "sdl3_gui_text.h"
 #include <stdio.h>
 #include <string.h>
@@ -109,18 +110,11 @@ static const uint8_t font8x8_basic[95][8] = {
 
 static TTF_Font *LoadFont(const char *name, float pt)
 {
-    const char *dirs[] = { "fonts/", "../fonts/", "../../fonts/", "res/fonts/" };
+    char rel[256];
     char path[512];
-    for (size_t i = 0; i < sizeof(dirs) / sizeof(dirs[0]); i++) {
-        snprintf(path, sizeof(path), "%s%s", dirs[i], name);
-        FILE *f = fopen(path, "rb");
-        if (f) {
-            fclose(f);
-            TTF_Font *font = TTF_OpenFont(path, pt);
-            if (font) return font;
-        }
-    }
-    return NULL;
+    snprintf(rel, sizeof(rel), "fonts/%s", name);
+    if (!Res_Path(path, sizeof(path), rel)) return NULL;
+    return TTF_OpenFont(path, pt);
 }
 
 bool GUI_Text_Init(void)

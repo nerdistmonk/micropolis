@@ -8,6 +8,7 @@
 #include "sdl3_audio.h"
 #include "sdl3_settings.h"
 #include "sdl3_music.h"
+#include "sdl3_paths.h"
 #include "sim.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,18 +37,10 @@ static int num_cached = 0;
 
 static FILE *FindSoundFile(const char *stem, char *out_path, size_t max_len)
 {
-    const char *dirs[] = {
-        "sounds/",
-        "../sounds/",
-        "../../sounds/"
-    };
-
-    for (size_t i = 0; i < sizeof(dirs) / sizeof(dirs[0]); i++) {
-        snprintf(out_path, max_len, "%s%s.wav", dirs[i], stem);
-        FILE *f = fopen(out_path, "rb");
-        if (f) return f;
-    }
-    return NULL;
+    char rel[256];
+    snprintf(rel, sizeof(rel), "sounds/%s.wav", stem);
+    if (!Res_Path(out_path, max_len, rel)) return NULL;
+    return fopen(out_path, "rb");
 }
 
 static SoundSample *LoadWavFile(const char *stem)
@@ -170,27 +163,31 @@ static void PlaySyntheticTone(int freq_hz, int duration_ms)
 
 bool Audio_Init(void)
 {
+    bool ok = false;
+
     if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
         SDL_Log("Failed to initialize SDL3 Audio: %s", SDL_GetError());
-        return false;
+    } else {
+        SDL_AudioSpec target_spec;
+        target_spec.format = SDL_AUDIO_S16LE;
+        target_spec.channels = 2;
+        target_spec.freq = 44100;
+
+        playback_device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &target_spec);
+        if (!playback_device) {
+            SDL_Log("Failed to open default audio device: %s", SDL_GetError());
+        } else {
+            SDL_GetAudioDeviceFormat(playback_device, &mix_spec, NULL);
+            Audio_ApplySoundLevel();
+            SDL_ResumeAudioDevice(playback_device);
+            ok = true;
+        }
     }
 
-    SDL_AudioSpec target_spec;
-    target_spec.format = SDL_AUDIO_S16LE;
-    target_spec.channels = 2;
-    target_spec.freq = 44100;
-
-    playback_device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &target_spec);
-    if (!playback_device) {
-        SDL_Log("Failed to open default audio device: %s", SDL_GetError());
-        return false;
-    }
-    SDL_GetAudioDeviceFormat(playback_device, &mix_spec, NULL);
-
-    Audio_ApplySoundLevel();
-    SDL_ResumeAudioDevice(playback_device);
+    /* Music has its own mixer device and scans its folder independently, so
+     * it still reports track counts when sound effects can't start. */
     Music_Init();
-    return true;
+    return ok;
 }
 
 void Audio_ApplySoundLevel(void)

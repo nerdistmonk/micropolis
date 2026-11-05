@@ -6,6 +6,7 @@
 
 #include "sdl3_music.h"
 #include "sdl3_settings.h"
+#include "sdl3_paths.h"
 #include <SDL3/SDL.h>
 #include <SDL3_mixer/SDL_mixer.h>
 #include <ctype.h>
@@ -67,14 +68,8 @@ static bool ScanDirectory(const char *dir)
 
 static void FindTracks(void)
 {
-    char base_music_dir[MUSIC_PATH_LEN];
-    const char *base = SDL_GetBasePath();
-    snprintf(base_music_dir, sizeof(base_music_dir), "%smusic/", base ? base : "");
-
-    const char *candidates[] = { base_music_dir, "music/", "../music/" };
-    for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); i++) {
-        if (ScanDirectory(candidates[i]) && track_count > 0) return;
-    }
+    char dir[MUSIC_PATH_LEN];
+    if (Res_Path(dir, sizeof(dir), "music/") && ScanDirectory(dir) && track_count > 0) return;
     track_count = 0;
     music_dir[0] = '\0';
 }
@@ -214,6 +209,11 @@ void Music_Skip(void)
 int Music_GetTrackCount(void)
 {
     return track_count;
+}
+
+bool Music_IsAvailable(void)
+{
+    return mixer != NULL;
 }
 
 const char *Music_GetNowPlaying(void)

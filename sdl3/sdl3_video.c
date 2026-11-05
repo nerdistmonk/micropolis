@@ -6,6 +6,7 @@
 #include "sdl3_gui.h"
 #include "sdl3_splash.h"
 #include "sim.h"
+#include "sdl3_paths.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -231,8 +232,6 @@ SDL_Texture *Video_LoadTexture(const char *path, int *out_w, int *out_h)
 
 static void LoadSpriteTextures(SDL_Renderer *renderer)
 {
-  const char *prefixes[] = { "", "images/", "../images/", "../../images/" };
-
   int frame_counts[OBJN] = {
     [TRA] = 5,
     [COP] = 8,
@@ -244,21 +243,15 @@ static void LoadSpriteTextures(SDL_Renderer *renderer)
     [BUS] = 4
   };
 
-  const char *base = SDL_GetBasePath();
-
   for (int type = 1; type < OBJN; type++) {
     for (int frame = 0; frame < frame_counts[type]; frame++) {
+      char rel[64];
       char path[512];
-      snprintf(path, sizeof(path), "%simages/obj%d-%d.xpm", base ? base : "", type, frame);
+      snprintf(rel, sizeof(rel), "images/obj%d-%d.xpm", type, frame);
+      if (!Res_Path(path, sizeof(path), rel)) continue;
       sprite_textures[type][frame] = LoadXpmFile(
         renderer, path, &sprite_w[type][frame], &sprite_h[type][frame]
       );
-      for (size_t p = 0; !sprite_textures[type][frame] && p < sizeof(prefixes) / sizeof(prefixes[0]); p++) {
-        snprintf(path, sizeof(path), "%sobj%d-%d.xpm", prefixes[p], type, frame);
-        sprite_textures[type][frame] = LoadXpmFile(
-          renderer, path, &sprite_w[type][frame], &sprite_h[type][frame]
-        );
-      }
     }
   }
 }

@@ -3,6 +3,7 @@
 
 #include "sdl3_splash.h"
 #include "sdl3_video.h"
+#include "sdl3_paths.h"
 #include <stdio.h>
 
 #define SPLASH_DURATION_MS 3000
@@ -15,10 +16,8 @@ static uint64_t splash_start_ms = 0;
 
 void Splash_Start(void)
 {
-    const char *prefixes[] = { "", "images/", "../images/", "../../images/" };
-    for (size_t i = 0; i < sizeof(prefixes) / sizeof(prefixes[0]) && !splash_texture; i++) {
-        char path[256];
-        snprintf(path, sizeof(path), "%ssplash.xpm", prefixes[i]);
+    char path[256];
+    if (Res_Path(path, sizeof(path), "images/splash.xpm")) {
         splash_texture = Video_LoadTexture(path, &splash_w, &splash_h);
     }
 

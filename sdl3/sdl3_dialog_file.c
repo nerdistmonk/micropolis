@@ -678,7 +678,9 @@ void Dialog_File_Render(SDL_Renderer *renderer)
         char info[160];
         GUI_DrawText(renderer, cx, cy, "JUKEBOX - OGG MUSIC FROM THE music/ FOLDER", col_gold);
 
-        if (Music_GetTrackCount() > 0) {
+        if (Music_GetTrackCount() > 0 && !Music_IsAvailable()) {
+            snprintf(info, sizeof(info), "Audio device unavailable, music is off.");
+        } else if (Music_GetTrackCount() > 0) {
             snprintf(info, sizeof(info), "Tracks found: %d", Music_GetTrackCount());
         } else {
             snprintf(info, sizeof(info), "No .ogg files found in the music/ folder.");

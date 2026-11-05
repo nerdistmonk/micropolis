@@ -9,6 +9,7 @@
 #include "sdl3_audio.h"
 #include "sdl3_video.h"
 #include "sim.h"
+#include "sdl3_paths.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -118,23 +119,17 @@ static const SDL_Color col_cyan  = { 90, 210, 255, 255 };
 
 static void LoadToolButtonIcons(void)
 {
-  const char *dirs[] = { "images/", "../images/", "../../images/", "" };
+  char rel[512];
   char path[512];
 
   for (size_t i = 0; i < NUM_TOOL_BUTTONS; i++) {
     GuiToolButton *btn = &tool_buttons[i];
 
-    for (size_t d = 0; d < sizeof(dirs) / sizeof(dirs[0]); d++) {
-      snprintf(path, sizeof(path), "%s%s.xpm", dirs[d], btn->icon_stem);
-      btn->tex_normal = Video_LoadTexture(path, NULL, NULL);
-      if (btn->tex_normal) break;
-    }
+    snprintf(rel, sizeof(rel), "images/%s.xpm", btn->icon_stem);
+    if (Res_Path(path, sizeof(path), rel)) btn->tex_normal = Video_LoadTexture(path, NULL, NULL);
 
-    for (size_t d = 0; d < sizeof(dirs) / sizeof(dirs[0]); d++) {
-      snprintf(path, sizeof(path), "%s%shi.xpm", dirs[d], btn->icon_stem);
-      btn->tex_hi = Video_LoadTexture(path, NULL, NULL);
-      if (btn->tex_hi) break;
-    }
+    snprintf(rel, sizeof(rel), "images/%shi.xpm", btn->icon_stem);
+    if (Res_Path(path, sizeof(path), rel)) btn->tex_hi = Video_LoadTexture(path, NULL, NULL);
   }
 }
 

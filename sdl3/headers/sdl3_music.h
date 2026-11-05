@@ -12,6 +12,7 @@ void Music_Update(void);
 void Music_Skip(void);
 
 int Music_GetTrackCount(void);
+bool Music_IsAvailable(void);
 const char *Music_GetNowPlaying(void);
 
 #endif /* SDL3_MUSIC_H */
