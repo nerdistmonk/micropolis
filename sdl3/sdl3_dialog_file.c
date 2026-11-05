@@ -4,6 +4,7 @@
 #include "sdl3_dialog_common.h"
 #include "sdl3_gui.h"
 #include "sdl3_audio.h"
+#include "sdl3_music.h"
 #include "sdl3_settings.h"
 #include <ctype.h>
 #include <stdint.h>
@@ -104,6 +105,38 @@ static SDL_FRect TerrainOptRect(float dx, float dy, int i)
         28.0f
     };
     return r;
+}
+
+static const float file_tab_width = 98.0f;
+static const float file_tab_gap = 4.0f;
+
+static SDL_FRect FileTabRect(float dx, float dy, int i)
+{
+    SDL_FRect r = { dx + 16.0f + (float)i * (file_tab_width + file_tab_gap), dy + 42.0f, file_tab_width, 28.0f };
+    return r;
+}
+
+static SDL_FRect JukeboxVolumeRect(float dx, float dy)
+{
+    SDL_FRect r = { dx + 32.0f, dy + 166.0f, 260.0f, 26.0f };
+    return r;
+}
+
+static SDL_FRect JukeboxOrderRect(float dx, float dy)
+{
+    SDL_FRect r = { dx + 32.0f, dy + 204.0f, 260.0f, 26.0f };
+    return r;
+}
+
+static SDL_FRect JukeboxSkipRect(float dx, float dy)
+{
+    SDL_FRect r = { dx + 32.0f, dy + 242.0f, 120.0f, 26.0f };
+    return r;
+}
+
+static bool PointInRect(SDL_FRect r, float mx, float my)
+{
+    return mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h;
 }
 
 void Dialog_File_Open(FileDialogTab tab)
@@ -305,17 +338,27 @@ bool Dialog_File_HandleClick(float mx, float my)
         return true;
     }
 
-    float tab_x = dx + 16.0f;
-    float tab_y = dy + 42.0f;
-    float tab_w = 120.0f;
-    float tab_h = 28.0f;
-
     for (int i = 0; i < FILE_TAB_COUNT; i++) {
-        if (mx >= tab_x && mx <= tab_x + tab_w && my >= tab_y && my <= tab_y + tab_h) {
+        SDL_FRect tr = FileTabRect(dx, dy, i);
+        if (mx >= tr.x && mx <= tr.x + tr.w && my >= tr.y && my <= tr.y + tr.h) {
             active_file_tab = (FileDialogTab)i;
             return true;
         }
-        tab_x += tab_w + 8.0f;
+    }
+
+    if (active_file_tab == FILE_TAB_JUKEBOX) {
+        if (PointInRect(JukeboxVolumeRect(dx, dy), mx, my)) {
+            Settings_CycleMusicVolume();
+            return true;
+        }
+        if (PointInRect(JukeboxOrderRect(dx, dy), mx, my)) {
+            Settings_ToggleMusicOrder();
+            return true;
+        }
+        if (PointInRect(JukeboxSkipRect(dx, dy), mx, my)) {
+            Music_Skip();
+            return true;
+        }
     }
 
     if (active_file_tab == FILE_TAB_SAVE_LOAD) {
@@ -419,6 +462,15 @@ bool Dialog_File_HandleClick(float mx, float my)
     return true;
 }
 
+static void DrawJukeboxButton(SDL_Renderer *renderer, SDL_FRect btn, const char *label)
+{
+    SDL_SetRenderDrawColor(renderer, 40, 55, 80, 255);
+    SDL_RenderFillRect(renderer, &btn);
+    SDL_SetRenderDrawColor(renderer, 90, 120, 170, 255);
+    SDL_RenderRect(renderer, &btn);
+    GUI_DrawText(renderer, (int)btn.x + 10, (int)btn.y + 5, label, col_white);
+}
+
 static void DrawOptionRow(SDL_Renderer *renderer, int cx, float opt_x, int row_y, const char *label, bool on)
 {
     GUI_DrawText(renderer, cx + 10, row_y + 4, label, col_white);
@@ -456,28 +508,22 @@ void Dialog_File_Render(SDL_Renderer *renderer)
     SDL_RenderFillRect(renderer, &close_rect);
     GUI_DrawText(renderer, (int)close_rect.x + 6, (int)close_rect.y + 4, "X", col_white);
 
-    const char *tabs[] = { "Save / Load", "Scenarios", "Options", "About" };
-    float tab_x = dx + 16.0f;
-    float tab_y = dy + 42.0f;
-    float tab_w = 120.0f;
-    float tab_h = 28.0f;
-
+    const char *tabs[] = { "Save / Load", "Scenarios", "Options", "About", "Jukebox" };
     for (int i = 0; i < FILE_TAB_COUNT; i++) {
-        SDL_FRect tr = { tab_x, tab_y, tab_w, tab_h };
+        SDL_FRect tr = FileTabRect(dx, dy, i);
         if (active_file_tab == (FileDialogTab)i) {
             SDL_SetRenderDrawColor(renderer, 50, 85, 140, 255);
             SDL_RenderFillRect(renderer, &tr);
             SDL_SetRenderDrawColor(renderer, 255, 215, 0, 255);
             SDL_RenderRect(renderer, &tr);
-            GUI_DrawText(renderer, (int)tr.x + 14, (int)tr.y + 6, tabs[i], col_white);
+            GUI_DrawText(renderer, (int)tr.x + 10, (int)tr.y + 6, tabs[i], col_white);
         } else {
             SDL_SetRenderDrawColor(renderer, 32, 38, 52, 255);
             SDL_RenderFillRect(renderer, &tr);
             SDL_SetRenderDrawColor(renderer, 60, 72, 92, 255);
             SDL_RenderRect(renderer, &tr);
-            GUI_DrawText(renderer, (int)tr.x + 14, (int)tr.y + 6, tabs[i], col_gray);
+            GUI_DrawText(renderer, (int)tr.x + 10, (int)tr.y + 6, tabs[i], col_gray);
         }
-        tab_x += tab_w + 8.0f;
     }
 
     SDL_FRect content_box = { dx + 16.0f, dy + 80.0f, dw - 32.0f, dh - 96.0f };
@@ -628,5 +674,30 @@ void Dialog_File_Render(SDL_Renderer *renderer)
         for (size_t i = 0; i < sizeof(about_lines) / sizeof(about_lines[0]); i++) {
             GUI_DrawText(renderer, cx + 10, cy + 40 + (int)i * 22, about_lines[i], col_white);
         }
+    } else if (active_file_tab == FILE_TAB_JUKEBOX) {
+        char info[160];
+        GUI_DrawText(renderer, cx, cy, "JUKEBOX - OGG MUSIC FROM THE music/ FOLDER", col_gold);
+
+        if (Music_GetTrackCount() > 0) {
+            snprintf(info, sizeof(info), "Tracks found: %d", Music_GetTrackCount());
+        } else {
+            snprintf(info, sizeof(info), "No .ogg files found in the music/ folder.");
+        }
+        GUI_DrawText(renderer, cx, cy + 26, info, col_white);
+
+        const char *now = Music_GetNowPlaying();
+        snprintf(info, sizeof(info), "Now playing: %s", now[0] ? now : "(nothing)");
+        GUI_DrawText(renderer, cx, cy + 48, info, col_white);
+
+        SDL_FRect vol_btn = JukeboxVolumeRect(dx, dy);
+        snprintf(info, sizeof(info), "Volume: %s", Settings_GetMusicVolumeName());
+        DrawJukeboxButton(renderer, vol_btn, info);
+
+        SDL_FRect order_btn = JukeboxOrderRect(dx, dy);
+        snprintf(info, sizeof(info), "Order: %s", Settings_GetMusicOrderName());
+        DrawJukeboxButton(renderer, order_btn, info);
+
+        SDL_FRect skip_btn = JukeboxSkipRect(dx, dy);
+        DrawJukeboxButton(renderer, skip_btn, "Skip Track");
     }
 }

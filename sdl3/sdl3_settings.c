@@ -15,10 +15,15 @@ static bool status_messages_enabled = true;
 static bool picture_notices_enabled = true;
 static bool linear_filter_enabled = true;
 static SoundLevel sound_level = SOUND_LEVEL_FULL;
+static MusicVolume music_volume = MUSIC_VOLUME_MEDIUM;
+static MusicOrder music_order = MUSIC_ORDER_SEQUENTIAL;
 static char settings_path[512] = {0};
 
 static const float sound_level_gains[SOUND_LEVEL_COUNT] = { 0.25f, 0.5f, 0.75f, 1.0f };
 static const char *sound_level_names[SOUND_LEVEL_COUNT] = { "LOW", "MEDIUM", "HIGH", "FULL" };
+
+static const float music_volume_gains[MUSIC_VOLUME_COUNT] = { 0.0f, 0.25f, 0.5f, 1.0f };
+static const char *music_volume_names[MUSIC_VOLUME_COUNT] = { "OFF", "LOW", "MEDIUM", "HIGH" };
 
 static void ApplySimFlags(void)
 {
@@ -42,6 +47,8 @@ static void Settings_Save(void)
     fprintf(f, "status_messages=%d\n", status_messages_enabled ? 1 : 0);
     fprintf(f, "picture_notices=%d\n", picture_notices_enabled ? 1 : 0);
     fprintf(f, "linear_filter=%d\n", linear_filter_enabled ? 1 : 0);
+    fprintf(f, "music_volume=%d\n", (int)music_volume);
+    fprintf(f, "music_order=%d\n", (int)music_order);
     fclose(f);
 }
 
@@ -77,6 +84,14 @@ void Settings_Load(void)
                 picture_notices_enabled = (value != 0);
             } else if (sscanf(line, "linear_filter=%d", &value) == 1) {
                 linear_filter_enabled = (value != 0);
+            } else if (sscanf(line, "music_volume=%d", &value) == 1) {
+                if (value >= 0 && value < (int)MUSIC_VOLUME_COUNT) {
+                    music_volume = (MusicVolume)value;
+                }
+            } else if (sscanf(line, "music_order=%d", &value) == 1) {
+                if (value >= 0 && value < (int)MUSIC_ORDER_COUNT) {
+                    music_order = (MusicOrder)value;
+                }
             }
         }
         fclose(f);
@@ -162,4 +177,41 @@ float Settings_GetSoundGain(void)
 const char *Settings_GetSoundLevelName(void)
 {
     return sound_level_names[sound_level];
+}
+
+MusicVolume Settings_GetMusicVolume(void)
+{
+    return music_volume;
+}
+
+void Settings_CycleMusicVolume(void)
+{
+    music_volume = (MusicVolume)(((int)music_volume + 1) % (int)MUSIC_VOLUME_COUNT);
+    Settings_Save();
+}
+
+float Settings_GetMusicGain(void)
+{
+    return music_volume_gains[music_volume];
+}
+
+const char *Settings_GetMusicVolumeName(void)
+{
+    return music_volume_names[music_volume];
+}
+
+MusicOrder Settings_GetMusicOrder(void)
+{
+    return music_order;
+}
+
+void Settings_ToggleMusicOrder(void)
+{
+    music_order = (music_order == MUSIC_ORDER_SEQUENTIAL) ? MUSIC_ORDER_RANDOM : MUSIC_ORDER_SEQUENTIAL;
+    Settings_Save();
+}
+
+const char *Settings_GetMusicOrderName(void)
+{
+    return music_order == MUSIC_ORDER_RANDOM ? "Random" : "Sequential";
 }

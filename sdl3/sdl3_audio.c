@@ -7,6 +7,7 @@
 
 #include "sdl3_audio.h"
 #include "sdl3_settings.h"
+#include "sdl3_music.h"
 #include "sim.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -188,6 +189,7 @@ bool Audio_Init(void)
 
     Audio_ApplySoundLevel();
     SDL_ResumeAudioDevice(playback_device);
+    Music_Init();
     return true;
 }
 
@@ -201,6 +203,7 @@ void Audio_ApplySoundLevel(void)
 
 void Audio_Shutdown(void)
 {
+    Music_Shutdown();
     for (int i = 0; i < MAX_VOICES; i++) {
         if (voices[i]) {
             SDL_DestroyAudioStream(voices[i]);

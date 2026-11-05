@@ -35,10 +35,12 @@ target_include_directories(micropolis_sdl3 PRIVATE
 # Required dependencies: SDL3, SDL3_ttf, and standard math library
 find_package(SDL3 REQUIRED CONFIG)
 find_package(SDL3_ttf REQUIRED CONFIG)
+find_package(SDL3_mixer REQUIRED CONFIG)
 
 target_link_libraries(micropolis_sdl3 PRIVATE
     SDL3::SDL3
     SDL3_ttf::SDL3_ttf
+    SDL3_mixer::SDL3_mixer
     m
 )
 
@@ -47,6 +49,9 @@ add_custom_command(TARGET micropolis_sdl3 POST_BUILD
    COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/fonts"
         "$<TARGET_FILE_DIR:micropolis_sdl3>/fonts"
+   COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/music"
+        "$<TARGET_FILE_DIR:micropolis_sdl3>/music"
    COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/images"
         "$<TARGET_FILE_DIR:micropolis_sdl3>/images"

@@ -5,6 +5,7 @@
 #include "sdl3_video.h"
 #include "sdl3_input.h"
 #include "sdl3_audio.h"
+#include "sdl3_music.h"
 #include "sdl3_gui.h"
 #include "sdl3_gui_dialogs.h"
 #include "sdl3_help.h"
@@ -119,6 +120,7 @@ int main(int argc, char **argv)
         Splash_Update(now);
         GUI_Dialogs_UpdateNotice(now);
         Input_UpdateEdgeScroll(now);
+        Music_Update();
 
         /* Sim core tick - suspended while modal dialogs or the splash are up */
         if (!GUI_Dialogs_IsModalOpen() && !Splash_IsActive()) {
