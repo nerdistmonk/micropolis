@@ -10,6 +10,15 @@ This is a port of the original Micropolis Unix source, refactored from 1989 C to
 
 ![Micropolis gameplay](shot.png)
 
+## Command Line
+
+    micropolis [--load-city FILE] [--load-scenario N|FILE]
+
+- `--load-city FILE` starts with a saved city (`.cty`).
+- `--load-scenario N|FILE` starts with built-in scenario `N` (1-8), or a scenario file.
+
+If the requested file cannot be loaded, an error is printed to stderr and a generated map is used instead.
+
 ## Controls
 
 ### Keyboard

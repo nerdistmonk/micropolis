@@ -2,6 +2,7 @@
  */
 
 #include "sim.h"
+#include "scenario.h"
 #include "sdl3_video.h"
 #include "sdl3_input.h"
 #include "sdl3_audio.h"
@@ -12,6 +13,66 @@
 #include "sdl3_settings.h"
 #include "sdl3_splash.h"
 #include <SDL3/SDL.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static const char *cli_city_path = NULL;
+static const char *cli_scenario_arg = NULL;
+
+static void PrintUsage(FILE *out)
+{
+    fprintf(out,
+        "Usage: micropolis [--load-city FILE] [--load-scenario N|FILE]\n"
+        "  --load-city FILE        Start with a saved city (.cty)\n"
+        "  --load-scenario N|FILE  Start with built-in scenario N (1-8), or a scenario file\n");
+}
+
+/* Returns 1 to start the game, 0 to exit successfully, -1 on a usage error. */
+static int ParseArgs(int argc, char **argv)
+{
+    for (int i = 1; i < argc; i++) {
+        const char *arg = argv[i];
+        if (strcmp(arg, "-h") == 0 || strcmp(arg, "--help") == 0) {
+            PrintUsage(stdout);
+            return 0;
+        } else if (strcmp(arg, "--load-city") == 0 && i + 1 < argc) {
+            cli_city_path = argv[++i];
+        } else if (strcmp(arg, "--load-scenario") == 0 && i + 1 < argc) {
+            cli_scenario_arg = argv[++i];
+        } else {
+            fprintf(stderr, "micropolis: unknown or incomplete option '%s'\n", arg);
+            PrintUsage(stderr);
+            return -1;
+        }
+    }
+    if (cli_city_path && cli_scenario_arg) {
+        fprintf(stderr, "micropolis: use either --load-city or --load-scenario, not both\n");
+        return -1;
+    }
+    return 1;
+}
+
+/* Returns false when no startup file was requested or the requested one failed to load. */
+static bool LoadStartupFile(void)
+{
+    if (cli_scenario_arg) {
+        bool builtin = strlen(cli_scenario_arg) == 1 &&
+                       cli_scenario_arg[0] >= '1' && cli_scenario_arg[0] <= '8';
+        bool ok = builtin ? LoadScenario((int16_t)(cli_scenario_arg[0] - '0')) != 0
+                          : Scenario_LoadFile(cli_scenario_arg) != 0;
+        if (!ok) fprintf(stderr, "micropolis: could not load scenario '%s'\n", cli_scenario_arg);
+        return ok;
+    }
+    if (cli_city_path) {
+        if (!LoadCity(cli_city_path)) {
+            fprintf(stderr, "micropolis: could not load city '%s'\n", cli_city_path);
+            return false;
+        }
+        return true;
+    }
+    return false;
+}
 
 /* The core sends (0,0) for these notices so auto-goto does not scroll the map.
  * The notice's View button still needs a target, so take it from the sim state the way Unix does.
@@ -73,8 +134,8 @@ static void OnUpdateDate(int32_t year, int32_t month)
 
 int main(int argc, char **argv)
 {
-    (void)argc;
-    (void)argv;
+    int parsed = ParseArgs(argc, argv);
+    if (parsed <= 0) return parsed == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 
     SetDataRoot(SDL_GetBasePath());
 
@@ -103,7 +164,7 @@ int main(int argc, char **argv)
     Sim_RegisterCallbacks(&callbacks);
 
     Sim_InitEngine();
-    GenerateMap(1337);
+    if (!LoadStartupFile()) GenerateMap(1337);
     SetSimSpeed(3);
 
     bool running = true;
