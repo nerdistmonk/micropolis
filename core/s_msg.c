@@ -334,6 +334,12 @@ static void DoScenarioScore(int32_t type)
     }
 }
 
+void ResetMilestoneState(void)
+{
+    LastCityPop = 0;
+    LastCategory = 0;
+}
+
 void ClearMes(void)
 {
     MessagePort = 0;

@@ -690,6 +690,7 @@ void SendMesTickerAt(int16_t msg_num, int16_t x, int16_t y);
 void NewsThrottled(int16_t event_id);
 void doMessage(void);
 void ClearMes(void);
+void ResetMilestoneState(void);
 void DoLoseGame(void);
 void DoWinGame(void);
 
