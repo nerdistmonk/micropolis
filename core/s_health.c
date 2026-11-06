@@ -29,6 +29,11 @@ bool HealthIsCovered(int32_t x, int32_t y)
     return health_rate[x >> 3][y >> 3] != 0;
 }
 
+int16_t HealthCoverageLevel(int32_t x, int32_t y)
+{
+    return health_rate[x >> 3][y >> 3];
+}
+
 int32_t HealthAdjustedPop(int32_t pop, int32_t x, int32_t y)
 {
     int32_t pct = HEALTH_UNCOVERED_PCT;

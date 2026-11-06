@@ -620,6 +620,7 @@ void FireAnalysis(void);
 void HealthAnalysis(void);
 void SmoothServiceMap(int16_t map[SmX][SmY]);
 bool HealthIsCovered(int32_t x, int32_t y);
+int16_t HealthCoverageLevel(int32_t x, int32_t y);
 int32_t HealthAdjustedPop(int32_t pop, int32_t x, int32_t y);
 void PopDenScan(void);
 void PTLScan(void);

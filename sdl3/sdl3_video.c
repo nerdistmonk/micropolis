@@ -718,6 +718,26 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
     break;
   }
 
+  case OVERLAY_VIEW_HEALTH_COVERAGE: {
+    int32_t v = HealthCoverageLevel(tx, ty);
+    if (v > 0) {
+      if (v > 255) v = 255;
+      uint8_t a = (uint8_t)(90 + v / 2);
+      return ((uint32_t)a << 24) | (200u << 16) | (90u << 8) | 255u;
+    }
+    break;
+  }
+
+  case OVERLAY_VIEW_WATER_SUPPLY: {
+    uint16_t tile = Map[tx][ty];
+    if (WaterIsSupplied(tx, ty)) {
+      return 0x90FFB428u;
+    } else if (tile & ZONEBIT) {
+      return 0x852828DCu;
+    }
+    break;
+  }
+
   case OVERLAY_VIEW_NORMAL:
   default:
     break;
