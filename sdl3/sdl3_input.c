@@ -483,7 +483,7 @@ void Input_ProcessEvents(void)
                 Video_SetCamera(initial_cam_x - tile_dx, initial_cam_y - tile_dy);
             } else if (!GUI_IsModalOpen() && !Help_IsModeActive() &&
                        (right_doze_held ||
-                        ((event.motion.state & SDL_BUTTON_LMASK) && active_tool != queryState))) {
+                        (left_tool_held && (event.motion.state & SDL_BUTTON_LMASK) && active_tool != queryState))) {
                 int16_t drag_tool = right_doze_held ? dozeState : active_tool;
                 float tool_x = event.motion.x;
                 float tool_y = event.motion.y;
