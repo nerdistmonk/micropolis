@@ -25,7 +25,7 @@ static bool IsWaterSource(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return false;
     int32_t t = Map[x][y] & LOMASK;
-    return t >= RIVER && t <= CHANNEL;
+    return t >= RIVER && t <= LASTRIVEDGE;
 }
 
 static bool TowerHasSource(int32_t cx, int32_t cy)
