@@ -48,6 +48,11 @@ void GUI_Dialogs_OpenDisasters(void)
     Dialog_Disasters_Open();
 }
 
+void GUI_Dialogs_OpenNews(void)
+{
+    active_modal = GUI_MODAL_NEWS;
+}
+
 void GUI_Dialogs_ShowScenarioResult(bool won, const char *msg)
 {
     active_modal = GUI_MODAL_SCENARIO_RESULT;
@@ -204,6 +209,8 @@ bool GUI_Dialogs_HandleClick(float mx, float my)
         return Dialog_ChooseCity_HandleClick(mx, my);
     case GUI_MODAL_EDITOR:
         return Dialog_Editor_HandleClick(mx, my);
+    case GUI_MODAL_NEWS:
+        return Dialog_News_HandleClick(mx, my);
     default:
         return Dialog_Notice_HandleClick(mx, my);
     }
@@ -240,6 +247,9 @@ void GUI_Dialogs_Render(SDL_Renderer *renderer)
         break;
     case GUI_MODAL_EDITOR:
         Dialog_Editor_Render(renderer);
+        break;
+    case GUI_MODAL_NEWS:
+        Dialog_News_Render(renderer);
         break;
     default:
         break;

@@ -55,6 +55,7 @@ static float cursor_y = 0.0f;
 /* Status bar buttons */
 /* Status-bar buttons are anchored to the right edge, and the query and RCI panels sit above the radar map.
    These are refreshed by UpdateLayout() on each entry point, so the defaults match a 1024x768 window. */
+static SDL_FRect rect_date_btn      = { 4.0f, 2.0f, 120.0f, 24.0f };
 static SDL_FRect rect_funds_btn     = { 135.0f, 2.0f, 150.0f, 24.0f };
 static SDL_FRect rect_city_btn      = { 290.0f, 2.0f, 260.0f, 24.0f };
 static SDL_FRect rect_overlays_btn  = { 560.0f, 2.0f, 110.0f, 24.0f };
@@ -243,6 +244,11 @@ void GUI_OpenDisastersModal(void)
   GUI_Dialogs_OpenDisasters();
 }
 
+void GUI_OpenNewsModal(void)
+{
+  GUI_Dialogs_OpenNews();
+}
+
 void GUI_CloseModal(void)
 {
   GUI_Dialogs_Close();
@@ -336,6 +342,10 @@ bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
 
   /* Status Bar Buttons */
   if (mouse_y <= (float)STATUS_BAR_HEIGHT) {
+    if (mouse_x >= rect_date_btn.x && mouse_x <= (rect_date_btn.x + rect_date_btn.w)) {
+      GUI_OpenNewsModal();
+      return true;
+    }
     if (mouse_x >= rect_funds_btn.x && mouse_x <= (rect_funds_btn.x + rect_funds_btn.w)) {
       GUI_OpenCityMgmtModal(CITY_TAB_BUDGET);
       return true;
@@ -604,9 +614,14 @@ void GUI_Render(SDL_Renderer *renderer)
   if (current_month < 0) current_month = 0;
   if (current_month > 11) current_month = 11;
 
+  /* Date Button (opens the newspaper headlines) */
   char date_buf[64];
   snprintf(date_buf, sizeof(date_buf), "%s %d", months[current_month], current_year);
-  GUI_DrawText(renderer, 12, 6, date_buf, col_white);
+  SDL_SetRenderDrawColor(renderer, 36, 44, 60, 255);
+  SDL_RenderFillRect(renderer, &rect_date_btn);
+  SDL_SetRenderDrawColor(renderer, 70, 85, 115, 255);
+  SDL_RenderRect(renderer, &rect_date_btn);
+  GUI_DrawText(renderer, (int)rect_date_btn.x + 8, (int)rect_date_btn.y + 4, date_buf, col_white);
 
   /* Funds */
   char funds_buf[64];

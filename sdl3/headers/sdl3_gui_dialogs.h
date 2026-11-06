@@ -17,7 +17,8 @@ typedef enum {
     GUI_MODAL_QUERY_INSPECTOR,
     GUI_MODAL_QUIT_CONFIRM,
     GUI_MODAL_CHOOSE_CITY,
-    GUI_MODAL_EDITOR
+    GUI_MODAL_EDITOR,
+    GUI_MODAL_NEWS
 } GuiModalId;
 
 typedef enum {
@@ -63,6 +64,7 @@ void GUI_Dialogs_OpenAnnualBudget(void);
 void GUI_Dialogs_OpenOverlays(void);
 void GUI_Dialogs_OpenFile(FileDialogTab initial_tab);
 void GUI_Dialogs_OpenDisasters(void);
+void GUI_Dialogs_OpenNews(void);
 void GUI_Dialogs_ShowScenarioResult(bool won, const char *msg);
 void GUI_Dialogs_ShowQueryInspector(int32_t tile_x, int32_t tile_y);
 void GUI_Dialogs_ShowNotice(int16_t picture_id, int32_t tile_x, int32_t tile_y);
