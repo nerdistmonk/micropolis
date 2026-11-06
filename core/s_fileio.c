@@ -308,7 +308,6 @@ int32_t LoadCity(const char *filename)
     if (!LoadFileInternal(filename)) {
         return 0;
     }
-    ResetMilestoneState();
 
     Scenario_EditorEnd();
 
@@ -773,7 +772,6 @@ int32_t LoadScenario(int16_t s)
     if (!LoadFileInternal(fname)) {
         return 0;
     }
-    ResetMilestoneState();
 
     Scenario_EditorEnd();
 
