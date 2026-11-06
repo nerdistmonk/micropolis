@@ -294,6 +294,14 @@ void Input_UpdateEdgeScroll(uint64_t now)
     if (dx || dy) Video_PanCamera(dx, dy);
 }
 
+/* Keyboard zoom anchors on the middle of the map area */
+static void ZoomMapAtCenter(int32_t level)
+{
+    float cx = ((float)Video_GetCanvasWidth() + (float)MAP_ORIGIN_X) * 0.5f;
+    float cy = ((float)Video_GetCanvasHeight() + (float)MAP_ORIGIN_Y) * 0.5f;
+    Video_SetZoomAt(level, cx, cy);
+}
+
 static void UpdateMapCursor(void)
 {
     MapCursor cursor = { 0 };
@@ -412,6 +420,14 @@ void Input_ProcessEvents(void)
             case SDLK_A:
                 Video_PanCamera(-2, 0);
                 break;
+            case SDLK_EQUALS:
+            case SDLK_KP_PLUS:
+                ZoomMapAtCenter(Video_GetZoom() + 1);
+                break;
+            case SDLK_MINUS:
+            case SDLK_KP_MINUS:
+                ZoomMapAtCenter(Video_GetZoom() - 1);
+                break;
             case SDLK_RIGHT:
             case SDLK_E:
                 Video_PanCamera(2, 0);
@@ -472,8 +488,10 @@ void Input_ProcessEvents(void)
                     drag_origin_y = event.button.y;
                     DragConstraintBegin(&pan_constraint, event.button.x, event.button.y);
                     Video_GetCamera(&initial_cam_x, &initial_cam_y);
-                    pan_world_px = initial_cam_x * TILE_PIXEL_SIZE + ((int32_t)event.button.x - MAP_ORIGIN_X);
-                    pan_world_py = initial_cam_y * TILE_PIXEL_SIZE + ((int32_t)event.button.y - MAP_ORIGIN_Y);
+                    pan_world_px = initial_cam_x * TILE_PIXEL_SIZE +
+                                   (int32_t)(((float)event.button.x - MAP_ORIGIN_X) / (float)Video_GetZoom());
+                    pan_world_py = initial_cam_y * TILE_PIXEL_SIZE +
+                                   (int32_t)(((float)event.button.y - MAP_ORIGIN_Y) / (float)Video_GetZoom());
                 }
             }
             break;
@@ -491,7 +509,14 @@ void Input_ProcessEvents(void)
             break;
 
         case SDL_EVENT_MOUSE_WHEEL:
-            if (GUI_IsModalOpen()) GUI_Dialogs_HandleWheel(event.wheel.y);
+            if (GUI_IsModalOpen()) {
+                GUI_Dialogs_HandleWheel(event.wheel.y);
+            } else if (event.wheel.y != 0 &&
+                       event.wheel.mouse_x >= (float)MAP_ORIGIN_X &&
+                       event.wheel.mouse_y >= (float)MAP_ORIGIN_Y) {
+                Video_SetZoomAt(Video_GetZoom() + (event.wheel.y > 0 ? 1 : -1),
+                                event.wheel.mouse_x, event.wheel.mouse_y);
+            }
             break;
 
         case SDL_EVENT_WINDOW_MOUSE_LEAVE:
@@ -510,8 +535,9 @@ void Input_ProcessEvents(void)
                 DragConstraintApply(&pan_constraint, &px, &py);
                 float dx = px - drag_origin_x;
                 float dy = py - drag_origin_y;
-                int32_t tile_dx = (int32_t)(dx / (float)TILE_PIXEL_SIZE);
-                int32_t tile_dy = (int32_t)(dy / (float)TILE_PIXEL_SIZE);
+                float tile_px = (float)(TILE_PIXEL_SIZE * Video_GetZoom());
+                int32_t tile_dx = (int32_t)(dx / tile_px);
+                int32_t tile_dy = (int32_t)(dy / tile_px);
                 Video_SetCamera(initial_cam_x - tile_dx, initial_cam_y - tile_dy);
             } else if (!GUI_IsModalOpen() && !Help_IsModeActive() &&
                        (right_doze_held ||

@@ -14,6 +14,8 @@
 static SDL_Window *video_window = NULL;
 static SDL_Renderer *video_renderer = NULL;
 static SDL_Texture *stream_texture = NULL;
+/* Unzoomed map layer (terrain, sprites, cursor) at canvas size; stretched onto canvas_texture */
+static SDL_Texture *map_texture = NULL;
 static SDL_Texture *canvas_texture = NULL;
 
 static int32_t cam_x = 0;
@@ -21,6 +23,11 @@ static int32_t cam_y = 0;
 static int32_t canvas_w = WINDOW_DEFAULT_WIDTH;
 static int32_t canvas_h = WINDOW_DEFAULT_HEIGHT;
 static bool canvas_linear = true;
+
+/* 1 = native tiles, 2 = map magnified 2x (half as many tiles visible) */
+#define ZOOM_LEVEL_MIN 1
+#define ZOOM_LEVEL_MAX 2
+static int32_t zoom_level = ZOOM_LEVEL_MIN;
 
 static uint32_t *frame_buffer = NULL;
 
@@ -301,6 +308,10 @@ static void DestroyCanvasTargets(void)
     SDL_DestroyTexture(stream_texture);
     stream_texture = NULL;
   }
+  if (map_texture) {
+    SDL_DestroyTexture(map_texture);
+    map_texture = NULL;
+  }
   if (canvas_texture) {
     SDL_DestroyTexture(canvas_texture);
     canvas_texture = NULL;
@@ -315,6 +326,13 @@ static bool CreateCanvasTargets(int32_t w, int32_t h)
   if (!canvas_texture) return false;
   SDL_SetTextureBlendMode(canvas_texture, SDL_BLENDMODE_NONE);
   SDL_SetTextureScaleMode(canvas_texture, canvas_linear ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
+
+  map_texture = SDL_CreateTexture(
+    video_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, w, h
+  );
+  if (!map_texture) return false;
+  SDL_SetTextureBlendMode(map_texture, SDL_BLENDMODE_NONE);
+  SDL_SetTextureScaleMode(map_texture, canvas_linear ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
 
   stream_texture = SDL_CreateTexture(
     video_renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, w, h
@@ -427,10 +445,42 @@ void Video_HandleWindowEvent(const SDL_Event *event)
   }
 }
 
+static int32_t ViewTilesW(void)
+{
+  return (canvas_w - MAP_ORIGIN_X) / (TILE_PIXEL_SIZE * zoom_level);
+}
+
+static int32_t ViewTilesH(void)
+{
+  return (canvas_h - MAP_ORIGIN_Y) / (TILE_PIXEL_SIZE * zoom_level);
+}
+
+int32_t Video_GetZoom(void)
+{
+  return zoom_level;
+}
+
+/* Changes zoom while keeping the tile under (screen_x, screen_y) fixed on screen */
+void Video_SetZoomAt(int32_t level, float screen_x, float screen_y)
+{
+  if (level < ZOOM_LEVEL_MIN) level = ZOOM_LEVEL_MIN;
+  if (level > ZOOM_LEVEL_MAX) level = ZOOM_LEVEL_MAX;
+  if (level == zoom_level) return;
+
+  float off_x = screen_x - (float)MAP_ORIGIN_X;
+  float off_y = screen_y - (float)MAP_ORIGIN_Y;
+  float anchor_x = (float)cam_x + off_x / (float)(TILE_PIXEL_SIZE * zoom_level);
+  float anchor_y = (float)cam_y + off_y / (float)(TILE_PIXEL_SIZE * zoom_level);
+
+  zoom_level = level;
+  Video_SetCamera((int32_t)(anchor_x - off_x / (float)(TILE_PIXEL_SIZE * zoom_level)),
+                  (int32_t)(anchor_y - off_y / (float)(TILE_PIXEL_SIZE * zoom_level)));
+}
+
 void Video_SetCamera(int32_t tile_x, int32_t tile_y)
 {
-  int32_t max_x = WORLD_X - ((canvas_w - MAP_ORIGIN_X) / TILE_PIXEL_SIZE);
-  int32_t max_y = WORLD_Y - ((canvas_h - MAP_ORIGIN_Y) / TILE_PIXEL_SIZE);
+  int32_t max_x = WORLD_X - ViewTilesW();
+  int32_t max_y = WORLD_Y - ViewTilesH();
 
   if (max_x < 0) max_x = 0;
   if (max_y < 0) max_y = 0;
@@ -458,10 +508,7 @@ void Video_PanCamera(int32_t delta_x, int32_t delta_y)
 
 void Video_CenterOnTile(int32_t tile_x, int32_t tile_y)
 {
-  int32_t view_w_tiles = (canvas_w - MAP_ORIGIN_X) / TILE_PIXEL_SIZE;
-  int32_t view_h_tiles = (canvas_h - MAP_ORIGIN_Y) / TILE_PIXEL_SIZE;
-
-  Video_SetCamera(tile_x - (view_w_tiles / 2), tile_y - (view_h_tiles / 2));
+  Video_SetCamera(tile_x - (ViewTilesW() / 2), tile_y - (ViewTilesH() / 2));
 }
 
 bool Video_ScreenToTile(float screen_x, float screen_y, int32_t *tile_x, int32_t *tile_y)
@@ -470,8 +517,8 @@ bool Video_ScreenToTile(float screen_x, float screen_y, int32_t *tile_x, int32_t
     return false;
   }
 
-  int32_t tx = cam_x + (((int32_t)screen_x - MAP_ORIGIN_X) / TILE_PIXEL_SIZE);
-  int32_t ty = cam_y + (((int32_t)screen_y - MAP_ORIGIN_Y) / TILE_PIXEL_SIZE);
+  int32_t tx = cam_x + (((int32_t)screen_x - MAP_ORIGIN_X) / (TILE_PIXEL_SIZE * zoom_level));
+  int32_t ty = cam_y + (((int32_t)screen_y - MAP_ORIGIN_Y) / (TILE_PIXEL_SIZE * zoom_level));
 
   if (!TestBounds(tx, ty)) return false;
 
@@ -852,8 +899,8 @@ static void UpdateAndRenderMinimap(SDL_Renderer *renderer, OverlayViewMode mode)
   SDL_RenderRect(renderer, &dst);
 
   /* Render camera viewport rectangle on radar */
-  float view_tiles_w = (float)(canvas_w - MAP_ORIGIN_X) / (float)TILE_PIXEL_SIZE;
-  float view_tiles_h = (float)(canvas_h - MAP_ORIGIN_Y) / (float)TILE_PIXEL_SIZE;
+  float view_tiles_w = (float)(canvas_w - MAP_ORIGIN_X) / (float)(TILE_PIXEL_SIZE * zoom_level);
+  float view_tiles_h = (float)(canvas_h - MAP_ORIGIN_Y) / (float)(TILE_PIXEL_SIZE * zoom_level);
 
   float cam_box_x = MinimapX() + ((float)cam_x * MINIMAP_SCALE);
   float cam_box_y = MinimapY() + ((float)cam_y * MINIMAP_SCALE);
@@ -1110,6 +1157,7 @@ void Video_SetLinearFilter(bool linear)
   canvas_linear = linear;
   if (!canvas_texture) return;
   SDL_SetTextureScaleMode(canvas_texture, linear ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
+  if (map_texture) SDL_SetTextureScaleMode(map_texture, linear ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
 }
 
 void Video_ConvertEventToCanvas(SDL_Event *event)
@@ -1221,9 +1269,6 @@ void Video_RenderFrame(void)
 
   SDL_UpdateTexture(stream_texture, NULL, frame_buffer, canvas_w * (int)sizeof(uint32_t));
 
-  SDL_SetRenderDrawColor(video_renderer, 0, 0, 0, 255);
-  SDL_RenderClear(video_renderer);
-
   uint64_t now_ms = SDL_GetTicks();
   if (ShakeNow != shake_seen_quakes) {
     shake_seen_quakes = ShakeNow;
@@ -1240,6 +1285,11 @@ void Video_RenderFrame(void)
     map_dest.y += (float)(Rand(9) - 4);
   }
 
+  /* Terrain, sprites and cursor are drawn at native scale, then the map region is stretched onto the canvas */
+  SDL_SetRenderTarget(video_renderer, map_texture);
+  SDL_SetRenderDrawColor(video_renderer, 0, 0, 0, 255);
+  SDL_RenderClear(video_renderer);
+
   SDL_RenderTexture(video_renderer, stream_texture, NULL, &map_dest);
 
   if (overlay_mode == OVERLAY_VIEW_NORMAL) {
@@ -1247,6 +1297,21 @@ void Video_RenderFrame(void)
   }
 
   RenderMapCursor(video_renderer);
+
+  SDL_SetRenderTarget(video_renderer, canvas_texture);
+  SDL_SetRenderDrawColor(video_renderer, 0, 0, 0, 255);
+  SDL_RenderClear(video_renderer);
+
+  SDL_FRect map_src = {
+    (float)MAP_ORIGIN_X, (float)MAP_ORIGIN_Y,
+    (float)(canvas_w - MAP_ORIGIN_X) / (float)zoom_level,
+    (float)(canvas_h - MAP_ORIGIN_Y) / (float)zoom_level
+  };
+  SDL_FRect map_out = {
+    (float)MAP_ORIGIN_X, (float)MAP_ORIGIN_Y,
+    (float)(canvas_w - MAP_ORIGIN_X), (float)(canvas_h - MAP_ORIGIN_Y)
+  };
+  SDL_RenderTexture(video_renderer, map_texture, &map_src, &map_out);
 
   GUI_Render(video_renderer);
   UpdateAndRenderMinimap(video_renderer, overlay_mode);

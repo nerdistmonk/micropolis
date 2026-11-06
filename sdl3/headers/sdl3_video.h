@@ -30,6 +30,10 @@ void Video_PanCamera(int32_t delta_x, int32_t delta_y);
 void Video_CenterOnTile(int32_t tile_x, int32_t tile_y);
 bool Video_ScreenToTile(float screen_x, float screen_y, int32_t *tile_x, int32_t *tile_y);
 
+/* Map zoom: 1 = native, 2 = magnified. Tile pixel size on screen is TILE_PIXEL_SIZE * zoom */
+int32_t Video_GetZoom(void);
+void Video_SetZoomAt(int32_t level, float screen_x, float screen_y);
+
 /* Placement outline and pan crosshair drawn over the map, following Unix DrawCursor */
 typedef struct {
     bool tool_visible;
