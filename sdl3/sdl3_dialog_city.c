@@ -15,6 +15,7 @@ static float budget_snap_road_percent;
 static float budget_snap_police_percent;
 static float budget_snap_fire_percent;
 static float budget_snap_health_percent;
+static float budget_snap_landfill_percent;
 static int16_t budget_snap_road_effect;
 static int16_t budget_snap_police_effect;
 static int16_t budget_snap_fire_effect;
@@ -35,12 +36,12 @@ static SDL_FRect CenteredButtonRect(float cx, float y, const char *label, float 
 
 static SDL_FRect BudgetCancelRect(float dx, float dy)
 {
-    return CenteredButtonRect(dx + 205.0f, dy + 370.0f, "Cancel", 24.0f, 32.0f);
+    return CenteredButtonRect(dx + 205.0f, dy + 410.0f, "Cancel", 24.0f, 32.0f);
 }
 
 static SDL_FRect BudgetApplyRect(float dx, float dy)
 {
-    return CenteredButtonRect(dx + 375.0f, dy + 370.0f, "Apply & Close", 24.0f, 32.0f);
+    return CenteredButtonRect(dx + 375.0f, dy + 410.0f, "Apply & Close", 24.0f, 32.0f);
 }
 
 static SDL_FRect TaxButtonRect(float dx, float dy, int row, bool up)
@@ -86,6 +87,7 @@ static void SnapshotBudgetState(void)
     budget_snap_fire_effect = FireEffect;
     budget_snap_health_percent = healthPercent;
     budget_snap_health_effect = HealthEffect;
+    budget_snap_landfill_percent = landfillPercent;
     for (int r = 0; r < 3; r++) budget_snap_tax[r] = *TaxRateForRow(r);
 }
 
@@ -99,6 +101,7 @@ static void RestoreBudgetState(void)
     FireEffect = budget_snap_fire_effect;
     healthPercent = budget_snap_health_percent;
     HealthEffect = budget_snap_health_effect;
+    landfillPercent = budget_snap_landfill_percent;
     for (int r = 0; r < 3; r++) *TaxRateForRow(r) = budget_snap_tax[r];
 }
 
@@ -155,7 +158,7 @@ bool Dialog_City_HandleClick(float mx, float my)
 {
     float dw = 580.0f;
     float dx = DialogCenteredX(dw);
-    float dy = DialogCenteredY(430.0f);
+    float dy = DialogCenteredY(470.0f);
 
     if (mx >= dx + dw - 32.0f && mx <= dx + dw - 8.0f &&
         my >= dy + 8.0f && my <= dy + 32.0f) {
@@ -230,6 +233,17 @@ bool Dialog_City_HandleClick(float mx, float my)
                 healthPercent += 0.10f;
                 if (healthPercent > 1.0f) healthPercent = 1.0f;
                 HealthEffect = (int16_t)(healthPercent * 1000.0f);
+                return true;
+            }
+        }
+        if (my >= dy + 315.0f && my <= dy + 337.0f) {
+            if (mx >= dx + 400.0f && mx <= dx + 430.0f) {
+                landfillPercent -= 0.10f;
+                if (landfillPercent < 0.0f) landfillPercent = 0.0f;
+                return true;
+            } else if (mx >= dx + 440.0f && mx <= dx + 470.0f) {
+                landfillPercent += 0.10f;
+                if (landfillPercent > 1.0f) landfillPercent = 1.0f;
                 return true;
             }
         }
@@ -422,7 +436,7 @@ static void RenderGraphsTab(SDL_Renderer *renderer, float dx, float dy, float dw
 void Dialog_City_Render(SDL_Renderer *renderer)
 {
     float dw = 580.0f;
-    float dh = 430.0f;
+    float dh = 470.0f;
     float dx = DialogCenteredX(dw);
     float dy = DialogCenteredY(dh);
 
@@ -521,10 +535,20 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         GUI_DrawText(renderer, (int)h_dn.x + 10, (int)h_dn.y + 3, "-", col_white);
         GUI_DrawText(renderer, (int)h_up.x + 10, (int)h_up.y + 3, "+", col_white);
 
-        int32_t expenses = (int32_t)(((float)CalcRoadFund(GameLevel) * roadPercent) + (PolicePop * 100 * policePercent) + (FireStPop * 100 * firePercent) + (HealthFund * healthPercent));
+        snprintf(buf, sizeof(buf), "Landfill: %3d%% Cost: $%d", (int)(landfillPercent * 100.0f), (int)(LandfillPop * 100 * landfillPercent));
+        GUI_DrawText(renderer, cx, cy + 230, buf, col_white);
+        SDL_FRect l_dn = { dx + 400.0f, dy + 315.0f, 30.0f, 22.0f };
+        SDL_FRect l_up = { dx + 440.0f, dy + 315.0f, 30.0f, 22.0f };
+        SDL_SetRenderDrawColor(renderer, 40, 50, 70, 255);
+        SDL_RenderFillRect(renderer, &l_dn);
+        SDL_RenderFillRect(renderer, &l_up);
+        GUI_DrawText(renderer, (int)l_dn.x + 10, (int)l_dn.y + 3, "-", col_white);
+        GUI_DrawText(renderer, (int)l_up.x + 10, (int)l_up.y + 3, "+", col_white);
+
+        int32_t expenses = (int32_t)(((float)CalcRoadFund(GameLevel) * roadPercent) + (PolicePop * 100 * policePercent) + (FireStPop * 100 * firePercent) + (HealthFund * healthPercent) + (LandfillPop * 100 * landfillPercent));
         int32_t net = TaxFund - expenses;
         snprintf(buf, sizeof(buf), "Tax Revenue: $%d Expenses: $%d Net: $%d", TaxFund, expenses, net);
-        GUI_DrawText(renderer, cx, cy + 215, buf, (net >= 0) ? col_green : col_red);
+        GUI_DrawText(renderer, cx, cy + 265, buf, (net >= 0) ? col_green : col_red);
 
         SDL_FRect cancel_btn = BudgetCancelRect(dx, dy);
         SDL_SetRenderDrawColor(renderer, 60, 40, 40, 255);

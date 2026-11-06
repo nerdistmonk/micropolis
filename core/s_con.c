@@ -360,6 +360,9 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
     SMapY = (int16_t)y;
 
     ZonePlop(base_tile);
+    if (base_tile == LANDFILL) {
+        LandfillBlockPlaced(x, y);
+    }
     return 1;
 }
 

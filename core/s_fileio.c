@@ -24,6 +24,8 @@ extern void ClearMes(void);
 /* Marks that MiscHis[66..68] hold per-class R/C/I tax rates. */
 #define TAXRATES_SAVE_TAG 0x5452
 #define HEALTH_SAVE_TAG 0x4854
+/* Marks that MiscHis[72..76] hold landfill funding (72..73), a tag (74), and the trash pool (75..76). */
+#define LANDFILL_SAVE_TAG 0x4C46
 
 /* Fixed on-disk size of a city image (header streams plus 120x100 map). */
 #define CITY_FILE_BYTES 27120
@@ -104,6 +106,14 @@ static void SyncMiscHis(void)
 
     MiscHis[15] = GameLevel;
     MiscHis[64] = NoDisasters ? NODISASTERS_SAVE_TAG : 0;
+
+    uint32_t lf = (uint32_t)(int32_t)(landfillPercent * 65536.0f);
+    MiscHis[72] = (int16_t)((lf >> 16) & 0xFFFFu);
+    MiscHis[73] = (int16_t)(lf & 0xFFFFu);
+    MiscHis[74] = LANDFILL_SAVE_TAG;
+    uint32_t tp = (uint32_t)TrashPending;
+    MiscHis[75] = (int16_t)((tp >> 16) & 0xFFFFu);
+    MiscHis[76] = (int16_t)(tp & 0xFFFFu);
 }
 
 static void ParseCityBlob(const uint8_t *blob)
@@ -308,6 +318,7 @@ void CityRescan(void)
     PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
     FireFund = FireStPop * 100;
     FireSpend = (int32_t)((float)FireFund * firePercent);
+    LandfillRescan();
 
     DoPowerScan();
     DoWaterScan();
@@ -371,6 +382,19 @@ int32_t LoadCity(const char *filename)
         healthPercent = 1.0f;
     }
     HealthEffect = (int16_t)(healthPercent * 1000.0f);
+
+    if (MiscHis[74] == LANDFILL_SAVE_TAG) {
+        uint16_t l0 = (uint16_t)MiscHis[72];
+        uint16_t l1 = (uint16_t)MiscHis[73];
+        landfillPercent = ClampPercent((float)((int32_t)(((uint32_t)l0 << 16) | l1)) / 65536.0f);
+        uint16_t p0 = (uint16_t)MiscHis[75];
+        uint16_t p1 = (uint16_t)MiscHis[76];
+        TrashPending = (int32_t)(((uint32_t)p0 << 16) | p1);
+        if (TrashPending < 0) TrashPending = 0;
+    } else {
+        landfillPercent = 1.0f;
+        TrashPending = 0;
+    }
 
     if (CityTime < 0) CityTime = 0;
     if (ResTax > 20 || ResTax < 0) ResTax = 7;
@@ -664,6 +688,7 @@ int32_t Scenario_LoadFile(const char *path)
     policePercent = 1.0f;
     firePercent = 1.0f;
     healthPercent = 1.0f;
+    LandfillResetCity();
 
     InitSimLoad = 1;
     DoInitialEval = 0;
@@ -841,6 +866,7 @@ int32_t LoadScenario(int16_t s)
     policePercent = 1.0f;
     firePercent = 1.0f;
     healthPercent = 1.0f;
+    LandfillResetCity();
 
     InitSimLoad = 1;
     DoInitialEval = 0;

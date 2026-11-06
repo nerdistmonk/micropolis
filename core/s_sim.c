@@ -241,6 +241,7 @@ void Simulate(int32_t mod16)
             CityEvaluation();
         }
         CityTime++;
+        DoLandfill();
         AvCityTax += GetAverageTaxRate();
 
         if (!(Scycle & 1)) {
@@ -598,9 +599,10 @@ void ApplyBudgetCommit(void)
     PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
     FireSpend = (int32_t)((float)FireFund * firePercent);
     HealthSpend = (int32_t)((float)HealthFund * healthPercent);
+    LandfillSpend = (int32_t)((float)LandfillFund * landfillPercent);
 
     if (TotalPop) {
-        CashFlow = (int16_t)(TaxFund - (PoliceSpend + FireSpend + RoadSpend + HealthSpend));
+        CashFlow = (int16_t)(TaxFund - (PoliceSpend + FireSpend + RoadSpend + HealthSpend + LandfillSpend));
         DoBudget();
     } else {
         RoadEffect = 32;
@@ -639,6 +641,7 @@ void CollectTax(void)
         PoliceFund = PolicePop * 100;
         FireFund = FireStPop * 100;
         HealthFund = HospPop * 100;
+        LandfillFund = LandfillPop * 100;
         RoadFund = CalcRoadFund(GameLevel);
         TaxFund = CalcTaxFund();
 
@@ -646,6 +649,7 @@ void CollectTax(void)
         PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
         FireSpend = (int32_t)((float)FireFund * firePercent);
         HealthSpend = (int32_t)((float)HealthFund * healthPercent);
+        LandfillSpend = (int32_t)((float)LandfillFund * landfillPercent);
 
         if (!autoBudget) {
             if (EngineCallbacks.request_budget_dialog) {
@@ -1211,6 +1215,7 @@ static void SetCommonInits(void)
     policePercent = 1.0f;
     firePercent = 1.0f;
     healthPercent = 1.0f;
+    LandfillResetCity();
     TaxFlag = 0;
     TaxFund = 0;
 }

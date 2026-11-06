@@ -26,7 +26,7 @@ static bool    TryDrive(void);
 static bool    TryGo(int32_t step);
 static int16_t GetFromMap(int32_t dir);
 static bool    DriveDone(void);
-static bool    RoadTest(int32_t tile);
+bool RoadTest(int32_t tile);
 
 /* External sprite accessor (stubbed or provided by sprite subsystem) */
 extern SimSprite *GetSprite(int32_t type);
@@ -227,7 +227,7 @@ static bool DriveDone(void)
     return false;
 }
 
-static bool RoadTest(int32_t tile)
+bool RoadTest(int32_t tile)
 {
     int32_t x = tile & LOMASK;
     if (x < ROADBASE) return false;

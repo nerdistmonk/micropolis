@@ -49,7 +49,7 @@ static const HelpEntry help_entries[HELP_TOPIC_COUNT] = {
     [HELP_TOOL_WATER_TOWER] = { "Water Tower", "Place on dry land within four tiles of water. Supplies up to nine zones through pipes." },
     [HELP_TOOL_PIPE] = { "Water Pipe", "Lay underground pipe beneath roads, rail, and open ground. Pipe attaches to zone and plant edges like power lines. Zones placed over pipe bulldoze it." },
     [HELP_TOOL_HOSPITAL] = { "Hospital", "Covers nearby homes with healthcare. Homes without coverage pay less tax." },
-    [HELP_TOOL_LANDFILL] = { "Landfill", "Places a 3x3 landfill for trash. Trash collection is not active yet." }
+    [HELP_TOOL_LANDFILL] = { "Landfill", "Places a 3x3 landfill that takes the city's trash. It must touch a road. Budget funding limits how much it accepts. When full, it grows a new block on clear dirt beside it. Connect the new block to a road to use it." }
 };
 
 static const SDL_Color help_title_color = { 255, 215, 90, 255 };

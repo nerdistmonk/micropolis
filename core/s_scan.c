@@ -132,6 +132,7 @@ void PTLScan(void)
     int32_t ptot  = 0;
     int32_t pnum  = 0;
     int32_t pmax  = 0;
+    int32_t trashPenalty = LandfillTrashPenalty();
 
     for (int16_t x = 0; x < QWX; x++) {
         for (int16_t y = 0; y < QWY; y++) {
@@ -155,6 +156,9 @@ void PTLScan(void)
                             continue;
                         }
                         plevel += GetPValue(loc);
+                        if (loc >= RESBASE && loc <= LASTZONE) {
+                            plevel += trashPenalty;
+                        }
                         if (loc >= ROADBASE) {
                             lvflag++;
                         }
@@ -235,7 +239,7 @@ static int32_t GetPValue(int32_t loc)
     if (loc <= LASTIND) return 0;
     if (loc < PORTBASE) return 50;
     if (loc <= LASTPOWERPLANT) return 100;
-    return 0;
+    return LandfillPollution(loc);
 }
 
 static int16_t GetDisCC(int32_t x, int32_t y)

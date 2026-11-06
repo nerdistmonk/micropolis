@@ -460,7 +460,9 @@ extern int16_t *IndHis;
 extern int16_t *MoneyHis, *CrimeHis, *PollutionHis, *MiscHis;
 extern uint16_t *PowerMap;
 
-extern float roadPercent, policePercent, firePercent, healthPercent;
+extern float roadPercent, policePercent, firePercent, healthPercent, landfillPercent;
+extern int32_t LandfillFund, LandfillSpend, TrashPending;
+extern int16_t LandfillPop;
 extern int32_t RoadSpend, PoliceSpend, FireSpend, HealthSpend;
 extern int32_t TaxFund, RoadFund, PoliceFund, FireFund, HealthFund;
 extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect;
@@ -614,6 +616,13 @@ void PushPowerStack(void);
 void SetSmoke(int32_t zone_power);
 void RepairZone(int16_t zone_id, int16_t size);
 void ZonePlop(int16_t base_tile);
+bool RoadTest(int32_t tile);
+void DoLandfill(void);
+void LandfillBlockPlaced(int32_t x, int32_t y);
+void LandfillResetCity(void);
+void LandfillRescan(void);
+int32_t LandfillTrashPenalty(void);
+int32_t LandfillPollution(int32_t loc);
 void FireZone(int32_t xloc, int32_t yloc, int32_t ch);
 void DoMeltdown(int32_t sx, int32_t sy);
 

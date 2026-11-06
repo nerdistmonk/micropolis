@@ -297,6 +297,7 @@ void Scenario_EditorBegin(void)
     policePercent = 1.0f;
     firePercent = 1.0f;
     healthPercent = 1.0f;
+    LandfillResetCity();
     RoadEffect = 32;
     PoliceEffect = 1000;
     FireEffect = 1000;
