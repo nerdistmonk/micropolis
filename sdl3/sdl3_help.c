@@ -47,7 +47,7 @@ static const HelpEntry help_entries[HELP_TOPIC_COUNT] = {
     [HELP_TOOL_AIRPORT] = { "Municipal Airport", "Adds air travel and jobs." },
     [HELP_TOOL_PARK] = { "Park", "Plants a fountain or a patch of woods on empty land." },
     [HELP_TOOL_WATER_TOWER] = { "Water Tower", "Place on dry land within four tiles of water. Supplies up to nine zones through pipes." },
-    [HELP_TOOL_PIPE] = { "Water Pipe", "Lay underground pipe to connect a tower to zones. Shows the underground view." },
+    [HELP_TOOL_PIPE] = { "Water Pipe", "Lay underground pipe to connect a tower to zones. Shows the underground view with the surface ghosted beneath the pipes." },
     [HELP_TOOL_HOSPITAL] = { "Hospital", "Covers nearby homes with healthcare. Homes without coverage pay less tax." }
 };
 

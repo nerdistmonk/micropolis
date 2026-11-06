@@ -725,6 +725,20 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
   return 0x00000000;
 }
 
+/* Dims a pixel to a desaturated blue-grey so the surface reads as a ghost beneath the pipes. */
+static uint32_t GhostPixel(uint32_t p)
+{
+  uint32_t r = p & 0xFF;
+  uint32_t g = (p >> 8) & 0xFF;
+  uint32_t b = (p >> 16) & 0xFF;
+  uint32_t lum = (r * 30 + g * 59 + b * 11) / 100;
+
+  uint32_t gr = lum / 3 + 8;
+  uint32_t gg = lum / 2 + 14;
+  uint32_t gb = (lum * 3) / 4 + 28;
+  return (0xFFu << 24) | (gb << 16) | (gg << 8) | gr;
+}
+
 static uint32_t BlendOverlayOnPixel(uint32_t overlay_color, uint32_t base_pixel)
 {
   if (overlay_color == 0) return base_pixel;
@@ -1147,7 +1161,7 @@ void Video_RenderFrame(void)
         uint16_t raw_tile = Map[tx][ty];
 
         if (overlay_mode == OVERLAY_VIEW_UNDERGROUND) {
-          raw_tile = DIRT;
+          /* The surface tile is drawn ghosted beneath the pipes. */
         } else if (IsTileFilterOverlay(overlay_mode)) {
           if (FilterViewHidesTile(overlay_mode, raw_tile)) {
             raw_tile = DIRT;
@@ -1164,6 +1178,7 @@ void Video_RenderFrame(void)
 
         const uint32_t pipe_color = 0xFFFF7F3Fu;
         if (overlay_mode == OVERLAY_VIEW_UNDERGROUND) {
+          pixel = GhostPixel(pixel);
           if (WaterHasPipe(tx, ty)) pixel = PipeCellPixel(tx, ty, px, py, pixel, pipe_color);
         } else if (overlay_mode != OVERLAY_VIEW_NORMAL) {
           uint32_t overlay_col = GetOverlayColorRamp(overlay_mode, tx, ty);
