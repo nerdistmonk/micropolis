@@ -397,6 +397,9 @@ typedef struct SimCallbacks {
 /* Newspaper-only event ids for treasury changes. They are never shown in the message box. */
 #define NEWS_EVENT_TREASURY_EMPTY   101
 #define NEWS_EVENT_TREASURY_MILLION 102
+#define NEWS_EVENT_CRIME_LOW        103
+#define NEWS_EVENT_POLLUTION_LOW    104
+#define NEWS_EVENT_HEALTH_SHORT     105
 
 /* Engine Global Variables */
 extern uint16_t *Map[WORLD_X];
@@ -683,6 +686,8 @@ void Cheat_KeyPressed(char key);
 void SendMessages(void);
 int32_t SendMes(int16_t msg_num);
 void SendMesAt(int16_t msg_num, int16_t x, int16_t y);
+void SendMesTickerAt(int16_t msg_num, int16_t x, int16_t y);
+void NewsThrottled(int16_t event_id);
 void doMessage(void);
 void ClearMes(void);
 void DoLoseGame(void);

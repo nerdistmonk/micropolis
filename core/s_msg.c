@@ -18,6 +18,28 @@ static int16_t LastPicNum = 0;
 static bool    TreasurySampled = false;
 static int32_t LastTreasury = 0;
 
+#define NEWS_COND_SLOTS 128
+#define NEWS_THROTTLE_TICKS 48
+static bool    news_cond_active[NEWS_COND_SLOTS];
+static int32_t news_last_tick[NEWS_COND_SLOTS];
+
+/* Fires once when a condition turns on, and again only after it turns off and on. */
+static void NewsCondition(int16_t event_id, bool active)
+{
+    if (active && !news_cond_active[event_id]) {
+        if (EngineCallbacks.news_event) EngineCallbacks.news_event(event_id);
+    }
+    news_cond_active[event_id] = active;
+}
+
+void NewsThrottled(int16_t event_id)
+{
+    if (CityTime - news_last_tick[event_id] >= NEWS_THROTTLE_TICKS) {
+        news_last_tick[event_id] = CityTime;
+        if (EngineCallbacks.news_event) EngineCallbacks.news_event(event_id);
+    }
+}
+
 /* Forward Declarations of Internal Functions */
 static void CheckGrowth(void);
 static void CheckTreasury(void);
@@ -113,6 +135,9 @@ void SendMessages(void)
             SendMes(1);
         }
         break;
+    case 2:
+        NewsCondition(NEWS_EVENT_HEALTH_SHORT, TotalPop > 60 && HealthEffect < 700);
+        break;
     case 5:
         if ((TotalZPop >> 3) >= ComZPop) {
             SendMes(2);
@@ -171,13 +196,17 @@ void SendMessages(void)
         }
         break;
     case 35:
+        NewsCondition(10, PolluteAverage > 60);
+        NewsCondition(NEWS_EVENT_POLLUTION_LOW, TotalPop > 60 && PolluteAverage < 15);
         if (PolluteAverage > 60) {
-            SendMesAt(-10, 0, 0);
+            SendMesTickerAt(-10, 0, 0);
         }
         break;
     case 42:
+        NewsCondition(11, CrimeAverage > 100);
+        NewsCondition(NEWS_EVENT_CRIME_LOW, TotalPop > 60 && CrimeAverage < 20);
         if (CrimeAverage > 100) {
-            SendMesAt(-11, 0, 0);
+            SendMesTickerAt(-11, 0, 0);
         }
         break;
     case 45:
@@ -211,8 +240,9 @@ void SendMessages(void)
         }
         break;
     case 63:
+        NewsCondition(12, TrafficAverage > 60);
         if (TrafficAverage > 60) {
-            SendMesAt(-12, 0, 0);
+            SendMesTickerAt(-12, 0, 0);
         }
         break;
     default:
@@ -264,6 +294,8 @@ void News_ResetSession(void)
 {
     TreasurySampled = false;
     LastTreasury = 0;
+    memset(news_cond_active, 0, sizeof(news_cond_active));
+    for (size_t i = 0; i < NEWS_COND_SLOTS; i++) news_last_tick[i] = -NEWS_THROTTLE_TICKS;
     if (EngineCallbacks.news_reset) EngineCallbacks.news_reset();
 }
 
@@ -374,12 +406,8 @@ static void PlayMessageSound(int16_t mnum)
     }
 }
 
-void SendMesAt(int16_t mnum, int16_t x, int16_t y)
+void SendMesTickerAt(int16_t mnum, int16_t x, int16_t y)
 {
-    /* Reported before the repeat check in SendMes, so every disaster reaches the newspaper. */
-    if (EngineCallbacks.news_event && mnum != 0) {
-        EngineCallbacks.news_event((int16_t)(mnum < 0 ? -mnum : mnum));
-    }
     if (SendMes(mnum)) {
         MesX = x;
         MesY = y;
@@ -387,6 +415,15 @@ void SendMesAt(int16_t mnum, int16_t x, int16_t y)
             EngineCallbacks.show_message(mnum, x, y);
         }
     }
+}
+
+void SendMesAt(int16_t mnum, int16_t x, int16_t y)
+{
+    /* Reported before the repeat check in SendMes, so every disaster reaches the newspaper. */
+    if (EngineCallbacks.news_event && mnum != 0) {
+        EngineCallbacks.news_event((int16_t)(mnum < 0 ? -mnum : mnum));
+    }
+    SendMesTickerAt(mnum, x, y);
 }
 
 void doMessage(void)

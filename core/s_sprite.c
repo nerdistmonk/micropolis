@@ -477,7 +477,8 @@ static void StepCopter(SimSprite *s)
         int32_t ty = (s->y + 8) >> 5;
         if (tx >= 0 && tx < HWLDX && ty >= 0 && ty < HWLDY) {
             if (TrfDensity[tx][ty] > 170 && (Rand16() & 7) == 0) {
-                SendMesAt(-41, (int16_t)((tx << 1) + 1), (int16_t)((ty << 1) + 1));
+                SendMesTickerAt(-41, (int16_t)((tx << 1) + 1), (int16_t)((ty << 1) + 1));
+                NewsThrottled(41);
                 Audio_MakeSound("city", "HeavyTraffic");
                 s->sound_count = 200;
             }

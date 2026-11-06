@@ -223,6 +223,7 @@ void DoPowerScan(void)
         } else if (zones >= blackout_at && Rand(2) == 0) {
             ClearClaims(claimed);
             SendMes(40);
+            NewsThrottled(40);
         }
     }
 

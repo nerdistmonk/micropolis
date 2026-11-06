@@ -123,6 +123,9 @@ typedef struct {
 } NewsGameHeadline;
 
 static const NewsGameHeadline game_headlines[] = {
+    { 10, "Pollution levels reach dangerous highs" },
+    { 11, "Crime wave grips the city" },
+    { 12, "Traffic jams choke the city streets" },
     { 20, "Fire breaks out in the city" },
     { 21, "Monster sighted, stomping through the city" },
     { 22, "Tornado tears through the city" },
@@ -132,15 +135,21 @@ static const NewsGameHeadline game_headlines[] = {
     { 26, "Train derails in a crash" },
     { 27, "Helicopter crashes in the city" },
     { 30, "Firebombing rocks the city" },
+    { 32, "Explosion rocks the city" },
     { 35, "City population reaches 2,000" },
     { 36, "City population reaches 10,000" },
     { 37, "City population reaches 50,000" },
     { 38, "City population reaches 100,000" },
     { 39, "City population reaches 500,000" },
+    { 40, "Brownouts plague the city" },
+    { 41, "Heavy traffic snarls the city" },
     { 42, "Floodwaters spread through the city" },
     { 43, "Nuclear meltdown at the power plant" },
     { NEWS_EVENT_TREASURY_EMPTY, "City treasury runs dry" },
     { NEWS_EVENT_TREASURY_MILLION, "City treasury tops $1,000,000" },
+    { NEWS_EVENT_CRIME_LOW, "Crime drops to a record low" },
+    { NEWS_EVENT_POLLUTION_LOW, "Air quality reaches a record high" },
+    { NEWS_EVENT_HEALTH_SHORT, "Hospitals stretched thin as health funding falls short" },
 };
 
 typedef struct {
