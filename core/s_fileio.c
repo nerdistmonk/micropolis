@@ -260,6 +260,7 @@ static void RestoreSimState(void)
     ResPop = MiscHis[2];
     ComPop = MiscHis[3];
     IndPop = MiscHis[4];
+    TotalPop = (int16_t)((ResPop / 8) + ComPop + IndPop);
     RValve = MiscHis[5];
     CValve = MiscHis[6];
     IValve = MiscHis[7];
@@ -399,6 +400,7 @@ int32_t LoadCity(const char *filename)
     FireEffect = 1000;
     HealthEffect = 1000;
     CityRescan();
+    CityEvaluation();
 
     if (CityFileName) free(CityFileName);
     CityFileName = strdup(filename);
@@ -673,6 +675,7 @@ int32_t Scenario_LoadFile(const char *path)
     FireEffect = 1000;
     HealthEffect = 1000;
     CityRescan();
+    CityEvaluation();
 
     Scenario_Activate(&def);
 
@@ -848,6 +851,7 @@ int32_t LoadScenario(int16_t s)
     PoliceEffect = 1000;
     FireEffect = 1000;
     CityRescan();
+    CityEvaluation();
 
     if (EngineCallbacks.update_funds) EngineCallbacks.update_funds(TotalFunds);
     if (EngineCallbacks.invalidate_maps) EngineCallbacks.invalidate_maps();
