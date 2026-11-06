@@ -11,12 +11,14 @@
 
 #define SCN_MAX_CITY_CLASS  5
 #define SCN_MAX_CITY_SCORE  1000
-#define SCN_MONTH_TICKS     48
+#define SCN_YEAR_TICKS      48   /* CityTime ticks per calendar year */
+#define SCN_MONTH_TICKS     (SCN_YEAR_TICKS / 12)
 
 static ScenarioDef active_def;
 static int32_t scenario_active = 0;
 static int32_t scenario_resolved = 0;
 static int32_t scenario_last_check = 0;
+static uint32_t scenario_events_fired = 0;
 
 static ScenarioDef editor_def;
 static int32_t editor_active = 0;
@@ -105,6 +107,19 @@ const char *Scenario_Validate(const ScenarioDef *def)
     if (def->win_count > SCN_MAX_CONDITIONS || def->lose_count > SCN_MAX_CONDITIONS) {
         return "Too many conditions in one list.";
     }
+    if (def->event_count > SCN_MAX_EVENTS) return "Too many disaster events.";
+
+    for (int32_t i = 0; i < def->event_count; i++) {
+        const ScenarioEvent *e = &def->events[i];
+        if (e->type >= SCN_DISASTER_COUNT) return "Unknown disaster type in an event.";
+        if (e->month < 1 || e->month > 12) return "Event month must be between 1 and 12.";
+        if (e->year < def->start_year || e->year > SCN_LAST_YEAR) {
+            return "Event year must be from the start year to 2100.";
+        }
+        if (def->deadline_year != 0 && e->year >= def->deadline_year) {
+            return "Disaster events must happen before the deadline year.";
+        }
+    }
 
     for (int32_t i = 0; i < def->win_count; i++) {
         const char *err = ValidateCondition(&def->win[i]);
@@ -142,6 +157,20 @@ const char *Scenario_OpName(int32_t op)
     }
 }
 
+const char *Scenario_DisasterName(int32_t type)
+{
+    switch (type) {
+    case SCN_DISASTER_FIRE:       return "Fire";
+    case SCN_DISASTER_FLOOD:      return "Flood";
+    case SCN_DISASTER_TORNADO:    return "Tornado";
+    case SCN_DISASTER_EARTHQUAKE: return "Earthquake";
+    case SCN_DISASTER_MONSTER:    return "Monster";
+    case SCN_DISASTER_MELTDOWN:   return "Meltdown";
+    case SCN_DISASTER_FIRE_BOMBS: return "Fire bombs";
+    default:                      return "?";
+    }
+}
+
 int32_t Scenario_MetricValue(int32_t metric)
 {
     switch (metric) {
@@ -159,7 +188,12 @@ int32_t Scenario_MetricValue(int32_t metric)
 
 int32_t Scenario_StartTicks(int32_t year)
 {
-    return (year - SCN_FIRST_YEAR) * SCN_MONTH_TICKS + 2;
+    return (year - SCN_FIRST_YEAR) * SCN_YEAR_TICKS + 2;
+}
+
+static int32_t EventTicks(const ScenarioEvent *e)
+{
+    return (e->year - SCN_FIRST_YEAR) * SCN_YEAR_TICKS + (e->month - 1) * SCN_MONTH_TICKS;
 }
 
 void Scenario_Activate(const ScenarioDef *def)
@@ -167,6 +201,7 @@ void Scenario_Activate(const ScenarioDef *def)
     active_def = *def;
     scenario_active = 1;
     scenario_resolved = 0;
+    scenario_events_fired = 0;
     /* First check fires at the next year boundary, not immediately. */
     scenario_last_check = CityTime;
 }
@@ -177,14 +212,28 @@ void Scenario_Deactivate(void)
     scenario_resolved = 0;
 }
 
+void Scenario_CheckEvents(void)
+{
+    if (!scenario_active || scenario_resolved || editor_active) return;
+
+    for (int32_t i = 0; i < active_def.event_count; i++) {
+        uint32_t bit = 1u << i;
+        if (scenario_events_fired & bit) continue;
+        if (CityTime < EventTicks(&active_def.events[i])) continue;
+
+        scenario_events_fired |= bit;
+        TriggerDisaster(active_def.events[i].type);
+    }
+}
+
 /* Called from SendMessages. Win is checked before lose, and the deadline is checked last. */
 void Scenario_CheckYear(void)
 {
     if (!scenario_active || scenario_resolved || editor_active) return;
-    if (CityTime % SCN_MONTH_TICKS != 0 || CityTime == scenario_last_check) return;
+    if (CityTime % SCN_YEAR_TICKS != 0 || CityTime == scenario_last_check) return;
 
     scenario_last_check = CityTime;
-    int32_t year = SCN_FIRST_YEAR + CityTime / SCN_MONTH_TICKS;
+    int32_t year = SCN_FIRST_YEAR + CityTime / SCN_YEAR_TICKS;
 
     if (ListMet(active_def.win, active_def.win_count, active_def.win_all)) {
         scenario_resolved = 1;

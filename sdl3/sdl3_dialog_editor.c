@@ -22,7 +22,9 @@ typedef enum {
     FIELD_FUNDS,
     FIELD_DEADLINE,
     FIELD_WIN_VALUE,
-    FIELD_LOSE_VALUE
+    FIELD_LOSE_VALUE,
+    FIELD_EVENT_YEAR,
+    FIELD_EVENT_MONTH
 } EditField;
 
 static EditField focus_kind = FIELD_NONE;
@@ -30,6 +32,7 @@ static int focus_index = 0;
 static char edit_buf[EDIT_BUF_BYTES];
 static char editor_message[MSG_BYTES];
 static bool editor_message_is_error = false;
+static bool events_view = false;
 
 static SDL_FRect MakeRect(float x, float y, float w, float h)
 {
@@ -81,6 +84,8 @@ static void FormatField(EditField kind, int index, const ScenarioDef *def, char 
     case FIELD_DEADLINE:   snprintf(out, cap, "%d", (int)def->deadline_year); break;
     case FIELD_WIN_VALUE:  snprintf(out, cap, "%d", (int)def->win[index].value); break;
     case FIELD_LOSE_VALUE: snprintf(out, cap, "%d", (int)def->lose[index].value); break;
+    case FIELD_EVENT_YEAR:  snprintf(out, cap, "%d", (int)def->events[index].year); break;
+    case FIELD_EVENT_MONTH: snprintf(out, cap, "%d", (int)def->events[index].month); break;
     default:               out[0] = '\0'; break;
     }
 }
@@ -140,6 +145,24 @@ static bool CommitField(void)
     case FIELD_LOSE_VALUE:
         def->lose[focus_index].value = ParseNumber();
         break;
+    case FIELD_EVENT_YEAR: {
+        int32_t year = ParseNumber();
+        if (year < SCN_FIRST_YEAR || year > SCN_LAST_YEAR) {
+            SetEditorMessage(true, "Event year must be between 1900 and 2100.");
+            return false;
+        }
+        def->events[focus_index].year = year;
+        break;
+    }
+    case FIELD_EVENT_MONTH: {
+        int32_t month = ParseNumber();
+        if (month < 1 || month > 12) {
+            SetEditorMessage(true, "Event month must be between 1 and 12.");
+            return false;
+        }
+        def->events[focus_index].month = (uint8_t)month;
+        break;
+    }
     default:
         break;
     }
@@ -240,8 +263,17 @@ static SDL_FRect StartBox(float dx, float dy)    { return MakeRect(dx + 112.0f, 
 static SDL_FRect FundsBox(float dx, float dy)    { return MakeRect(dx + 240.0f, dy + 104.0f, 120.0f, 24.0f); }
 static SDL_FRect DeadlineBox(float dx, float dy) { return MakeRect(dx + 440.0f, dy + 104.0f, 70.0f, 24.0f); }
 static SDL_FRect DisasterBox(float dx, float dy) { return MakeRect(dx + 112.0f, dy + 134.0f, 150.0f, 24.0f); }
+static SDL_FRect EventsBox(float dx, float dy)   { return MakeRect(dx + 272.0f, dy + 134.0f, 200.0f, 24.0f); }
 static SDL_FRect SaveRect(float dx, float dy)    { return MakeRect(dx + 14.0f, dy + 524.0f, 150.0f, 30.0f); }
+static SDL_FRect BackRect(float dx, float dy)    { return MakeRect(dx + 176.0f, dy + 524.0f, 120.0f, 30.0f); }
 static SDL_FRect CloseRect(float dx, float dy)   { return MakeRect(dx + MODAL_W - 104.0f, dy + 524.0f, 90.0f, 30.0f); }
+
+static float EventRowTop(float dy, int index)    { return dy + 74.0f + (float)index * 30.0f; }
+static SDL_FRect EventTypeRect(float dx, float dy, int i)   { return MakeRect(dx + 14.0f, EventRowTop(dy, i), 170.0f, 24.0f); }
+static SDL_FRect EventYearRect(float dx, float dy, int i)   { return MakeRect(dx + 200.0f, EventRowTop(dy, i), 80.0f, 24.0f); }
+static SDL_FRect EventMonthRect(float dx, float dy, int i)  { return MakeRect(dx + 296.0f, EventRowTop(dy, i), 60.0f, 24.0f); }
+static SDL_FRect EventRemoveRect(float dx, float dy, int i) { return MakeRect(dx + 370.0f, EventRowTop(dy, i), 20.0f, 24.0f); }
+static SDL_FRect EventAddRect(float dx, float dy, int count) { return MakeRect(dx + 14.0f, EventRowTop(dy, count), 130.0f, 24.0f); }
 
 static SDL_FRect MatchRect(float cx, float dy)   { return MakeRect(cx + 60.0f, dy + 166.0f, 110.0f, 22.0f); }
 static SDL_FRect MetricRect(float cx, float y)   { return MakeRect(cx, y, 112.0f, 24.0f); }
@@ -255,6 +287,50 @@ static void RemoveCondition(ScenarioCondition *list, uint8_t *count, int index)
     for (int i = index; i + 1 < *count; i++) list[i] = list[i + 1];
     (*count)--;
     memset(&list[*count], 0, sizeof(list[0]));
+}
+
+static void RemoveEvent(ScenarioDef *def, int index)
+{
+    for (int i = index; i + 1 < def->event_count; i++) def->events[i] = def->events[i + 1];
+    def->event_count--;
+    memset(&def->events[def->event_count], 0, sizeof(def->events[0]));
+}
+
+static void AddEvent(ScenarioDef *def)
+{
+    ScenarioEvent *e = &def->events[def->event_count];
+    e->type = SCN_DISASTER_FIRE;
+    e->month = 1;
+    e->year = def->start_year;
+    def->event_count++;
+}
+
+/* Handles a click in the scheduled disasters list. Returns true when the click landed in it. */
+static bool EventsClick(ScenarioDef *def, float dx, float dy, float mx, float my)
+{
+    for (int i = 0; i < def->event_count; i++) {
+        if (PointIn(EventTypeRect(dx, dy, i), mx, my)) {
+            if (CommitField()) def->events[i].type = (uint8_t)((def->events[i].type + 1) % SCN_DISASTER_COUNT);
+            return true;
+        }
+        if (PointIn(EventYearRect(dx, dy, i), mx, my)) {
+            FocusField(FIELD_EVENT_YEAR, i);
+            return true;
+        }
+        if (PointIn(EventMonthRect(dx, dy, i), mx, my)) {
+            FocusField(FIELD_EVENT_MONTH, i);
+            return true;
+        }
+        if (PointIn(EventRemoveRect(dx, dy, i), mx, my)) {
+            if (CommitField()) RemoveEvent(def, i);
+            return true;
+        }
+    }
+    if (def->event_count < SCN_MAX_EVENTS && PointIn(EventAddRect(dx, dy, def->event_count), mx, my)) {
+        if (CommitField()) AddEvent(def);
+        return true;
+    }
+    return false;
 }
 
 /* Handles a click on one win or lose column. Returns true when the click landed in it. */
@@ -306,12 +382,14 @@ static bool ConditionClick(ScenarioDef *def, float dx, float dy, bool lose, floa
 void Dialog_Editor_Open(void)
 {
     StopEditing();
+    events_view = false;
     SetEditorMessage(false, "Set the name and rules, then Save Scenario.");
 }
 
 void Dialog_Editor_Reset(void)
 {
     StopEditing();
+    events_view = false;
 }
 
 bool Dialog_Editor_HandleKeyDown(SDL_Keycode key)
@@ -353,6 +431,15 @@ bool Dialog_Editor_HandleClick(float mx, float my)
         return true;
     }
 
+    if (events_view) {
+        if (PointIn(BackRect(dx, dy), mx, my)) {
+            if (CommitField()) events_view = false;
+            return true;
+        }
+        if (!EventsClick(def, dx, dy, mx, my)) (void)CommitField();
+        return true;
+    }
+
     if (PointIn(NameBox(dx, dy), mx, my))     { FocusField(FIELD_NAME, 0); return true; }
     if (PointIn(DescBox(dx, dy), mx, my))     { FocusField(FIELD_DESC, 0); return true; }
     if (PointIn(StartBox(dx, dy), mx, my))    { FocusField(FIELD_START, 0); return true; }
@@ -364,6 +451,10 @@ bool Dialog_Editor_HandleClick(float mx, float my)
             def->disasters = def->disasters ? 0 : 1;
             NoDisasters = def->disasters ? 0 : 1;
         }
+        return true;
+    }
+    if (PointIn(EventsBox(dx, dy), mx, my)) {
+        if (CommitField()) events_view = true;
         return true;
     }
 
@@ -444,7 +535,27 @@ static void DrawConditions(SDL_Renderer *renderer, float dx, float dy, const Sce
     }
 }
 
-/* Writes "Name: value" pairs for metrics first..last, separated by spaces. */
+/* Draws the scheduled disasters list: one row per event with type, year, month, and remove. */
+static void DrawEvents(SDL_Renderer *renderer, float dx, float dy, const ScenarioDef *def)
+{
+    GUI_DrawText(renderer, (int)dx + 14, (int)dy + 52, "Disaster", col_gray);
+    GUI_DrawText(renderer, (int)dx + 200, (int)dy + 52, "Year", col_gray);
+    GUI_DrawText(renderer, (int)dx + 296, (int)dy + 52, "Month", col_gray);
+
+    for (int i = 0; i < def->event_count; i++) {
+        DrawBox(renderer, EventTypeRect(dx, dy, i), Scenario_DisasterName(def->events[i].type), col_white, false);
+        DrawField(renderer, EventYearRect(dx, dy, i), FIELD_EVENT_YEAR, i, def);
+        DrawField(renderer, EventMonthRect(dx, dy, i), FIELD_EVENT_MONTH, i, def);
+        DrawBox(renderer, EventRemoveRect(dx, dy, i), "X", col_red, false);
+    }
+    if (def->event_count < SCN_MAX_EVENTS) {
+        DrawBox(renderer, EventAddRect(dx, dy, def->event_count), "+ Add event", col_green, false);
+    }
+
+    GUI_DrawText(renderer, (int)dx + 14, (int)dy + 446,
+                 "Events happen at the start of their month, even with random disasters off.", col_cyan);
+}
+
 static void FormatReadout(char *out, size_t cap, int first, int last)
 {
     out[0] = '\0';
@@ -473,12 +584,15 @@ void Dialog_Editor_Render(SDL_Renderer *renderer)
     SDL_SetRenderDrawColor(renderer, 80, 110, 150, 255);
     SDL_RenderRect(renderer, &win);
 
-    GUI_DrawText(renderer, (int)dx + 16, (int)dy + 14, "SCENARIO SETUP", col_gold);
+    GUI_DrawText(renderer, (int)dx + 16, (int)dy + 14, events_view ? "SCHEDULED DISASTERS" : "SCENARIO SETUP", col_gold);
     SDL_FRect close_x = CloseXRect(dx, dy);
     SDL_SetRenderDrawColor(renderer, 180, 40, 40, 255);
     SDL_RenderFillRect(renderer, &close_x);
     GUI_DrawText(renderer, (int)close_x.x + 6, (int)close_x.y + 4, "X", col_white);
 
+    if (events_view) {
+        DrawEvents(renderer, dx, dy, def);
+    } else {
     GUI_DrawText(renderer, (int)dx + 14, (int)dy + 49, "Name", col_gray);
     DrawField(renderer, NameBox(dx, dy), FIELD_NAME, 0, def);
     GUI_DrawText(renderer, (int)dx + 14, (int)dy + 79, "Description", col_gray);
@@ -495,6 +609,9 @@ void Dialog_Editor_Render(SDL_Renderer *renderer)
     GUI_DrawText(renderer, (int)dx + 14, (int)dy + 139, "Disasters", col_gray);
     DrawBox(renderer, DisasterBox(dx, dy), def->disasters ? "Disasters: On" : "Disasters: Off",
             col_white, def->disasters != 0);
+    char events_label[32];
+    snprintf(events_label, sizeof(events_label), "Scheduled: %d >", (int)def->event_count);
+    DrawBox(renderer, EventsBox(dx, dy), events_label, col_white, false);
 
     GUI_DrawText(renderer, (int)ColX(dx, false), (int)dy + 170, "WIN", col_green);
     GUI_DrawText(renderer, (int)ColX(dx, true), (int)dy + 170, "LOSE", col_red);
@@ -510,6 +627,7 @@ void Dialog_Editor_Render(SDL_Renderer *renderer)
     GUI_DrawText(renderer, (int)dx + 14, (int)dy + 446, line, col_cyan);
     FormatReadout(line, sizeof(line), SCN_METRIC_CRIME, SCN_METRIC_FUNDS);
     GUI_DrawText(renderer, (int)dx + 14, (int)dy + 462, line, col_cyan);
+    }
 
     if (editor_message[0]) {
         GUI_DrawText(renderer, (int)dx + 14, (int)dy + 484, editor_message,
@@ -519,6 +637,9 @@ void Dialog_Editor_Render(SDL_Renderer *renderer)
                  "Click a field to edit. Enter applies it, Esc discards it.", col_gray);
 
     DrawBox(renderer, SaveRect(dx, dy), "Save Scenario", col_white, false);
+    if (events_view) {
+        DrawBox(renderer, BackRect(dx, dy), "Back", col_white, false);
+    }
     DrawBox(renderer, CloseRect(dx, dy), "Close", col_white, false);
 }
 

@@ -4,6 +4,7 @@
  */
 
 #include "sim.h"
+#include "scenario.h"
 
 int16_t ShakeNow = 0;
 int16_t FloodCnt = 0;
@@ -184,7 +185,7 @@ static void DropFireBombs(void)
     }
 }
 
-static void ScenarioDisaster(void)
+static void LegacyScenarioDisaster(void)
 {
     switch (DisasterEvent) {
     case 2: /* San Francisco */
@@ -213,13 +214,27 @@ static void ScenarioDisaster(void)
     }
 }
 
+void TriggerDisaster(int32_t kind)
+{
+    switch (kind) {
+    case SCN_DISASTER_FIRE:       SetFire(); break;
+    case SCN_DISASTER_FLOOD:      MakeFlood(); break;
+    case SCN_DISASTER_TORNADO:    MakeTornado(); break;
+    case SCN_DISASTER_EARTHQUAKE: MakeEarthquake(); break;
+    case SCN_DISASTER_MONSTER:    MakeMonster(); break;
+    case SCN_DISASTER_MELTDOWN:   MakeMeltdown(); break;
+    case SCN_DISASTER_FIRE_BOMBS: DropFireBombs(); break;
+    default: break;
+    }
+}
+
 void DoDisasters(void)
 {
     static const int16_t DisChance[3] = { 10 * 48, 5 * 48, 60 };
 
     if (FloodCnt > 0) FloodCnt--;
 
-    if (DisasterEvent) ScenarioDisaster();
+    if (DisasterEvent) LegacyScenarioDisaster();
 
     int16_t lvl = GameLevel;
     if (lvl > 2 || lvl < 0) lvl = 0;

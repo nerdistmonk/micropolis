@@ -626,6 +626,8 @@ int16_t MonsterSpeed(void);
 void MakeMeltdown(void);
 void FireBomb(void);
 void MakeExplosion(int32_t x, int32_t y);
+/* kind is a ScenarioDisaster value from scenario.h. Fires regardless of the random-disasters setting. */
+void TriggerDisaster(int32_t kind);
 
 /* Typed cheat codes (fund, fart, nuke) */
 void Cheat_Reset(void);

@@ -16,6 +16,18 @@
 #define SCN_FIRST_YEAR      1900
 #define SCN_LAST_YEAR       2100
 #define SCN_MAX_VALUE       999999999  /* largest funds and condition value */
+#define SCN_MAX_EVENTS      8    /* scheduled disasters per scenario */
+
+typedef enum ScenarioDisaster {
+    SCN_DISASTER_FIRE = 0,
+    SCN_DISASTER_FLOOD,
+    SCN_DISASTER_TORNADO,
+    SCN_DISASTER_EARTHQUAKE,
+    SCN_DISASTER_MONSTER,
+    SCN_DISASTER_MELTDOWN,
+    SCN_DISASTER_FIRE_BOMBS,
+    SCN_DISASTER_COUNT
+} ScenarioDisaster;
 
 typedef enum ScenarioMetric {
     SCN_METRIC_CITY_CLASS = 0,
@@ -41,6 +53,12 @@ typedef struct ScenarioCondition {
     int32_t value;
 } ScenarioCondition;
 
+typedef struct ScenarioEvent {
+    uint8_t type;     /* ScenarioDisaster */
+    uint8_t month;    /* 1-12 */
+    int32_t year;
+} ScenarioEvent;
+
 typedef struct ScenarioDef {
     char name[SCN_NAME_BYTES];
     char description[SCN_DESC_BYTES];
@@ -52,8 +70,10 @@ typedef struct ScenarioDef {
     uint8_t lose_all;        /* nonzero: every lose condition must hold, otherwise any */
     uint8_t win_count;
     uint8_t lose_count;
+    uint8_t event_count;
     ScenarioCondition win[SCN_MAX_CONDITIONS];
     ScenarioCondition lose[SCN_MAX_CONDITIONS];
+    ScenarioEvent events[SCN_MAX_EVENTS];
 } ScenarioDef;
 
 /* Definition helpers */
@@ -62,6 +82,7 @@ void Scenario_SetDefaults(ScenarioDef *def);
 const char *Scenario_Validate(const ScenarioDef *def);
 const char *Scenario_MetricName(int32_t metric);
 const char *Scenario_OpName(int32_t op);
+const char *Scenario_DisasterName(int32_t type);
 int32_t Scenario_MetricValue(int32_t metric);
 
 /* Active scenario: checked once per in-game year while a custom scenario is running. */
@@ -70,6 +91,8 @@ int32_t Scenario_StartTicks(int32_t year);
 void Scenario_Activate(const ScenarioDef *def);
 void Scenario_Deactivate(void);
 void Scenario_CheckYear(void);
+/* Fires each scheduled disaster once when its month is reached. Called every sim tick. */
+void Scenario_CheckEvents(void);
 
 /* Scenario editor (paused sandbox that edits a ScenarioDef and the map). */
 int32_t Scenario_EditorIsActive(void);

@@ -398,8 +398,8 @@ int32_t SaveCity(const char *filename)
     return 1;
 }
 
-/* .scn layout: a 310-byte little-endian header, then the 27120-byte city image used by .cty files. */
-#define SCN_HEADER_BYTES   310
+/* .scn layout: a 376-byte little-endian header, then the 27120-byte city image used by .cty files. */
+#define SCN_HEADER_BYTES   376
 #define SCN_TOTAL_BYTES    (SCN_HEADER_BYTES + CITY_FILE_BYTES)
 #define SCN_VERSION        1
 #define SCN_OFF_VERSION    4
@@ -413,7 +413,10 @@ int32_t SaveCity(const char *filename)
 #define SCN_OFF_LOSE_COUNT 181
 #define SCN_OFF_WIN        182
 #define SCN_OFF_LOSE       246
+#define SCN_OFF_EVENT_COUNT 310
+#define SCN_OFF_EVENTS     312
 #define SCN_COND_BYTES     8
+#define SCN_EVENT_BYTES    8
 #define SCN_FLAG_DISASTERS 0x01
 #define SCN_FLAG_WIN_ALL   0x02
 #define SCN_FLAG_LOSE_ALL  0x04
@@ -427,7 +430,9 @@ _Static_assert(SCN_OFF_WIN_COUNT == SCN_OFF_DEADLINE + 4, "scn deadline field la
 _Static_assert(SCN_OFF_LOSE_COUNT == SCN_OFF_WIN_COUNT + 1, "scn win count layout");
 _Static_assert(SCN_OFF_WIN == SCN_OFF_LOSE_COUNT + 1, "scn lose count layout");
 _Static_assert(SCN_OFF_LOSE == SCN_OFF_WIN + SCN_MAX_CONDITIONS * SCN_COND_BYTES, "scn win list layout");
-_Static_assert(SCN_HEADER_BYTES == SCN_OFF_LOSE + SCN_MAX_CONDITIONS * SCN_COND_BYTES, "scn header size");
+_Static_assert(SCN_OFF_EVENT_COUNT == SCN_OFF_LOSE + SCN_MAX_CONDITIONS * SCN_COND_BYTES, "scn lose list layout");
+_Static_assert(SCN_OFF_EVENTS == SCN_OFF_EVENT_COUNT + 2, "scn event count layout");
+_Static_assert(SCN_HEADER_BYTES == SCN_OFF_EVENTS + SCN_MAX_EVENTS * SCN_EVENT_BYTES, "scn header size");
 
 static void PutU16LE(uint8_t *p, uint16_t v)
 {
@@ -469,6 +474,23 @@ static void GetCondition(const uint8_t *p, ScenarioCondition *c)
     c->value = GetI32LE(p + 4);
 }
 
+/* Byte 2-3 are reserved padding and are written as zero. */
+static void PutEvent(uint8_t *p, const ScenarioEvent *e)
+{
+    p[0] = e->type;
+    p[1] = e->month;
+    p[2] = 0;
+    p[3] = 0;
+    PutI32LE(p + 4, e->year);
+}
+
+static void GetEvent(const uint8_t *p, ScenarioEvent *e)
+{
+    e->type = p[0];
+    e->month = p[1];
+    e->year = GetI32LE(p + 4);
+}
+
 static void EncodeScenarioHeader(const ScenarioDef *def, uint8_t *h)
 {
     memset(h, 0, SCN_HEADER_BYTES);
@@ -494,6 +516,11 @@ static void EncodeScenarioHeader(const ScenarioDef *def, uint8_t *h)
     for (int i = 0; i < SCN_MAX_CONDITIONS; i++) {
         PutCondition(h + SCN_OFF_WIN + i * SCN_COND_BYTES, &def->win[i]);
         PutCondition(h + SCN_OFF_LOSE + i * SCN_COND_BYTES, &def->lose[i]);
+    }
+
+    h[SCN_OFF_EVENT_COUNT] = def->event_count;
+    for (int i = 0; i < SCN_MAX_EVENTS; i++) {
+        PutEvent(h + SCN_OFF_EVENTS + i * SCN_EVENT_BYTES, &def->events[i]);
     }
 }
 
@@ -521,6 +548,11 @@ static int32_t DecodeScenarioHeader(const uint8_t *h, ScenarioDef *def)
     for (int i = 0; i < SCN_MAX_CONDITIONS; i++) {
         GetCondition(h + SCN_OFF_WIN + i * SCN_COND_BYTES, &def->win[i]);
         GetCondition(h + SCN_OFF_LOSE + i * SCN_COND_BYTES, &def->lose[i]);
+    }
+
+    def->event_count = h[SCN_OFF_EVENT_COUNT];
+    for (int i = 0; i < SCN_MAX_EVENTS; i++) {
+        GetEvent(h + SCN_OFF_EVENTS + i * SCN_EVENT_BYTES, &def->events[i]);
     }
     return 1;
 }

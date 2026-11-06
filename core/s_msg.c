@@ -93,6 +93,7 @@ void SendMessages(void)
         }
     }
 
+    Scenario_CheckEvents();
     Scenario_CheckYear();
 
     CheckGrowth();
