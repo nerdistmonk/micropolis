@@ -37,6 +37,13 @@ static void SwapMapBuffer(uint16_t *buf, size_t len)
     }
 }
 
+static float ClampPercent(float v)
+{
+    if (v < 0.0f) return 0.0f;
+    if (v > 1.0f) return 1.0f;
+    return v;
+}
+
 static void CopyShortStream(int16_t *buf, const uint8_t *src, size_t len)
 {
     memcpy(buf, src, len * sizeof(int16_t));
@@ -180,15 +187,15 @@ int32_t LoadCity(const char *filename)
 
     uint16_t p0 = (uint16_t)MiscHis[58];
     uint16_t p1 = (uint16_t)MiscHis[59];
-    policePercent = (float)((int32_t)(((uint32_t)p0 << 16) | p1)) / 65536.0f;
+    policePercent = ClampPercent((float)((int32_t)(((uint32_t)p0 << 16) | p1)) / 65536.0f);
 
     uint16_t fi0 = (uint16_t)MiscHis[60];
     uint16_t fi1 = (uint16_t)MiscHis[61];
-    firePercent = (float)((int32_t)(((uint32_t)fi0 << 16) | fi1)) / 65536.0f;
+    firePercent = ClampPercent((float)((int32_t)(((uint32_t)fi0 << 16) | fi1)) / 65536.0f);
 
     uint16_t r0 = (uint16_t)MiscHis[62];
     uint16_t r1 = (uint16_t)MiscHis[63];
-    roadPercent = (float)((int32_t)(((uint32_t)r0 << 16) | r1)) / 65536.0f;
+    roadPercent = ClampPercent((float)((int32_t)(((uint32_t)r0 << 16) | r1)) / 65536.0f);
 
     if (CityTime < 0) CityTime = 0;
     if (CityTax > 20 || CityTax < 0) CityTax = 7;
