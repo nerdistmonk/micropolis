@@ -28,6 +28,7 @@ int16_t ScoreType = 0;
 int16_t ScoreWait = 0;
 int16_t PwrdZCnt = 0;
 int16_t unPwrdZCnt = 0;
+int16_t UnwateredZCnt = 0;
 int16_t NewPower = 0;
 int16_t AvCityTax = 0;
 int16_t Scycle = 0;
@@ -381,11 +382,13 @@ void ClearCensus(void)
 {
     PwrdZCnt = 0;
     unPwrdZCnt = 0;
+    UnwateredZCnt = 0;
     FirePop = 0;
     RoadTotal = 0;
     RailTotal = 0;
     ResPop = 0;
     ResTaxPop = 0;
+    ResUncoveredPop = 0;
     ComPop = 0;
     IndPop = 0;
     ResZPop = 0;

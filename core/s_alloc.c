@@ -114,6 +114,7 @@ int16_t ResTax = 7;
 int16_t ComTax = 7;
 int16_t IndTax = 7;
 int32_t ResTaxPop = 0;
+int32_t ResUncoveredPop = 0;
 int16_t TaxFlag = 0;
 int32_t TotalFunds = 20000;
 

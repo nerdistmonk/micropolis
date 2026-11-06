@@ -585,12 +585,13 @@ void Dialog_City_Render(SDL_Renderer *renderer)
 
         static const char *problem_names[] = {
             "Crime", "Pollution", "Housing Costs", "Taxes",
-            "Traffic", "Unemployment", "Fires", "None"
+            "Traffic", "Unemployment", "Fires", "Power Outages",
+            "Water Supply", "Healthcare", "None"
         };
 
         for (int p = 0; p < 4; p++) {
             int prob_idx = ProblemOrder[p];
-            if (prob_idx < 0 || prob_idx > 7) prob_idx = 7;
+            if (prob_idx < 0 || prob_idx > PROB_NONE) prob_idx = PROB_NONE;
             snprintf(buf, sizeof(buf), "%d. %s (%d votes)", p + 1, problem_names[prob_idx], ProblemVotes[prob_idx]);
             GUI_DrawText(renderer, cx + 16, cy + 125 + (p * 24), buf, col_white);
         }

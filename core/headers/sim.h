@@ -70,7 +70,9 @@ typedef int32_t QUAD;
 #define HORIZ 1
 #define VERT 0
 
-#define PROBNUM 10
+#define PROB_ACTIVE 10
+#define PROB_NONE PROB_ACTIVE
+#define PROBNUM (PROB_ACTIVE + 1)
 #define HISTLEN 480
 #define MISCHISTLEN 240
 
@@ -442,6 +444,7 @@ extern int32_t TaxFund, RoadFund, PoliceFund, FireFund, HealthFund;
 extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect;
 extern int16_t TaxFlag, ResTax, ComTax, IndTax;
 extern int32_t ResTaxPop;
+extern int32_t ResUncoveredPop;
 extern int32_t TotalFunds;
 
 extern int32_t CostOf[];
@@ -477,7 +480,7 @@ extern int16_t DisasterEvent;
 extern int16_t DisasterWait;
 extern int16_t ResCap, ComCap, IndCap;
 extern int16_t RValve, CValve, IValve;
-extern int16_t PwrdZCnt, unPwrdZCnt;
+extern int16_t PwrdZCnt, unPwrdZCnt, UnwateredZCnt;
 
 extern int16_t CityScore, deltaCityScore;
 extern int16_t ScoreType, ScoreWait;

@@ -108,6 +108,19 @@ static void DoPopNum(void)
     if (CityPop > 500000) CityClass++; /* Megalopolis */
 }
 
+static int16_t ShareOfZones(int32_t count)
+{
+    int32_t total = (int32_t)PwrdZCnt + (int32_t)unPwrdZCnt;
+    if (total <= 0) return 0;
+    return (int16_t)((count * 255) / total);
+}
+
+static int16_t GetHealthcareProblem(void)
+{
+    if (ResPop <= 0) return 0;
+    return (int16_t)((ResUncoveredPop * 255) / ResPop);
+}
+
 static void DoProblems(void)
 {
     int16_t this_prob = 0;
@@ -124,6 +137,9 @@ static void DoProblems(void)
     ProblemTable[4] = AverageTrf();                                /* Traffic */
     ProblemTable[5] = GetUnemployment();                           /* Unemployment */
     ProblemTable[6] = GetFire();                                   /* Fire */
+    ProblemTable[7] = ShareOfZones(unPwrdZCnt);                    /* Power */
+    ProblemTable[8] = ShareOfZones(UnwateredZCnt);                 /* Water */
+    ProblemTable[9] = GetHealthcareProblem();                      /* Healthcare */
 
     VoteProblems();
 
@@ -133,7 +149,7 @@ static void DoProblems(void)
 
     for (int16_t z = 0; z < 4; z++) {
         max_vote = 0;
-        for (int16_t x = 0; x < 7; x++) {
+        for (int16_t x = 0; x < PROB_ACTIVE; x++) {
             if ((ProblemVotes[x] > max_vote) && (!ProblemTaken[x])) {
                 this_prob = x;
                 max_vote = ProblemVotes[x];
@@ -143,8 +159,8 @@ static void DoProblems(void)
             ProblemTaken[this_prob] = 1;
             ProblemOrder[z] = this_prob;
         } else {
-            ProblemOrder[z] = 7;
-            ProblemTable[7] = 0;
+            ProblemOrder[z] = PROB_NONE;
+            ProblemTable[PROB_NONE] = 0;
         }
     }
 }
@@ -165,7 +181,7 @@ static void VoteProblems(void)
             z++;
         }
         x++;
-        if (x >= 7) { /* 7 active problem categories evaluated */
+        if (x >= PROB_ACTIVE) {
             x = 0;
         }
         count++;
@@ -215,7 +231,7 @@ static void GetScore(void)
     int16_t old_city_score = CityScore;
     int32_t x = 0;
 
-    for (int16_t i = 0; i < 7; i++) {
+    for (int16_t i = 0; i < 7; i++) { /* Score uses the original seven categories */
         x += ProblemTable[i];
     }
 

@@ -68,7 +68,11 @@ void DoZone(void)
     }
 
     /* Unwatered zones are treated like unpowered ones: no growth */
-    zone_pwr_flg = zone_pwr_flg && WaterIsSupplied(SMapX, SMapY);
+    bool watered = WaterIsSupplied(SMapX, SMapY);
+    if (zone_pwr_flg && !watered) {
+        UnwateredZCnt++;
+    }
+    zone_pwr_flg = zone_pwr_flg && watered;
 
     if (CChr9 > PORTBASE) {
         DoSPZone(zone_pwr_flg);
@@ -241,6 +245,9 @@ static void DoResidential(int16_t zone_pwr_flg)
 
     ResPop += tpop;
     ResTaxPop += HealthAdjustedPop(tpop, SMapX, SMapY);
+    if (!HealthIsCovered(SMapX, SMapY)) {
+        ResUncoveredPop += tpop;
+    }
 
     if (tpop > Rand(35)) {
         trf_good = (int16_t)MakeTraf(0);
