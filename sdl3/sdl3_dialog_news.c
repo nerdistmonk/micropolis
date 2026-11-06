@@ -147,6 +147,7 @@ static const NewsGameHeadline game_headlines[] = {
     { 43, "Nuclear meltdown at the power plant" },
     { NEWS_EVENT_TREASURY_EMPTY, "City treasury runs dry" },
     { NEWS_EVENT_TREASURY_MILLION, "City treasury tops $1,000,000" },
+    { NEWS_EVENT_TREASURY_BUSTED, "The city is nearly busted" },
     { NEWS_EVENT_CRIME_LOW, "Crime drops to a record low" },
     { NEWS_EVENT_POLLUTION_LOW, "Air quality reaches a record high" },
     { NEWS_EVENT_HEALTH_SHORT, "Hospitals stretched thin as health funding falls short" },

@@ -16,7 +16,11 @@ static QUAD    LastCityPop = 0;
 static int16_t LastCategory = 0;
 static int16_t LastPicNum = 0;
 static bool    TreasurySampled = false;
+static bool    TreasuryEmptyFired = false;
+static bool    TreasuryBustedFired = false;
 static int32_t LastTreasury = 0;
+#define TREASURY_BUSTED_LEVEL 5000
+#define TREASURY_REARM 50000
 
 #define NEWS_COND_SLOTS 128
 #define NEWS_THROTTLE_TICKS 48
@@ -275,24 +279,39 @@ static void CheckGrowth(void)
     }
 }
 
-/* Treasury news fires only when funds cross zero downward or the million mark upward. */
+/* Empty and nearly-busted headlines fire once per dip and re-arm after funds recover to TREASURY_REARM. The million headline fires on each upward crossing, as before. */
 static void CheckTreasury(void)
 {
-    if (TreasurySampled) {
-        if (LastTreasury > 0 && TotalFunds <= 0) {
-            if (EngineCallbacks.news_event) EngineCallbacks.news_event(NEWS_EVENT_TREASURY_EMPTY);
-        }
-        if (LastTreasury < 1000000 && TotalFunds >= 1000000) {
-            if (EngineCallbacks.news_event) EngineCallbacks.news_event(NEWS_EVENT_TREASURY_MILLION);
-        }
+    if (!TreasurySampled) {
+        TreasuryEmptyFired = TotalFunds <= 0;
+        TreasuryBustedFired = TotalFunds < TREASURY_BUSTED_LEVEL;
+        TreasurySampled = true;
+        LastTreasury = TotalFunds;
+        return;
     }
-    TreasurySampled = true;
+    if (!TreasuryEmptyFired && TotalFunds <= 0) {
+        TreasuryEmptyFired = true;
+        if (EngineCallbacks.news_event) EngineCallbacks.news_event(NEWS_EVENT_TREASURY_EMPTY);
+    } else if (TreasuryEmptyFired && TotalFunds >= TREASURY_REARM) {
+        TreasuryEmptyFired = false;
+    }
+    if (!TreasuryBustedFired && TotalFunds < TREASURY_BUSTED_LEVEL) {
+        TreasuryBustedFired = true;
+        if (EngineCallbacks.news_event) EngineCallbacks.news_event(NEWS_EVENT_TREASURY_BUSTED);
+    } else if (TreasuryBustedFired && TotalFunds >= TREASURY_REARM) {
+        TreasuryBustedFired = false;
+    }
+    if (LastTreasury < 1000000 && TotalFunds >= 1000000) {
+        if (EngineCallbacks.news_event) EngineCallbacks.news_event(NEWS_EVENT_TREASURY_MILLION);
+    }
     LastTreasury = TotalFunds;
 }
 
 void News_ResetSession(void)
 {
     TreasurySampled = false;
+    TreasuryEmptyFired = false;
+    TreasuryBustedFired = false;
     LastTreasury = 0;
     memset(news_cond_active, 0, sizeof(news_cond_active));
     for (size_t i = 0; i < NEWS_COND_SLOTS; i++) news_last_tick[i] = -NEWS_THROTTLE_TICKS;

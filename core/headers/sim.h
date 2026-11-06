@@ -400,6 +400,7 @@ typedef struct SimCallbacks {
 #define NEWS_EVENT_CRIME_LOW        103
 #define NEWS_EVENT_POLLUTION_LOW    104
 #define NEWS_EVENT_HEALTH_SHORT     105
+#define NEWS_EVENT_TREASURY_BUSTED  106
 
 /* Engine Global Variables */
 extern uint16_t *Map[WORLD_X];
