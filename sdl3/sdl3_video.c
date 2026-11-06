@@ -578,8 +578,8 @@ static uint32_t PipeCellPixel(int32_t tx, int32_t ty, int32_t px, int32_t py, ui
 {
   bool in_row = (py >= 6 && py <= 9);
   bool in_col = (px >= 6 && px <= 9);
-  bool hit_h = in_row && (in_col || (px < 6 ? WaterHasPipe(tx - 1, ty) : WaterHasPipe(tx + 1, ty)));
-  bool hit_v = in_col && (in_row || (py < 6 ? WaterHasPipe(tx, ty - 1) : WaterHasPipe(tx, ty + 1)));
+  bool hit_h = in_row && (in_col || (px < 6 ? WaterCanConnect(tx - 1, ty) : WaterCanConnect(tx + 1, ty)));
+  bool hit_v = in_col && (in_row || (py < 6 ? WaterCanConnect(tx, ty - 1) : WaterCanConnect(tx, ty + 1)));
   return (hit_h || hit_v) ? color : base;
 }
 

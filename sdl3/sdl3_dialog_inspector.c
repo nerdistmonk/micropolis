@@ -12,6 +12,7 @@ static char inspect_stat_pollution[64] = {0};
 static char inspect_stat_crime[64] = {0};
 static char inspect_stat_landvalue[64] = {0};
 static char inspect_stat_growth[64] = {0};
+static char inspect_stat_water[64] = {0};
 
 void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
 {
@@ -61,6 +62,8 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         strncpy(inspect_title, "Raging Firestorm!", sizeof(inspect_title));
     } else if (low == RADTILE) {
         strncpy(inspect_title, "Radioactive Contamination!", sizeof(inspect_title));
+    } else if (low >= WATERTOWER && low < WATERTOWER + WATERTOWER_TILES) {
+        strncpy(inspect_title, "Water Tower", sizeof(inspect_title));
     } else if (low >= RUBBLE && low <= LASTRUBBLE) {
         strncpy(inspect_title, "Demolished Rubble", sizeof(inspect_title));
     } else {
@@ -78,6 +81,17 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
     QUAD pw = POWERWORD(tile_x, tile_y);
     bool powered = (pw < PWRMAPSIZE) && (PowerMap[pw] & (uint16_t)(1u << (tile_x & 15)));
     snprintf(inspect_stat_power, sizeof(inspect_stat_power), "Power Grid: %s", powered ? "Energized (100%)" : "No Power");
+
+    if (low >= WATERTOWER && low < WATERTOWER + WATERTOWER_TILES) {
+        snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Source: %s",
+                 WaterTowerHasSource(tile_x, tile_y) ? "River in range" : "No water in range");
+    } else if (WaterIsSupplied(tile_x, tile_y)) {
+        snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Supply: Watered");
+    } else if (TILE_IS_POWER_PLANT(tile)) {
+        snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Supply: None (plant offline)");
+    } else {
+        snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Supply: None");
+    }
 
     uint8_t pol = PollutionMem[hx][hy];
     const char *pol_desc = (pol < 30) ? "Clean Air" : (pol < 80 ? "Moderate Smog" : "Heavy Pollution");
@@ -169,6 +183,7 @@ void Dialog_Inspector_Render(SDL_Renderer *renderer)
     GUI_DrawText(renderer, (int)dx + 24, cy + 72, inspect_stat_crime, col_white);
     GUI_DrawText(renderer, (int)dx + 24, cy + 96, inspect_stat_landvalue, col_green);
     GUI_DrawText(renderer, (int)dx + 24, cy + 120, inspect_stat_growth, col_gold);
+    GUI_DrawText(renderer, (int)dx + 24, cy + 144, inspect_stat_water, col_cyan);
 
     SDL_FRect ok_btn = InspectorOkRect(dx, dy, dw, dh);
     SDL_SetRenderDrawColor(renderer, 44, 55, 75, 255);

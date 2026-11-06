@@ -2,8 +2,10 @@
  *
  * A tower draws from a water tile within WATER_TOWER_REACH of its center. Pipes are
  * kept in their own layer, separate from the surface Map, so they are only visible in
- * the underground overlay. Each tower supplies up to WATER_TOWER_ZONES zone buildings
- * that touch its connected pipe network.
+ * the underground overlay. Water floods outward from a tower through pipes and zone
+ * buildings the same way power floods through wires. Power plants are sinks: water
+ * reaches them but does not pass through. Each tower serves up to WATER_TOWER_ZONES
+ * zone centers.
  */
 
 #include <string.h>
@@ -36,20 +38,21 @@ static bool TowerHasSource(int32_t cx, int32_t cy)
     return false;
 }
 
-/* A zone center is watered if a pipe lies within its footprint or the ring around it. */
-static void ClaimZonesNear(int32_t px, int32_t py, int32_t *claimed)
+/* Conducts water like a wire conducts power: zone buildings carry CONDBIT, plants and ports do not. */
+static bool IsWaterConductor(uint16_t tile)
 {
-    for (int32_t dy = -2; dy <= 2; dy++) {
-        for (int32_t dx = -2; dx <= 2; dx++) {
-            int32_t x = px + dx;
-            int32_t y = py + dy;
-            if (!TestBounds(x, y)) continue;
-            if (!(Map[x][y] & ZONEBIT) || water_map[x][y]) continue;
-            if (*claimed >= WATER_TOWER_ZONES) return;
-            water_map[x][y] = 1;
-            (*claimed)++;
-        }
-    }
+    int32_t t = tile & LOMASK;
+    if (!(tile & CONDBIT)) return false;
+    if (t < RESBASE || t > LASTZONE) return false;
+    if (t >= PORTBASE && t < COALBASE) return false;
+    return !TILE_IS_POWER_PLANT(tile);
+}
+
+static bool WaterCanEnter(int32_t x, int32_t y)
+{
+    if (!TestBounds(x, y)) return false;
+    uint16_t tile = Map[x][y];
+    return pipe_map[x][y] || TILE_IS_POWER_PLANT(tile) || IsWaterConductor(tile);
 }
 
 static void SupplyFromTower(int32_t tx, int32_t ty)
@@ -58,15 +61,14 @@ static void SupplyFromTower(int32_t tx, int32_t ty)
     static const int32_t step_y[4] = { 0, 0, 1, -1 };
     int32_t head = 0;
     int32_t tail = 0;
-    int32_t claimed = 0;
+    int32_t zones = 0;
 
     memset(seen_map, 0, sizeof(seen_map));
 
-    for (int32_t dy = -2; dy <= 2; dy++) {
-        for (int32_t dx = -2; dx <= 2; dx++) {
+    for (int32_t dy = -1; dy <= 1; dy++) {
+        for (int32_t dx = -1; dx <= 1; dx++) {
             int32_t x = tx + dx;
             int32_t y = ty + dy;
-            if (!TestBounds(x, y) || !pipe_map[x][y] || seen_map[x][y]) continue;
             seen_map[x][y] = 1;
             pipe_queue[tail++] = x * WORLD_Y + y;
         }
@@ -77,13 +79,21 @@ static void SupplyFromTower(int32_t tx, int32_t ty)
         int32_t x = idx / WORLD_Y;
         int32_t y = idx % WORLD_Y;
 
-        ClaimZonesNear(x, y, &claimed);
-
         for (int32_t i = 0; i < 4; i++) {
             int32_t nx = x + step_x[i];
             int32_t ny = y + step_y[i];
-            if (!TestBounds(nx, ny) || !pipe_map[nx][ny] || seen_map[nx][ny]) continue;
+            if (!WaterCanEnter(nx, ny) || seen_map[nx][ny]) continue;
             seen_map[nx][ny] = 1;
+
+            uint16_t tile = Map[nx][ny];
+            if (TILE_IS_POWER_PLANT(tile)) {
+                water_map[nx][ny] = 1;
+                continue;
+            }
+            if ((tile & ZONEBIT) && zones >= WATER_TOWER_ZONES) continue;
+            if (tile & ZONEBIT) zones++;
+
+            water_map[nx][ny] = 1;
             pipe_queue[tail++] = nx * WORLD_Y + ny;
         }
     }
@@ -110,6 +120,34 @@ bool WaterIsSupplied(int32_t x, int32_t y)
 bool WaterHasPipe(int32_t x, int32_t y)
 {
     return TestBounds(x, y) && pipe_map[x][y] != 0;
+}
+
+bool WaterCanConnect(int32_t x, int32_t y)
+{
+    if (!TestBounds(x, y)) return false;
+    if (WaterCanEnter(x, y)) return true;
+    int32_t t = Map[x][y] & LOMASK;
+    return t >= WATERTOWER && t < WATERTOWER + WATERTOWER_TILES;
+}
+
+bool WaterPlantSupplied(int32_t x, int32_t y)
+{
+    for (int32_t dy = -3; dy <= 3; dy++) {
+        for (int32_t dx = -3; dx <= 3; dx++) {
+            int32_t px = x + dx;
+            int32_t py = y + dy;
+            if (TestBounds(px, py) && water_map[px][py] && TILE_IS_POWER_PLANT(Map[px][py])) return true;
+        }
+    }
+    return false;
+}
+
+bool WaterTowerHasSource(int32_t x, int32_t y)
+{
+    if (!TestBounds(x, y)) return false;
+    int32_t off = (Map[x][y] & LOMASK) - WATERTOWER;
+    if (off < 0 || off >= WATERTOWER_TILES) return false;
+    return TowerHasSource(x + 1 - off % 3, y + 1 - off / 3);
 }
 
 int32_t LayPipe(int32_t x, int32_t y)

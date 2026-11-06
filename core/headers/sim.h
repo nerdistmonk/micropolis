@@ -340,6 +340,7 @@ typedef int32_t QUAD;
 #define TestBounds(x, y) (((x) >= 0) && ((x) < WORLD_X) && ((y) >= 0) && ((y) < WORLD_Y))
 
 #define TILE_IS_NUCLEAR(tile) (((tile) & LOMASK) == NUCLEAR)
+#define TILE_IS_POWER_PLANT(tile) ((((tile) & LOMASK) >= COALBASE && ((tile) & LOMASK) <= LASTPOWERPLANT) || (((tile) & LOMASK) >= NUCLEARBASE && ((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_VULNERABLE(tile) (!((tile) & ZONEBIT) && (((tile) & LOMASK) >= RZB) && (((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_ARSONABLE(tile) (!((tile) & ZONEBIT) && (((tile) & LOMASK) >= RZB) && (((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_RIVER_EDGE(tile) ((((tile) & LOMASK) >= FIRSTRIVEDGE) && (((tile) & LOMASK) <= LASTRIVEDGE))
@@ -579,6 +580,9 @@ void DoPowerScan(void);
 void DoWaterScan(void);
 bool WaterIsSupplied(int32_t x, int32_t y);
 bool WaterHasPipe(int32_t x, int32_t y);
+bool WaterCanConnect(int32_t x, int32_t y);
+bool WaterPlantSupplied(int32_t x, int32_t y);
+bool WaterTowerHasSource(int32_t x, int32_t y);
 int32_t LayPipe(int32_t x, int32_t y);
 int32_t LayWaterTower(int32_t x, int32_t y);
 void Water_ClearPipes(void);

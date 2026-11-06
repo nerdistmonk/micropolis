@@ -1019,26 +1019,38 @@ void DoSPZone(int16_t pwron)
     int16_t z;
 
     switch (CChr9) {
-    case POWERPLANT:
-        CoalPop++;
+    case POWERPLANT: {
+        bool watered = WaterPlantSupplied(SMapX, SMapY);
+        if (watered) {
+            CoalPop++;
+        }
         if (!(CityTime & 7)) {
             RepairZone(POWERPLANT, 4);
         }
-        PushPowerStack();
+        if (watered) {
+            PushPowerStack();
+        }
         CoalSmoke(SMapX, SMapY);
         return;
+    }
 
-    case NUCLEAR:
+    case NUCLEAR: {
         if (!NoDisasters && !Rand(MltdwnTab[GameLevel])) {
             DoMeltdown(SMapX, SMapY);
             return;
         }
-        NuclearPop++;
+        bool watered = WaterPlantSupplied(SMapX, SMapY);
+        if (watered) {
+            NuclearPop++;
+        }
         if (!(CityTime & 7)) {
             RepairZone(NUCLEAR, 4);
         }
-        PushPowerStack();
+        if (watered) {
+            PushPowerStack();
+        }
         return;
+    }
 
     case FIRESTATION:
         FireStPop++;
