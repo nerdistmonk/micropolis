@@ -423,6 +423,13 @@ bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
     return true;
   }
 
+  /* Right HUD column (Inspect, RCI gauge, radar label) swallows clicks so they never reach the map */
+  SDL_FRect radar = Video_GetMinimapRect();
+  if (mouse_x >= radar.x && mouse_x <= (radar.x + radar.w) &&
+      mouse_y >= rect_query_btn.y && mouse_y <= (radar.y + radar.h)) {
+    return true;
+  }
+
   return false;
 }
 
