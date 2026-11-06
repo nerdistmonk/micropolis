@@ -246,7 +246,6 @@ void Simulate(int32_t mod16)
             SetValves();
         }
         ClearCensus();
-        HealthAnalysis();
 
         if (EngineCallbacks.update_date) {
             EngineCallbacks.update_date(1900 + (CityTime / 48), (CityTime % 48) / 4);
@@ -331,6 +330,7 @@ void Simulate(int32_t mod16)
     case 15:
         if (!(Scycle % SpdFir[x])) {
             FireAnalysis();
+            HealthAnalysis();
         }
         DoDisasters();
         break;
@@ -405,6 +405,7 @@ void ClearCensus(void)
     for (int16_t x = 0; x < SmX; x++) {
         for (int16_t y = 0; y < SmY; y++) {
             FireStMap[x][y] = 0;
+            HospStMap[x][y] = 0;
             PoliceMap[x][y] = 0;
         }
     }
@@ -1272,7 +1273,6 @@ void Sim_InitEngine(void)
 
     SetValves();
     ClearCensus();
-    HealthAnalysis();
     MapScan(0, WORLD_X);
     DoPowerScan();
     DoWaterScan();
@@ -1282,6 +1282,7 @@ void Sim_InitEngine(void)
     CrimeScan();
     PopDenScan();
     FireAnalysis();
+    HealthAnalysis();
 
     TotalPop = 1;
     DoInitialEval = 1;

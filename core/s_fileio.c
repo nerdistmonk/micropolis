@@ -317,6 +317,7 @@ void CityRescan(void)
     CrimeScan();
     PopDenScan();
     FireAnalysis();
+    HealthAnalysis();
 }
 
 int32_t LoadCity(const char *filename)

@@ -15,7 +15,7 @@
 #define REGBIT (CONDBIT | BURNBIT)
 
 /* Forward Declarations of Internal Functions */
-static void    DoHospChur(void);
+static void    DoHospChur(int16_t pwron);
 static void    DoResidential(int16_t zone_pwr_flg);
 static void    DoCommercial(int16_t zone_pwr_flg);
 static void    DoIndustrial(int16_t zone_pwr_flg);
@@ -79,7 +79,7 @@ void DoZone(void)
         return;
     }
     if (CChr9 < COMBASE) {
-        DoHospChur();
+        DoHospChur(zone_pwr_flg);
         return;
     }
     if (CChr9 < INDBASE) {
@@ -90,13 +90,16 @@ void DoZone(void)
     DoIndustrial(zone_pwr_flg);
 }
 
-static void DoHospChur(void)
+static void DoHospChur(int16_t pwron)
 {
     if (CChr9 == HOSPITAL) {
         HospPop++;
         if (!(CityTime & 15)) {
             RepairZone(HOSPITAL, 3);
         }
+        int16_t z = pwron ? HealthEffect : (HealthEffect >> 1);
+        if (!FindPRoad()) z >>= 1;
+        HospStMap[SMapX >> 3][SMapY >> 3] += z;
         if (NeedHosp == -1) {
             if (!Rand(20)) {
                 ZonePlop(RESBASE);

@@ -28,7 +28,6 @@ static int16_t GetDisCC(int32_t x, int32_t y);
 static void    DoSmooth(void);
 static void    DoSmooth2(void);
 static void    ClrTemArray(void);
-static void    SmoothFSMap(void);
 static void    SmoothPSMap(void);
 static void    DistIntMarket(void);
 static void    SmoothTerrain(void);
@@ -41,9 +40,9 @@ extern int16_t DoFreePop(void);
 
 void FireAnalysis(void)
 {
-    SmoothFSMap();
-    SmoothFSMap();
-    SmoothFSMap();
+    SmoothServiceMap(FireStMap);
+    SmoothServiceMap(FireStMap);
+    SmoothServiceMap(FireStMap);
 
     for (int16_t x = 0; x < SmX; x++) {
         for (int16_t y = 0; y < SmY; y++) {
@@ -417,22 +416,22 @@ static void ClrTemArray(void)
     }
 }
 
-static void SmoothFSMap(void)
+void SmoothServiceMap(int16_t map[SmX][SmY])
 {
     for (int16_t x = 0; x < SmX; x++) {
         for (int16_t y = 0; y < SmY; y++) {
             int32_t edge = 0;
-            if (x > 0)          edge += FireStMap[x - 1][y];
-            if (x < (SmX - 1))  edge += FireStMap[x + 1][y];
-            if (y > 0)          edge += FireStMap[x][y - 1];
-            if (y < (SmY - 1))  edge += FireStMap[x][y + 1];
-            edge = (edge >> 2) + FireStMap[x][y];
+            if (x > 0)          edge += map[x - 1][y];
+            if (x < (SmX - 1))  edge += map[x + 1][y];
+            if (y > 0)          edge += map[x][y - 1];
+            if (y < (SmY - 1))  edge += map[x][y + 1];
+            edge = (edge >> 2) + map[x][y];
             STem[x][y] = (int16_t)(edge >> 1);
         }
     }
     for (int16_t x = 0; x < SmX; x++) {
         for (int16_t y = 0; y < SmY; y++) {
-            FireStMap[x][y] = STem[x][y];
+            map[x][y] = STem[x][y];
         }
     }
 }

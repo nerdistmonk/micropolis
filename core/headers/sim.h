@@ -400,6 +400,7 @@ extern Byte *Qtem[QWX];
 
 extern int16_t RateOGMem[SmX][SmY];
 extern int16_t FireStMap[SmX][SmY];
+extern int16_t HospStMap[SmX][SmY];
 extern int16_t PoliceMap[SmX][SmY];
 extern int16_t PoliceMapEffect[SmX][SmY];
 extern int16_t ComRate[SmX][SmY];
@@ -607,6 +608,7 @@ void MoveObjects(void);
 /* Scans & Overlays */
 void FireAnalysis(void);
 void HealthAnalysis(void);
+void SmoothServiceMap(int16_t map[SmX][SmY]);
 bool HealthIsCovered(int32_t x, int32_t y);
 int32_t HealthAdjustedPop(int32_t pop, int32_t x, int32_t y);
 void PopDenScan(void);
