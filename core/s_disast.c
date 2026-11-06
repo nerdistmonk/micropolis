@@ -77,8 +77,8 @@ void MakeFlood(void)
         int32_t y = Rand(WORLD_Y - 1);
         uint16_t c = Map[x][y] & LOMASK;
 
-        /* If river edge tile */
-        if (c > 4 && c < 21) {
+        /* If river, channel, or river edge tile */
+        if (c >= RIVER && c <= LASTRIVEDGE) {
             for (int32_t t = 0; t < 4; t++) {
                 int32_t xx = x + Dx[t];
                 int32_t yy = y + Dy[t];
