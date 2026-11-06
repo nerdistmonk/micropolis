@@ -99,7 +99,11 @@ static void SetNowPlaying(const char *name)
 static bool LoadTrack(int index)
 {
     char path[MUSIC_PATH_LEN];
-    snprintf(path, sizeof(path), "%s%s", music_dir, track_names[index]);
+    int path_len = snprintf(path, sizeof(path), "%s%s", music_dir, track_names[index]);
+    if (path_len < 0 || (size_t)path_len >= sizeof(path)) {
+        SDL_Log("Music: track path too long: %s", track_names[index]);
+        return false;
+    }
 
     MIX_Audio *next = MIX_LoadAudio(mixer, path, false);
     if (!next) {
