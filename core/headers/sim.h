@@ -325,9 +325,10 @@ typedef int32_t QUAD;
 #define networkState 18
 #define waterTowerState 19
 #define pipeState 20
+#define hospitalState 21
 
 #define firstState residentialState
-#define lastState pipeState
+#define lastState hospitalState
 
 /* Global Bounds and Validity Macros */
 #define ABS(x) (((x) < 0) ? (-(x)) : (x))
@@ -434,11 +435,12 @@ extern int16_t *IndHis;
 extern int16_t *MoneyHis, *CrimeHis, *PollutionHis, *MiscHis;
 extern uint16_t *PowerMap;
 
-extern float roadPercent, policePercent, firePercent;
-extern int32_t RoadSpend, PoliceSpend, FireSpend;
-extern int32_t TaxFund, RoadFund, PoliceFund, FireFund;
-extern int16_t RoadEffect, PoliceEffect, FireEffect;
-extern int16_t TaxFlag, CityTax;
+extern float roadPercent, policePercent, firePercent, healthPercent;
+extern int32_t RoadSpend, PoliceSpend, FireSpend, HealthSpend;
+extern int32_t TaxFund, RoadFund, PoliceFund, FireFund, HealthFund;
+extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect;
+extern int16_t TaxFlag, ResTax, ComTax, IndTax;
+extern int32_t ResTaxPop;
 extern int32_t TotalFunds;
 
 extern int32_t CostOf[];
@@ -604,6 +606,9 @@ void MoveObjects(void);
 
 /* Scans & Overlays */
 void FireAnalysis(void);
+void HealthAnalysis(void);
+bool HealthIsCovered(int32_t x, int32_t y);
+int32_t HealthAdjustedPop(int32_t pop, int32_t x, int32_t y);
 void PopDenScan(void);
 void PTLScan(void);
 void CrimeScan(void);
@@ -625,6 +630,8 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id);
 
 /* Budget and Evaluation */
 void CollectTax(void);
+int16_t GetAverageTaxRate(void);
+int32_t CalcTaxFund(void);
 void DoBudget(void);
 void ApplyBudgetCommit(void);
 void CityEvaluation(void);

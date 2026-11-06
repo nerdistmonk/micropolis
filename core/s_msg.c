@@ -187,7 +187,7 @@ void SendMessages(void)
         }
         break;
     case 51:
-        if (CityTax > 12) {
+        if (GetAverageTaxRate() > 12) {
             SendMes(16);
         }
         break;

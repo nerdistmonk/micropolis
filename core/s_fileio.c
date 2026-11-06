@@ -21,6 +21,9 @@ extern void ClearMes(void);
 
 /* MiscHis[64] holds this tag when NoDisasters was on at save time. Any other value means off. */
 #define NODISASTERS_SAVE_TAG 0x4E44
+/* Marks that MiscHis[66..68] hold per-class R/C/I tax rates. */
+#define TAXRATES_SAVE_TAG 0x5452
+#define HEALTH_SAVE_TAG 0x4854
 
 /* Fixed on-disk size of a city image (header streams plus 120x100 map). */
 #define CITY_FILE_BYTES 27120
@@ -75,7 +78,11 @@ static void SyncMiscHis(void)
     MiscHis[53] = autoBudget;
     MiscHis[54] = autoGo;
     MiscHis[55] = UserSoundOn;
-    MiscHis[56] = CityTax;
+    MiscHis[56] = GetAverageTaxRate();
+    MiscHis[65] = TAXRATES_SAVE_TAG;
+    MiscHis[66] = ResTax;
+    MiscHis[67] = ComTax;
+    MiscHis[68] = IndTax;
     MiscHis[57] = SimSpeed;
 
     uint32_t pol = (uint32_t)(int32_t)(policePercent * 65536.0f);
@@ -89,6 +96,11 @@ static void SyncMiscHis(void)
     uint32_t rd = (uint32_t)(int32_t)(roadPercent * 65536.0f);
     MiscHis[62] = (int16_t)((rd >> 16) & 0xFFFFu);
     MiscHis[63] = (int16_t)(rd & 0xFFFFu);
+
+    uint32_t hl = (uint32_t)(int32_t)(healthPercent * 65536.0f);
+    MiscHis[69] = (int16_t)((hl >> 16) & 0xFFFFu);
+    MiscHis[70] = (int16_t)(hl & 0xFFFFu);
+    MiscHis[71] = HEALTH_SAVE_TAG;
 
     MiscHis[15] = GameLevel;
     MiscHis[64] = NoDisasters ? NODISASTERS_SAVE_TAG : 0;
@@ -329,7 +341,13 @@ int32_t LoadCity(const char *filename)
     autoBudget = MiscHis[53];
     autoGo = MiscHis[54];
     UserSoundOn = MiscHis[55];
-    CityTax = MiscHis[56];
+    if (MiscHis[65] == TAXRATES_SAVE_TAG) {
+        ResTax = MiscHis[66];
+        ComTax = MiscHis[67];
+        IndTax = MiscHis[68];
+    } else {
+        ResTax = ComTax = IndTax = MiscHis[56];
+    }
     SimSpeed = MiscHis[57];
 
     uint16_t p0 = (uint16_t)MiscHis[58];
@@ -344,8 +362,19 @@ int32_t LoadCity(const char *filename)
     uint16_t r1 = (uint16_t)MiscHis[63];
     roadPercent = ClampPercent((float)((int32_t)(((uint32_t)r0 << 16) | r1)) / 65536.0f);
 
+    if (MiscHis[71] == HEALTH_SAVE_TAG) {
+        uint16_t h0 = (uint16_t)MiscHis[69];
+        uint16_t h1 = (uint16_t)MiscHis[70];
+        healthPercent = ClampPercent((float)((int32_t)(((uint32_t)h0 << 16) | h1)) / 65536.0f);
+    } else {
+        healthPercent = 1.0f;
+    }
+    HealthEffect = (int16_t)(healthPercent * 1000.0f);
+
     if (CityTime < 0) CityTime = 0;
-    if (CityTax > 20 || CityTax < 0) CityTax = 7;
+    if (ResTax > 20 || ResTax < 0) ResTax = 7;
+    if (ComTax > 20 || ComTax < 0) ComTax = 7;
+    if (IndTax > 20 || IndTax < 0) IndTax = 7;
     if (SimSpeed < 0 || SimSpeed > SIM_SPEED_MAX) SimSpeed = SIM_SPEED_FAST;
     NoDisasters = (MiscHis[64] == NODISASTERS_SAVE_TAG) ? 1 : 0;
 
@@ -367,6 +396,7 @@ int32_t LoadCity(const char *filename)
     RoadEffect = 32;
     PoliceEffect = 1000;
     FireEffect = 1000;
+    HealthEffect = 1000;
     CityRescan();
 
     if (CityFileName) free(CityFileName);
@@ -627,10 +657,11 @@ int32_t Scenario_LoadFile(const char *path)
     CityFileName = NULL;
 
     SimSpeed = SIM_SPEED_FAST;
-    CityTax = 7;
+    ResTax = ComTax = IndTax = 7;
     roadPercent = 1.0f;
     policePercent = 1.0f;
     firePercent = 1.0f;
+    healthPercent = 1.0f;
 
     InitSimLoad = 1;
     DoInitialEval = 0;
@@ -639,6 +670,7 @@ int32_t Scenario_LoadFile(const char *path)
     RoadEffect = 32;
     PoliceEffect = 1000;
     FireEffect = 1000;
+    HealthEffect = 1000;
     CityRescan();
 
     Scenario_Activate(&def);
@@ -800,10 +832,11 @@ int32_t LoadScenario(int16_t s)
     CityName[sizeof(CityName) - 1] = '\0';
 
     SimSpeed = 3;
-    CityTax = 7;
+    ResTax = ComTax = IndTax = 7;
     roadPercent = 1.0f;
     policePercent = 1.0f;
     firePercent = 1.0f;
+    healthPercent = 1.0f;
 
     InitSimLoad = 1;
     DoInitialEval = 0;

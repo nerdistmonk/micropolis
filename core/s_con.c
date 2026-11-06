@@ -292,6 +292,11 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
         base_tile = AIRPORT - 4;
         size = 6;
         break;
+    case hospitalState:
+        base_cost = 500;
+        base_tile = HOSPITAL - 4;
+        size = 3;
+        break;
     default:
         return 0;
     }

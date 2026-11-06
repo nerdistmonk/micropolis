@@ -240,12 +240,13 @@ void Simulate(int32_t mod16)
             CityEvaluation();
         }
         CityTime++;
-        AvCityTax += CityTax;
+        AvCityTax += GetAverageTaxRate();
 
         if (!(Scycle & 1)) {
             SetValves();
         }
         ClearCensus();
+        HealthAnalysis();
 
         if (EngineCallbacks.update_date) {
             EngineCallbacks.update_date(1900 + (CityTime / 48), (CityTime % 48) / 4);
@@ -384,6 +385,7 @@ void ClearCensus(void)
     RoadTotal = 0;
     RailTotal = 0;
     ResPop = 0;
+    ResTaxPop = 0;
     ComPop = 0;
     IndPop = 0;
     ResZPop = 0;
@@ -406,6 +408,14 @@ void ClearCensus(void)
             PoliceMap[x][y] = 0;
         }
     }
+}
+
+static int32_t TaxTableIndex(int16_t rate)
+{
+    int32_t z = rate + GameLevel;
+    if (z > 20) z = 20;
+    if (z < 0) z = 0;
+    return z;
 }
 
 static void SetValves(void)
@@ -495,13 +505,9 @@ static void SetValves(void)
     if (Cratio > 2.0f) Cratio = 2.0f;
     if (Iratio > 2.0f) Iratio = 2.0f;
 
-    int32_t z = CityTax + GameLevel;
-    if (z > 20) z = 20;
-    if (z < 0) z = 0;
-
-    Rratio = ((Rratio - 1.0f) * 600.0f) + (float)TaxTable[z];
-    Cratio = ((Cratio - 1.0f) * 600.0f) + (float)TaxTable[z];
-    Iratio = ((Iratio - 1.0f) * 600.0f) + (float)TaxTable[z];
+    Rratio = ((Rratio - 1.0f) * 600.0f) + (float)TaxTable[TaxTableIndex(ResTax)];
+    Cratio = ((Cratio - 1.0f) * 600.0f) + (float)TaxTable[TaxTableIndex(ComTax)];
+    Iratio = ((Iratio - 1.0f) * 600.0f) + (float)TaxTable[TaxTableIndex(IndTax)];
 
     /* Unix stores (short)(valve + ratio), so truncation applies to the sum */
     if (Rratio > 0.0f && RValve < 2000) RValve = (int16_t)(RValve + Rratio);
@@ -591,14 +597,16 @@ void ApplyBudgetCommit(void)
     RoadSpend = (int32_t)((float)RoadFund * roadPercent);
     PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
     FireSpend = (int32_t)((float)FireFund * firePercent);
+    HealthSpend = (int32_t)((float)HealthFund * healthPercent);
 
     if (TotalPop) {
-        CashFlow = (int16_t)(TaxFund - (PoliceSpend + FireSpend + RoadSpend));
+        CashFlow = (int16_t)(TaxFund - (PoliceSpend + FireSpend + RoadSpend + HealthSpend));
         DoBudget();
     } else {
         RoadEffect = 32;
         PoliceEffect = 1000;
         FireEffect = 1000;
+        HealthEffect = 1000;
     }
 }
 
@@ -609,22 +617,35 @@ int32_t CalcRoadFund(int16_t level)
     return (int32_t)((float)(RoadTotal + (RailTotal * 2)) * RLevels[level]);
 }
 
+int16_t GetAverageTaxRate(void)
+{
+    return (int16_t)((ResTax + ComTax + IndTax) / 3);
+}
+
+static const float FLevels[3] = { 1.4f, 1.2f, 0.8f };
+
+int32_t CalcTaxFund(void)
+{
+    float resBase = (float)(ResTaxPop / 8);
+    float weighted = (resBase * (float)ResTax) + ((float)ComPop * (float)ComTax)
+                   + ((float)IndPop * (float)IndTax);
+    return (int32_t)(weighted * (float)LVAverage / 120.0f * FLevels[GameLevel]);
+}
+
 void CollectTax(void)
 {
-    static const float FLevels[3] = { 1.4f, 1.2f, 0.8f };
-
-    CashFlow = 0;
     if (!TaxFlag) {
         AvCityTax = 0;
         PoliceFund = PolicePop * 100;
         FireFund = FireStPop * 100;
+        HealthFund = HospPop * 100;
         RoadFund = CalcRoadFund(GameLevel);
-        int32_t taxBase = ((int32_t)TotalPop * (int32_t)LVAverage) / 120;
-        TaxFund = (int32_t)((float)(taxBase * (int32_t)CityTax) * FLevels[GameLevel]);
+        TaxFund = CalcTaxFund();
 
         RoadSpend = (int32_t)((float)RoadFund * roadPercent);
         PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
         FireSpend = (int32_t)((float)FireFund * firePercent);
+        HealthSpend = (int32_t)((float)HealthFund * healthPercent);
 
         if (!autoBudget) {
             if (EngineCallbacks.request_budget_dialog) {
@@ -662,6 +683,9 @@ static void UpdateFundEffects(void)
         : 1000;
     FireEffect = FireFund > 0
         ? (int16_t)(((float)FireSpend / (float)FireFund) * 1000.0f)
+        : 1000;
+    HealthEffect = HealthFund > 0
+        ? (int16_t)(((float)HealthSpend / (float)HealthFund) * 1000.0f)
         : 1000;
 }
 
@@ -1170,9 +1194,11 @@ static void SetCommonInits(void)
     RoadEffect = 32;
     PoliceEffect = 1000;
     FireEffect = 1000;
+    HealthEffect = 1000;
     roadPercent = 1.0f;
     policePercent = 1.0f;
     firePercent = 1.0f;
+    healthPercent = 1.0f;
     TaxFlag = 0;
     TaxFund = 0;
 }
@@ -1246,6 +1272,7 @@ void Sim_InitEngine(void)
 
     SetValves();
     ClearCensus();
+    HealthAnalysis();
     MapScan(0, WORLD_X);
     DoPowerScan();
     DoWaterScan();

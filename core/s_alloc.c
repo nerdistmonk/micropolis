@@ -96,18 +96,25 @@ int32_t PendingTool = -1;
 float roadPercent = 1.0f;
 float policePercent = 1.0f;
 float firePercent = 1.0f;
+float healthPercent = 1.0f;
 
 int32_t RoadSpend = 0;
 int32_t PoliceSpend = 0;
 int32_t FireSpend = 0;
+int32_t HealthSpend = 0;
 int32_t RoadFund = 0;
 int32_t PoliceFund = 0;
 int32_t FireFund = 0;
+int32_t HealthFund = 0;
 int16_t RoadEffect = 32;
 int16_t PoliceEffect = 1000;
 int16_t FireEffect = 1000;
+int16_t HealthEffect = 1000;
 int32_t TaxFund = 0;
-int16_t CityTax = 7;
+int16_t ResTax = 7;
+int16_t ComTax = 7;
+int16_t IndTax = 7;
+int32_t ResTaxPop = 0;
 int16_t TaxFlag = 0;
 int32_t TotalFunds = 20000;
 
@@ -118,7 +125,7 @@ int32_t CostOf[] = {
     20, 10, 0, 0,
     5000, 20, 3000, 3000,
     5000, 10000, 100, 500,
-    2
+    2, 500
 };
 
 int16_t toolSize[] = {
@@ -127,7 +134,7 @@ int16_t toolSize[] = {
     1, 1, 0, 0,
     4, 1, 4, 4,
     4, 6, 1, 3,
-    1
+    1, 3
 };
 
 int16_t toolOffset[] = {
@@ -136,7 +143,7 @@ int16_t toolOffset[] = {
     0, 0, 0, 0,
     1, 0, 1, 1,
     1, 1, 0, 1,
-    0
+    0, 1
 };
 
 /* Graphical Synchronization and Animation Tables */

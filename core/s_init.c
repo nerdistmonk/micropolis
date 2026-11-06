@@ -20,6 +20,7 @@ void InitWillStuff(void)
     RoadEffect   = 32;
     PoliceEffect = 1000;
     FireEffect   = 1000;
+    HealthEffect = 1000;
     RoadFund      = 0;
     PoliceFund    = 0;
     FireFund      = 0;

@@ -292,10 +292,11 @@ void Scenario_EditorBegin(void)
     ScoreType = 0;
     ScoreWait = 0;
 
-    CityTax = 7;
+    ResTax = ComTax = IndTax = 7;
     roadPercent = 1.0f;
     policePercent = 1.0f;
     firePercent = 1.0f;
+    healthPercent = 1.0f;
     RoadEffect = 32;
     PoliceEffect = 1000;
     FireEffect = 1000;

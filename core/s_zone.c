@@ -242,6 +242,7 @@ static void DoResidential(int16_t zone_pwr_flg)
     }
 
     ResPop += tpop;
+    ResTaxPop += HealthAdjustedPop(tpop, SMapX, SMapY);
 
     if (tpop > Rand(35)) {
         trf_good = (int16_t)MakeTraf(0);

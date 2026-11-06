@@ -32,7 +32,11 @@ static uint32_t *minimap_pixels = NULL;
 #define MINIMAP_SCALE 1.0f
 #define MINIMAP_W 120.0f
 #define MINIMAP_H 100.0f
-#define MINIMAP_X 6.0f
+#define MINIMAP_MARGIN 6.0f
+static float MinimapX(void)
+{
+  return (float)canvas_w - MINIMAP_W - MINIMAP_MARGIN;
+}
 static float MinimapY(void)
 {
   return (float)canvas_h - MINIMAP_H - 12.0f;
@@ -482,7 +486,7 @@ bool Video_ScreenToTile(float screen_x, float screen_y, int32_t *tile_x, int32_t
 
 SDL_FRect Video_GetMinimapRect(void)
 {
-  SDL_FRect r = { MINIMAP_X, MinimapY(), MINIMAP_W, MINIMAP_H };
+  SDL_FRect r = { MinimapX(), MinimapY(), MINIMAP_W, MINIMAP_H };
   return r;
 }
 
@@ -801,7 +805,7 @@ static void UpdateAndRenderMinimap(SDL_Renderer *renderer, OverlayViewMode mode)
   SDL_UpdateTexture(minimap_texture, NULL, minimap_pixels, WORLD_X * (int)sizeof(uint32_t));
 
   /* Minimap frame and background */
-  SDL_FRect bg = { MINIMAP_X - 2.0f, MinimapY() - 18.0f, MINIMAP_W + 4.0f, MINIMAP_H + 20.0f };
+  SDL_FRect bg = { MinimapX() - 2.0f, MinimapY() - 18.0f, MINIMAP_W + 4.0f, MINIMAP_H + 20.0f };
   SDL_SetRenderDrawColor(renderer, 18, 22, 30, 245);
   SDL_RenderFillRect(renderer, &bg);
 
@@ -809,9 +813,9 @@ static void UpdateAndRenderMinimap(SDL_Renderer *renderer, OverlayViewMode mode)
   SDL_RenderRect(renderer, &bg);
 
   SDL_Color col_gold = { 255, 215, 0, 255 };
-  GUI_DrawText(renderer, (int)MINIMAP_X, (int)MinimapY() - 16, "RADAR MAP", col_gold);
+  GUI_DrawText(renderer, (int)MinimapX(), (int)MinimapY() - 16, "RADAR MAP", col_gold);
 
-  SDL_FRect dst = { MINIMAP_X, MinimapY(), MINIMAP_W, MINIMAP_H };
+  SDL_FRect dst = { MinimapX(), MinimapY(), MINIMAP_W, MINIMAP_H };
   SDL_RenderTexture(renderer, minimap_texture, NULL, &dst);
 
   SDL_SetRenderDrawColor(renderer, 80, 95, 125, 255);
@@ -821,7 +825,7 @@ static void UpdateAndRenderMinimap(SDL_Renderer *renderer, OverlayViewMode mode)
   float view_tiles_w = (float)canvas_w / (float)TILE_PIXEL_SIZE;
   float view_tiles_h = (float)canvas_h / (float)TILE_PIXEL_SIZE;
 
-  float cam_box_x = MINIMAP_X + ((float)cam_x * MINIMAP_SCALE);
+  float cam_box_x = MinimapX() + ((float)cam_x * MINIMAP_SCALE);
   float cam_box_y = MinimapY() + ((float)cam_y * MINIMAP_SCALE);
   float cam_box_w = view_tiles_w * MINIMAP_SCALE;
   float cam_box_h = view_tiles_h * MINIMAP_SCALE;
@@ -863,6 +867,7 @@ static const ToolCursorStyle tool_cursor_style[] = {
     [networkState]     = { 1, 0, COLOR_LIGHTGRAY, COLOR_RED },
     [waterTowerState]  = { 3, 1, COLOR_LIGHTBLUE, COLOR_LIGHTBLUE },
     [pipeState]        = { 1, 0, COLOR_LIGHTBLUE, COLOR_LIGHTBLUE },
+    [hospitalState]    = { 3, 1, COLOR_LIGHTGRAY, COLOR_RED },
 };
 
 /* Unix w_x.c palette */

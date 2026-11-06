@@ -120,7 +120,7 @@ static void DoProblems(void)
     ProblemTable[0] = CrimeAverage;                                /* Crime */
     ProblemTable[1] = PolluteAverage;                              /* Pollution */
     ProblemTable[2] = (int16_t)((float)LVAverage * 0.7f);          /* Housing */
-    ProblemTable[3] = (int16_t)(CityTax * 10);                     /* Taxes */
+    ProblemTable[3] = (int16_t)(GetAverageTaxRate() * 10);         /* Taxes */
     ProblemTable[4] = AverageTrf();                                /* Traffic */
     ProblemTable[5] = GetUnemployment();                           /* Unemployment */
     ProblemTable[6] = GetFire();                                   /* Fire */
@@ -257,7 +257,7 @@ static void GetScore(void)
     }
     z = (int32_t)(z * sm);
     z -= GetFire();
-    z -= CityTax;
+    z -= GetAverageTaxRate();
 
     float total_zones = (float)(unPwrdZCnt + PwrdZCnt);
     if (total_zones > 0.0f) {

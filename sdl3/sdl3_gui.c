@@ -41,7 +41,8 @@ static GuiToolButton tool_buttons[] = {
   { airportState,     "Municipal Airport", "icairp", 10000, { 56.0f, 334.0f, 46.0f, 46.0f }, NULL, NULL },
   { parkState,        "Park",             "icpark", 20, { 6.0f, 384.0f, 46.0f, 46.0f }, NULL, NULL },
   { waterTowerState,  "Water Tower",      "icwtower", 500, { 6.0f, 434.0f, 46.0f, 46.0f }, NULL, NULL },
-  { pipeState,        "Water Pipe",       "icpipe", 2, { 56.0f, 434.0f, 46.0f, 46.0f }, NULL, NULL }
+  { pipeState,        "Water Pipe",       "icpipe", 2, { 56.0f, 434.0f, 46.0f, 46.0f }, NULL, NULL },
+  { hospitalState,    "Hospital",         "ichosp", 500, { 56.0f, 384.0f, 46.0f, 46.0f }, NULL, NULL }
 };
 
 #define NUM_TOOL_BUTTONS (sizeof(tool_buttons) / sizeof(tool_buttons[0]))
@@ -139,20 +140,23 @@ bool GUI_LoadScenarioWithStatus(int16_t id)
 #define TICKER_DURATION_MS 12000
 #define TICKER_FADE_MS     3000
 
-/* Query Tool and RCI Gauge Rectangles directly above the Radar Map (which is at X=6, W=120) */
-static SDL_FRect rect_query_btn = { 6.0f, 538.0f, 120.0f, 30.0f };
-static SDL_FRect rect_rci_box   = { 6.0f, 574.0f, 120.0f, 60.0f };
+/* Query Tool and RCI Gauge Rectangles sit above the Radar Map on the right edge (x and y set in UpdateLayout) */
+static SDL_FRect rect_query_btn = { 0.0f, 538.0f, 120.0f, 30.0f };
+static SDL_FRect rect_rci_box   = { 0.0f, 574.0f, 120.0f, 60.0f };
 
 static void UpdateLayout(void)
 {
   float cw = (float)Video_GetCanvasWidth();
   float radar_y = Video_GetMinimapRect().y;
+  float right_col_x = Video_GetMinimapRect().x;
 
   rect_speed_btn.x = cw - 148.0f;
   rect_file_btn.x = cw - 240.0f;
   rect_disasters_btn.x = cw - 344.0f;
   rect_overlays_btn.x = cw - 464.0f;
+  rect_query_btn.x = right_col_x;
   rect_query_btn.y = radar_y - 118.0f;
+  rect_rci_box.x = right_col_x;
   rect_rci_box.y = radar_y - 82.0f;
 
   for (int i = 0; i < EDITOR_BTN_COUNT; i++) {

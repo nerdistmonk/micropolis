@@ -14,10 +14,12 @@ static char city_name_input_buffer[64] = {0};
 static float budget_snap_road_percent;
 static float budget_snap_police_percent;
 static float budget_snap_fire_percent;
+static float budget_snap_health_percent;
 static int16_t budget_snap_road_effect;
 static int16_t budget_snap_police_effect;
 static int16_t budget_snap_fire_effect;
-static int16_t budget_snap_city_tax;
+static int16_t budget_snap_health_effect;
+static int16_t budget_snap_tax[3];
 
 static bool CityRectHit(const SDL_FRect *r, float x, float y)
 {
@@ -41,10 +43,17 @@ static SDL_FRect BudgetApplyRect(float dx, float dy)
     return CenteredButtonRect(dx + 375.0f, dy + 370.0f, "Apply & Close", 24.0f, 32.0f);
 }
 
-static SDL_FRect TaxButtonRect(float dx, float dy, bool up)
+static SDL_FRect TaxButtonRect(float dx, float dy, int row, bool up)
 {
-    SDL_FRect r = { dx + (up ? 300.0f : 240.0f), dy + 125.0f, 40.0f, 28.0f };
+    SDL_FRect r = { dx + (up ? 300.0f : 240.0f), dy + 125.0f + ((float)row * 36.0f), 40.0f, 28.0f };
     return r;
+}
+
+static int16_t *TaxRateForRow(int row)
+{
+    if (row == 0) return &ResTax;
+    if (row == 1) return &ComTax;
+    return &IndTax;
 }
 
 static SDL_FRect GraphModeRect(float dx, float dy, bool is_120)
@@ -75,7 +84,9 @@ static void SnapshotBudgetState(void)
     budget_snap_road_effect = RoadEffect;
     budget_snap_police_effect = PoliceEffect;
     budget_snap_fire_effect = FireEffect;
-    budget_snap_city_tax = CityTax;
+    budget_snap_health_percent = healthPercent;
+    budget_snap_health_effect = HealthEffect;
+    for (int r = 0; r < 3; r++) budget_snap_tax[r] = *TaxRateForRow(r);
 }
 
 static void RestoreBudgetState(void)
@@ -86,7 +97,9 @@ static void RestoreBudgetState(void)
     RoadEffect = budget_snap_road_effect;
     PoliceEffect = budget_snap_police_effect;
     FireEffect = budget_snap_fire_effect;
-    CityTax = budget_snap_city_tax;
+    healthPercent = budget_snap_health_percent;
+    HealthEffect = budget_snap_health_effect;
+    for (int r = 0; r < 3; r++) *TaxRateForRow(r) = budget_snap_tax[r];
 }
 
 void Dialog_City_Open(CityMgmtTab tab)
@@ -207,6 +220,19 @@ bool Dialog_City_HandleClick(float mx, float my)
                 return true;
             }
         }
+        if (my >= dy + 265.0f && my <= dy + 287.0f) {
+            if (mx >= dx + 400.0f && mx <= dx + 430.0f) {
+                healthPercent -= 0.10f;
+                if (healthPercent < 0.0f) healthPercent = 0.0f;
+                HealthEffect = (int16_t)(healthPercent * 1000.0f);
+                return true;
+            } else if (mx >= dx + 440.0f && mx <= dx + 470.0f) {
+                healthPercent += 0.10f;
+                if (healthPercent > 1.0f) healthPercent = 1.0f;
+                HealthEffect = (int16_t)(healthPercent * 1000.0f);
+                return true;
+            }
+        }
 
         SDL_FRect cancel_btn = BudgetCancelRect(dx, dy);
         if (CityRectHit(&cancel_btn, mx, my)) {
@@ -222,15 +248,18 @@ bool Dialog_City_HandleClick(float mx, float my)
     }
 
     if (active_city_tab == CITY_TAB_TAXES) {
-        SDL_FRect tax_dn = TaxButtonRect(dx, dy, false);
-        SDL_FRect tax_up = TaxButtonRect(dx, dy, true);
-        if (CityRectHit(&tax_dn, mx, my)) {
-            if (CityTax > 0) CityTax--;
-            return true;
-        }
-        if (CityRectHit(&tax_up, mx, my)) {
-            if (CityTax < 20) CityTax++;
-            return true;
+        for (int r = 0; r < 3; r++) {
+            int16_t *rate = TaxRateForRow(r);
+            SDL_FRect tax_dn = TaxButtonRect(dx, dy, r, false);
+            SDL_FRect tax_up = TaxButtonRect(dx, dy, r, true);
+            if (CityRectHit(&tax_dn, mx, my)) {
+                if (*rate > 0) (*rate)--;
+                return true;
+            }
+            if (CityRectHit(&tax_up, mx, my)) {
+                if (*rate < 20) (*rate)++;
+                return true;
+            }
         }
     }
 
@@ -482,10 +511,20 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         GUI_DrawText(renderer, (int)f_dn.x + 10, (int)f_dn.y + 3, "-", col_white);
         GUI_DrawText(renderer, (int)f_up.x + 10, (int)f_up.y + 3, "+", col_white);
 
-        int32_t expenses = (int32_t)(((float)CalcRoadFund(GameLevel) * roadPercent) + (PolicePop * 100 * policePercent) + (FireStPop * 100 * firePercent));
+        snprintf(buf, sizeof(buf), "Healthcare: %3d%% Cost: $%d", (int)(healthPercent * 100.0f), (int)(HealthFund * healthPercent));
+        GUI_DrawText(renderer, cx, cy + 180, buf, col_white);
+        SDL_FRect h_dn = { dx + 400.0f, dy + 265.0f, 30.0f, 22.0f };
+        SDL_FRect h_up = { dx + 440.0f, dy + 265.0f, 30.0f, 22.0f };
+        SDL_SetRenderDrawColor(renderer, 40, 50, 70, 255);
+        SDL_RenderFillRect(renderer, &h_dn);
+        SDL_RenderFillRect(renderer, &h_up);
+        GUI_DrawText(renderer, (int)h_dn.x + 10, (int)h_dn.y + 3, "-", col_white);
+        GUI_DrawText(renderer, (int)h_up.x + 10, (int)h_up.y + 3, "+", col_white);
+
+        int32_t expenses = (int32_t)(((float)CalcRoadFund(GameLevel) * roadPercent) + (PolicePop * 100 * policePercent) + (FireStPop * 100 * firePercent) + (HealthFund * healthPercent));
         int32_t net = TaxFund - expenses;
         snprintf(buf, sizeof(buf), "Tax Revenue: $%d Expenses: $%d Net: $%d", TaxFund, expenses, net);
-        GUI_DrawText(renderer, cx, cy + 195, buf, (net >= 0) ? col_green : col_red);
+        GUI_DrawText(renderer, cx, cy + 215, buf, (net >= 0) ? col_green : col_red);
 
         SDL_FRect cancel_btn = BudgetCancelRect(dx, dy);
         SDL_SetRenderDrawColor(renderer, 60, 40, 40, 255);
@@ -505,26 +544,31 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         char buf[128];
         GUI_DrawText(renderer, cx, cy, "TAXATION & FISCAL POLICY", col_gold);
 
-        snprintf(buf, sizeof(buf), "Current Tax Rate: %d%%", CityTax);
-        GUI_DrawText(renderer, cx, cy + 40, buf, col_white);
+        static const char *tax_labels[3] = { "Residential", "Commercial", "Industrial" };
+        for (int r = 0; r < 3; r++) {
+            float ry = dy + 125.0f + ((float)r * 36.0f);
+            snprintf(buf, sizeof(buf), "%s Tax Rate: %d%%", tax_labels[r], *TaxRateForRow(r));
+            GUI_DrawText(renderer, cx, (int)ry + 6, buf, col_white);
 
-        SDL_FRect t_dn = { dx + 240.0f, dy + 125.0f, 40.0f, 28.0f };
-        SDL_FRect t_up = { dx + 300.0f, dy + 125.0f, 40.0f, 28.0f };
-        SDL_SetRenderDrawColor(renderer, 40, 50, 70, 255);
-        SDL_RenderFillRect(renderer, &t_dn);
-        SDL_RenderFillRect(renderer, &t_up);
-        GUI_DrawText(renderer, (int)t_dn.x + 15, (int)t_dn.y + 6, "-", col_white);
-        GUI_DrawText(renderer, (int)t_up.x + 15, (int)t_up.y + 6, "+", col_white);
+            SDL_FRect t_dn = TaxButtonRect(dx, dy, r, false);
+            SDL_FRect t_up = TaxButtonRect(dx, dy, r, true);
+            SDL_SetRenderDrawColor(renderer, 40, 50, 70, 255);
+            SDL_RenderFillRect(renderer, &t_dn);
+            SDL_RenderFillRect(renderer, &t_up);
+            GUI_DrawText(renderer, (int)t_dn.x + 15, (int)t_dn.y + 6, "-", col_white);
+            GUI_DrawText(renderer, (int)t_up.x + 15, (int)t_up.y + 6, "+", col_white);
+        }
 
-        snprintf(buf, sizeof(buf), "Projected Annual Receipts: $%d", TaxFund);
-        GUI_DrawText(renderer, cx, cy + 90, buf, col_green);
+        snprintf(buf, sizeof(buf), "Projected Annual Receipts: $%d", CalcTaxFund());
+        GUI_DrawText(renderer, cx, cy + 150, buf, col_green);
 
-        if (CityTax > 12) {
-            GUI_DrawText(renderer, cx, cy + 130, "Warning: High taxes will stifle development!", col_red);
-        } else if (CityTax <= 5) {
-            GUI_DrawText(renderer, cx, cy + 130, "Notice: Low taxes strongly attract new residents.", col_cyan);
+        int16_t avg_tax = GetAverageTaxRate();
+        if (avg_tax > 12) {
+            GUI_DrawText(renderer, cx, cy + 180, "Warning: High taxes will stifle development!", col_red);
+        } else if (avg_tax <= 5) {
+            GUI_DrawText(renderer, cx, cy + 180, "Notice: Low taxes strongly attract new residents.", col_cyan);
         } else {
-            GUI_DrawText(renderer, cx, cy + 130, "Status: Balanced tax rate.", col_gray);
+            GUI_DrawText(renderer, cx, cy + 180, "Status: Balanced tax rate.", col_gray);
         }
 
     } else if (active_city_tab == CITY_TAB_EVALUATION) {
