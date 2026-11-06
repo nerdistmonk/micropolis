@@ -1,6 +1,6 @@
 /* sdl3_dialog_news.c: Newspaper headlines modal, opened by clicking the status-bar date.
  * Shows only the headlines for the current in-game year, so the list changes as the year rolls over.
- * Real-world entries come first; game events (disasters, population, treasury) follow in the order they happened.
+ * Real-world entries come first, then fictional filler, then game events (disasters, population, treasury) in the order they happened.
  * The list scrolls when it is longer than NEWS_VISIBLE_ROWS. Clear drops the game events; unread game events are marked read on open.
  */
 
@@ -85,6 +85,34 @@ static const NewsItem news_items[] = {
 };
 
 #define NEWS_ITEM_COUNT (sizeof(news_items) / sizeof(news_items[0]))
+
+static const NewsItem fiction_items[] = {
+    { 1902, "Local man builds sandwich the size of city hall" },
+    { 1907, "Pigeons elect a mayor, then immediately regret it" },
+    { 1910, "Traffic jam stretches fourteen miles; drivers say it's fine" },
+    { 1915, "Town council votes to make Tuesdays a little longer" },
+    { 1922, "Scientists confirm the moon is slightly to the left" },
+    { 1931, "Mayor's pet goldfish appointed deputy police chief" },
+    { 1936, "Sewer alligator sighted; now the city's unofficial mascot" },
+    { 1942, "Bakery wins 'Largest Croissant' title; council reconsiders" },
+    { 1950, "Frogs petition for seats on the zoning board" },
+    { 1956, "Lost tourists file formal complaint against their own city" },
+    { 1960, "Weather balloon declares itself the new city treasurer" },
+    { 1966, "Parking meters declared 'sentient' by a city inspector" },
+    { 1972, "Citizens demand a second moon; council says 'maybe'" },
+    { 1978, "Stray cat wins local election by a landslide" },
+    { 1983, "Haunted lighthouse reports a surprising rise in tourism" },
+    { 1988, "Man-eating houseplant released on a technicality" },
+    { 1993, "Robot street sweeper develops a taste for hats" },
+    { 1998, "Mayor vows to fix potholes, then fixes the wrong street" },
+    { 2004, "City unveils statue of its own treasurer; it is a bit smug" },
+    { 2009, "Giant rubber duck floats into harbor, mayor takes credit" },
+    { 2015, "Local dog files paperwork to run for council" },
+    { 2022, "Flying saucer parks in stadium, asks for a parking permit" },
+    { 2030, "Newspaper prints this headline; reporters ask for a raise" },
+};
+
+#define NEWS_FICTION_COUNT (sizeof(fiction_items) / sizeof(fiction_items[0]))
 
 #define NEWS_LOG_CAP 16
 #define NEWS_GAME_ROWS 8
@@ -197,7 +225,7 @@ static size_t NewsCollectGame(int32_t year, const char *out[NEWS_GAME_ROWS])
     return n;
 }
 
-#define NEWS_ROWS_MAX (NEWS_ITEM_COUNT + NEWS_GAME_ROWS)
+#define NEWS_ROWS_MAX (NEWS_ITEM_COUNT + NEWS_FICTION_COUNT + NEWS_GAME_ROWS)
 
 typedef struct {
     float dx, dy, dw, dh;
@@ -210,12 +238,15 @@ typedef struct {
     SDL_FRect clear, up, down, track;
 } NewsRects;
 
-/* Historical entries for the year first, then the game events. Returns the row count. */
+/* Historical entries, then fictional ones, then the game events. Returns the row count. */
 static size_t NewsBuildRows(int32_t year, const char *out[NEWS_ROWS_MAX])
 {
     size_t n = 0;
     for (size_t i = 0; i < NEWS_ITEM_COUNT; i++) {
         if (news_items[i].year == year) out[n++] = news_items[i].headline;
+    }
+    for (size_t i = 0; i < NEWS_FICTION_COUNT; i++) {
+        if (fiction_items[i].year == year) out[n++] = fiction_items[i].headline;
     }
     const char *game[NEWS_GAME_ROWS];
     size_t game_count = NewsCollectGame(year, game);
