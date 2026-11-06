@@ -8,7 +8,7 @@
 #include <string.h>
 
 #define SCN_LIST_MAX     128
-#define SCN_LIST_VISIBLE 6
+#define SCN_LIST_VISIBLE 5
 #define SCN_FILE_BYTES   256
 #define SCN_PATH_BYTES   (1024 + SCN_FILE_BYTES)
 
@@ -70,7 +70,7 @@ static bool PointIn(SDL_FRect r, float mx, float my)
 
 static SDL_FRect RowRect(float dx, float dy, int visible_index)
 {
-    SDL_FRect r = { dx + 32.0f, dy + 142.0f + (float)visible_index * 44.0f, 476.0f, 40.0f };
+    SDL_FRect r = { dx + 32.0f, dy + 138.0f + (float)visible_index * 54.0f, 476.0f, 50.0f };
     return r;
 }
 
@@ -104,6 +104,28 @@ static void FitText(char *out, size_t cap, const char *src, int max_w)
         snprintf(out, cap, "%.*s...", (int)len, src);
         if (GUI_GetTextWidth(out) <= max_w) break;
     }
+}
+
+/* Splits the description over two lines at a space. Text that still does not fit is shortened with "...". */
+static void SplitDescription(char *first, char *second, size_t cap, const char *src, int max_w)
+{
+    second[0] = '\0';
+    snprintf(first, cap, "%s", src);
+    if (GUI_GetTextWidth(src) <= max_w) return;
+
+    size_t split = 0;
+    for (size_t i = 0; src[i] != '\0'; i++) {
+        if (src[i] != ' ') continue;
+        snprintf(first, cap, "%.*s", (int)i, src);
+        if (GUI_GetTextWidth(first) > max_w) break;
+        split = i;
+    }
+    if (split == 0) {
+        FitText(first, cap, src, max_w);
+        return;
+    }
+    snprintf(first, cap, "%.*s", (int)split, src);
+    FitText(second, cap, src + split + 1, max_w);
 }
 
 static void DrawNavButton(SDL_Renderer *renderer, SDL_FRect r, const char *label, bool enabled)
@@ -173,16 +195,21 @@ void ScnList_Render(SDL_Renderer *renderer, float dx, float dy)
     for (int i = scroll_top; i < last; i++) {
         SDL_FRect row = RowRect(dx, dy, i - scroll_top);
         char name[SCN_NAME_BYTES];
-        char desc[SCN_DESC_BYTES];
+        char desc_a[SCN_DESC_BYTES];
+        char desc_b[SCN_DESC_BYTES];
         FitText(name, sizeof(name), entries[i].name, text_w);
-        FitText(desc, sizeof(desc), entries[i].description, text_w);
+        SplitDescription(desc_a, desc_b, sizeof(desc_a), entries[i].description, text_w);
 
         SDL_SetRenderDrawColor(renderer, 35, 45, 62, 255);
         SDL_RenderFillRect(renderer, &row);
         SDL_SetRenderDrawColor(renderer, 70, 90, 130, 255);
         SDL_RenderRect(renderer, &row);
-        GUI_DrawText(renderer, (int)row.x + 10, (int)row.y + 4, name, col_gold);
-        GUI_DrawText(renderer, (int)row.x + 10, (int)row.y + 21, desc, col_white);
+        const int line_h = GUI_GetLineHeight();
+        GUI_DrawText(renderer, (int)row.x + 10, (int)row.y + 3, name, col_gold);
+        GUI_DrawText(renderer, (int)row.x + 10, (int)row.y + 3 + line_h, desc_a, col_white);
+        if (desc_b[0] != '\0') {
+            GUI_DrawText(renderer, (int)row.x + 10, (int)row.y + 3 + 2 * line_h, desc_b, col_white);
+        }
     }
 
     DrawNavButton(renderer, UpRect(dx, dy), "Up", scroll_top > 0);
