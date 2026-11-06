@@ -207,6 +207,17 @@ void SimFrame(void)
     }
 }
 
+/* CityTime ticks once per 16 steps and a calendar month is 4 ticks, so 64 consecutive steps advance exactly one month. */
+void SimAdvanceOneMonth(void)
+{
+    for (int32_t i = 0; i < 64; i++) {
+        if (++Fcycle > 1023) {
+            Fcycle = 0;
+        }
+        Simulate(Fcycle & 15);
+    }
+}
+
 void Simulate(int32_t mod16)
 {
     static const int16_t SpdPwr[4] = { 1, 2, 4, 5 };

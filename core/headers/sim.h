@@ -646,6 +646,10 @@ void SetDataRoot(const char *root);
 int32_t LoadCity(const char *filename);
 int32_t SaveCity(const char *filename);
 int32_t LoadScenario(int16_t s);
+/* Recounts infrastructure and reruns the power, crime, pop-density, and fire scans after the map changes. */
+void CityRescan(void);
+/* Runs one full month of simulation (16 Simulate steps) even while paused. */
+void SimAdvanceOneMonth(void);
 
 /* Terrain generation levels (< 0 selects the random default; see GenerateMap) */
 extern int32_t TreeLevel;

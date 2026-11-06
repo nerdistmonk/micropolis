@@ -7,6 +7,7 @@
  */
 
 #include "sim.h"
+#include "scenario.h"
 
 extern void Audio_MakeSound(const char *channel, const char *sound_name);
 
@@ -91,6 +92,8 @@ void SendMessages(void)
             DoScenarioScore(ScoreType);
         }
     }
+
+    Scenario_CheckYear();
 
     CheckGrowth();
 

@@ -16,7 +16,8 @@ typedef enum {
     GUI_MODAL_DISASTERS,
     GUI_MODAL_QUERY_INSPECTOR,
     GUI_MODAL_QUIT_CONFIRM,
-    GUI_MODAL_CHOOSE_CITY
+    GUI_MODAL_CHOOSE_CITY,
+    GUI_MODAL_EDITOR
 } GuiModalId;
 
 typedef enum {
@@ -30,7 +31,6 @@ typedef enum {
 
 typedef enum {
     FILE_TAB_SAVE_LOAD = 0,
-    FILE_TAB_SCENARIOS,
     FILE_TAB_OPTIONS,
     FILE_TAB_ABOUT,
     FILE_TAB_JUKEBOX,
@@ -68,7 +68,13 @@ void GUI_Dialogs_UpdateNotice(uint64_t now);
 void GUI_Dialogs_OpenQuitConfirm(void);
 bool GUI_Dialogs_TakeQuitConfirmed(void);
 void GUI_Dialogs_OpenChooseCity(void (*on_confirm)(int32_t), int32_t arg);
+void GUI_Dialogs_OpenEditor(void);
 void GUI_Dialogs_Close(void);
+
+/* Scenario editor palette actions */
+void GUI_Editor_Save(void);
+void GUI_Editor_Step(void);
+void GUI_Editor_Exit(void);
 
 OverlayViewMode GUI_Dialogs_GetActiveOverlay(void);
 void GUI_Dialogs_SetActiveOverlay(OverlayViewMode mode);

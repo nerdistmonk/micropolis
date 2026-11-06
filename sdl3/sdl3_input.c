@@ -10,6 +10,7 @@
 #include "sdl3_splash.h"
 #include "sdl3_audio.h"
 #include "sim.h"
+#include "scenario.h"
 #include <SDL3/SDL.h>
 
 #define EDGE_SCROLL_ZONE_PX 16.0f
@@ -156,6 +157,16 @@ static void ApplyTool(int16_t tool, int32_t tx, int32_t ty, bool first)
         return;
     }
 
+    if (tool == editorWaterState || tool == editorLandState || tool == editorForestState) {
+        Scenario_EditorPaint(tool, tx, ty);
+        return;
+    }
+
+    /* The scenario editor builds for free: TotalFunds is restored after every action */
+    bool editing = Scenario_EditorIsActive();
+    int32_t saved_funds = TotalFunds;
+    if (editing) TotalFunds = SCN_MAX_VALUE;
+
     int32_t result;
     switch (tool) {
     case residentialState:
@@ -187,8 +198,11 @@ static void ApplyTool(int16_t tool, int32_t tx, int32_t ty, bool first)
         result = LayRail(tx, ty);
         break;
     default:
+        if (editing) TotalFunds = saved_funds;
         return;
     }
+
+    if (editing) TotalFunds = saved_funds;
 
     if (result == 1) {
         /* Bulldozer clips are played by the core */

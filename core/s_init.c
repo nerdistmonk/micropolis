@@ -7,6 +7,7 @@
  */
 
 #include "sim.h"
+#include "scenario.h"
 
 /* Forward Declarations of Internal Functions */
 static void ResetLastKeys(void);
@@ -31,6 +32,8 @@ void InitWillStuff(void)
 
 void ResetCityWorkingState(void)
 {
+    Scenario_Deactivate();
+
     CityScore    = 500;
     CityPop      = -1;
     OverRide     = 0;

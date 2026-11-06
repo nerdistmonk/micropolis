@@ -6,6 +6,7 @@
 #include "sdl3_audio.h"
 #include "sdl3_music.h"
 #include "sdl3_settings.h"
+#include "scenario.h"
 #include <ctype.h>
 #include <stdint.h>
 
@@ -22,33 +23,6 @@ typedef struct {
     char *path;
     bool dialog_error;
 } NativeFileResult;
-
-static const struct {
-    int id;
-    const char *title;
-} scenario_grid[] = {
-    { 1, "1. Dullsville (1900)" },
-    { 2, "2. San Francisco (1906)" },
-    { 3, "3. Hamburg (1944)" },
-    { 4, "4. Bern (1965)" },
-    { 5, "5. Tokyo (1957)" },
-    { 6, "6. Detroit (1972)" },
-    { 7, "7. Boston (2010)" },
-    { 8, "8. Rio de Janeiro (2047)" }
-};
-
-#define SCENARIO_GRID_COUNT (sizeof(scenario_grid) / sizeof(scenario_grid[0]))
-
-static SDL_FRect ScenarioGridRect(float dx, float dy, size_t i)
-{
-    SDL_FRect r = {
-        dx + 30.0f + (float)(i % 2) * 250.0f,
-        dy + 120.0f + (float)(i / 2) * 50.0f,
-        230.0f,
-        34.0f
-    };
-    return r;
-}
 
 #define TERRAIN_OPT_COUNT 4
 #define TERRAIN_OPT_VALUES 4
@@ -89,6 +63,16 @@ static SDL_FRect FileLoadRect(float dx, float dy)
 static SDL_FRect FileNewRect(float dx, float dy)
 {
     return FileActionRect(dx + 270.0f, dy + 185.0f, "New City Map", 24.0f, 34.0f);
+}
+
+static SDL_FRect FileEditorRect(float dx, float dy)
+{
+    return FileActionRect(dx + 150.0f, dy + 228.0f, "Editor Mode", 24.0f, 34.0f);
+}
+
+static SDL_FRect FileScenarioRect(float dx, float dy)
+{
+    return FileActionRect(dx + 390.0f, dy + 228.0f, "Load Scenario", 24.0f, 34.0f);
 }
 
 static SDL_FRect FileDifficultyRect(float dx, float dy, int i)
@@ -143,11 +127,19 @@ void Dialog_File_Open(FileDialogTab tab)
 {
     active_file_tab = tab;
     file_status_message[0] = '\0';
+    ScnList_Close();
+}
+
+static void EditorStartConfirmed(int32_t arg)
+{
+    (void)arg;
+    Dialog_Editor_Start();
 }
 
 /* Run only after the "Choose Another City" confirmation. */
 static void NewCityConfirmed(int32_t level)
 {
+    Scenario_EditorEnd();
     Sim_InitEngine();
     for (int i = 0; i < TERRAIN_OPT_COUNT; i++) {
         int32_t value = terrain_opt_values[i][terrain_opt_index[i]];
@@ -162,11 +154,6 @@ static void NewCityConfirmed(int32_t level)
     char buf[64];
     snprintf(buf, sizeof(buf), "New %s city generated!", NewCityLevelNames[GameLevel]);
     GUI_ShowStatus(buf);
-}
-
-static void ScenarioConfirmed(int32_t id)
-{
-    GUI_LoadScenarioWithStatus((int16_t)id);
 }
 
 static bool EndsWithCityExt(const char *path)
@@ -341,9 +328,14 @@ bool Dialog_File_HandleClick(float mx, float my)
     for (int i = 0; i < FILE_TAB_COUNT; i++) {
         SDL_FRect tr = FileTabRect(dx, dy, i);
         if (mx >= tr.x && mx <= tr.x + tr.w && my >= tr.y && my <= tr.y + tr.h) {
+            ScnList_Close();
             active_file_tab = (FileDialogTab)i;
             return true;
         }
+    }
+
+    if (active_file_tab == FILE_TAB_SAVE_LOAD && ScnList_IsOpen()) {
+        return ScnList_HandleClick(mx, my, dx, dy);
     }
 
     if (active_file_tab == FILE_TAB_JUKEBOX) {
@@ -383,6 +375,20 @@ bool Dialog_File_HandleClick(float mx, float my)
             return true;
         }
 
+        SDL_FRect editor_btn = FileEditorRect(dx, dy);
+        if (mx >= editor_btn.x && mx <= editor_btn.x + editor_btn.w &&
+            my >= editor_btn.y && my <= editor_btn.y + editor_btn.h) {
+            GUI_Dialogs_OpenChooseCity(EditorStartConfirmed, 0);
+            return true;
+        }
+
+        SDL_FRect scn_btn = FileScenarioRect(dx, dy);
+        if (mx >= scn_btn.x && mx <= scn_btn.x + scn_btn.w &&
+            my >= scn_btn.y && my <= scn_btn.y + scn_btn.h) {
+            ScnList_Open();
+            return true;
+        }
+
         for (int i = 0; i < 3; i++) {
             SDL_FRect diff_btn = FileDifficultyRect(dx, dy, i);
             if (mx >= diff_btn.x && mx <= diff_btn.x + diff_btn.w &&
@@ -396,14 +402,6 @@ bool Dialog_File_HandleClick(float mx, float my)
             SDL_FRect opt = TerrainOptRect(dx, dy, i);
             if (mx >= opt.x && mx <= opt.x + opt.w && my >= opt.y && my <= opt.y + opt.h) {
                 terrain_opt_index[i] = (terrain_opt_index[i] + 1) % terrain_opt_count[i];
-                return true;
-            }
-        }
-    } else if (active_file_tab == FILE_TAB_SCENARIOS) {
-        for (size_t i = 0; i < SCENARIO_GRID_COUNT; i++) {
-            SDL_FRect r = ScenarioGridRect(dx, dy, i);
-            if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
-                GUI_Dialogs_OpenChooseCity(ScenarioConfirmed, scenario_grid[i].id);
                 return true;
             }
         }
@@ -508,7 +506,7 @@ void Dialog_File_Render(SDL_Renderer *renderer)
     SDL_RenderFillRect(renderer, &close_rect);
     GUI_DrawText(renderer, (int)close_rect.x + 6, (int)close_rect.y + 4, "X", col_white);
 
-    const char *tabs[] = { "Save / Load", "Scenarios", "Options", "About", "Jukebox" };
+    const char *tabs[] = { "Save / Load", "Options", "About", "Jukebox" };
     for (int i = 0; i < FILE_TAB_COUNT; i++) {
         SDL_FRect tr = FileTabRect(dx, dy, i);
         if (active_file_tab == (FileDialogTab)i) {
@@ -535,7 +533,9 @@ void Dialog_File_Render(SDL_Renderer *renderer)
     int cx = (int)content_box.x + 16;
     int cy = (int)content_box.y + 16;
 
-    if (active_file_tab == FILE_TAB_SAVE_LOAD) {
+    if (active_file_tab == FILE_TAB_SAVE_LOAD && ScnList_IsOpen()) {
+        ScnList_Render(renderer, dx, dy);
+    } else if (active_file_tab == FILE_TAB_SAVE_LOAD) {
         GUI_DrawText(renderer, cx, cy, "CITY PERSISTENCE & FILE DISK", col_gold);
         GUI_DrawText(renderer, cx, cy + 22, "Save and Load open your system's file dialog.", col_white);
 
@@ -559,6 +559,20 @@ void Dialog_File_Render(SDL_Renderer *renderer)
         SDL_SetRenderDrawColor(renderer, 200, 140, 50, 255);
         SDL_RenderRect(renderer, &new_btn);
         GUI_DrawTextCentered(renderer, new_btn, "New City Map", col_gold);
+
+        SDL_FRect editor_btn = FileEditorRect(dx, dy);
+        SDL_SetRenderDrawColor(renderer, 40, 80, 100, 255);
+        SDL_RenderFillRect(renderer, &editor_btn);
+        SDL_SetRenderDrawColor(renderer, 90, 180, 210, 255);
+        SDL_RenderRect(renderer, &editor_btn);
+        GUI_DrawTextCentered(renderer, editor_btn, "Editor Mode", col_cyan);
+
+        SDL_FRect scn_btn = FileScenarioRect(dx, dy);
+        SDL_SetRenderDrawColor(renderer, 80, 60, 100, 255);
+        SDL_RenderFillRect(renderer, &scn_btn);
+        SDL_SetRenderDrawColor(renderer, 170, 130, 220, 255);
+        SDL_RenderRect(renderer, &scn_btn);
+        GUI_DrawTextCentered(renderer, scn_btn, "Load Scenario", col_white);
 
         GUI_DrawText(renderer, (int)dx + 60, (int)dy + 298, "New city difficulty:", col_white);
         for (int i = 0; i < 3; i++) {
@@ -588,17 +602,6 @@ void Dialog_File_Render(SDL_Renderer *renderer)
             GUI_DrawText(renderer, cx, cy + 180, file_status_message, file_status_color);
         }
 
-    } else if (active_file_tab == FILE_TAB_SCENARIOS) {
-        GUI_DrawText(renderer, cx, cy, "HISTORICAL CRISIS SCENARIOS", col_gold);
-
-        for (size_t i = 0; i < SCENARIO_GRID_COUNT; i++) {
-            SDL_FRect r = ScenarioGridRect(dx, dy, i);
-            SDL_SetRenderDrawColor(renderer, 35, 45, 62, 255);
-            SDL_RenderFillRect(renderer, &r);
-            SDL_SetRenderDrawColor(renderer, 70, 90, 130, 255);
-            SDL_RenderRect(renderer, &r);
-            GUI_DrawText(renderer, (int)r.x + 12, (int)r.y + 8, scenario_grid[i].title, col_white);
-        }
     } else if (active_file_tab == FILE_TAB_OPTIONS) {
         GUI_DrawText(renderer, cx, cy, "SIMULATION PREFERENCES & TOGGLES", col_gold);
 

@@ -58,6 +58,22 @@ void Dialog_File_RequestNative(NativeFileRequest req);
 bool Dialog_File_HandleNativeEvent(const SDL_Event *event);
 bool Dialog_File_NativePending(void);
 
+/* Load Scenario list (replaces the Save / Load tab body while open) */
+void ScnList_Open(void);
+void ScnList_Close(void);
+bool ScnList_IsOpen(void);
+void ScnList_Render(SDL_Renderer *renderer, float dx, float dy);
+bool ScnList_HandleClick(float mx, float my, float dx, float dy);
+
+/* Scenario editor: entry (after the choose-another-city confirmation) and settings modal */
+void Dialog_Editor_Start(void);
+void Dialog_Editor_Open(void);
+void Dialog_Editor_Reset(void);
+bool Dialog_Editor_HandleClick(float mx, float my);
+bool Dialog_Editor_HandleKeyDown(SDL_Keycode key);
+bool Dialog_Editor_HandleTextInput(const char *text);
+void Dialog_Editor_Render(SDL_Renderer *renderer);
+
 /* Map Overlays */
 void Dialog_Overlays_Open(void);
 bool Dialog_Overlays_HandleClick(float mx, float my);

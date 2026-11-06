@@ -9,6 +9,7 @@
 #include "sdl3_audio.h"
 #include "sdl3_video.h"
 #include "sim.h"
+#include "scenario.h"
 #include "sdl3_paths.h"
 #include <stdio.h>
 #include <string.h>
@@ -67,6 +68,45 @@ static char ticker_dismissed_message[256] = {0};
 static SDL_FRect rect_ticker_box     = { 280.0f, 34.0f, 464.0f, 26.0f };
 static SDL_FRect rect_ticker_dismiss = { 722.0f, 37.0f,  18.0f, 20.0f };
 
+/* Scenario editor controls, drawn as a footer strip over the bottom of the map while the editor is active */
+typedef enum {
+  EDITOR_BTN_WATER,
+  EDITOR_BTN_LAND,
+  EDITOR_BTN_FOREST,
+  EDITOR_BTN_STEP,
+  EDITOR_BTN_SETUP,
+  EDITOR_BTN_SAVE,
+  EDITOR_BTN_EXIT,
+  EDITOR_BTN_COUNT
+} EditorButtonId;
+
+typedef struct {
+  const char *label;
+  int16_t brush_id;
+  SDL_FRect rect;
+} EditorButton;
+
+static EditorButton editor_buttons[EDITOR_BTN_COUNT] = {
+  { "Water",  editorWaterState,  { 0.0f, 0.0f, 0.0f, 0.0f } },
+  { "Land",   editorLandState,   { 0.0f, 0.0f, 0.0f, 0.0f } },
+  { "Forest", editorForestState, { 0.0f, 0.0f, 0.0f, 0.0f } },
+  { "Step",   -1,                { 0.0f, 0.0f, 0.0f, 0.0f } },
+  { "Setup",  -1,                { 0.0f, 0.0f, 0.0f, 0.0f } },
+  { "Save",   -1,                { 0.0f, 0.0f, 0.0f, 0.0f } },
+  { "Exit",   -1,                { 0.0f, 0.0f, 0.0f, 0.0f } }
+};
+static int hovered_editor_idx = -1;
+
+static int EditorButtonAt(float x, float y)
+{
+  if (!Scenario_EditorIsActive()) return -1;
+  for (int i = 0; i < EDITOR_BTN_COUNT; i++) {
+    SDL_FRect r = editor_buttons[i].rect;
+    if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return i;
+  }
+  return -1;
+}
+
 int32_t GUI_CityPopDisplay(void)
 {
   return (CityPop < 0) ? 0 : CityPop;
@@ -110,6 +150,13 @@ static void UpdateLayout(void)
   rect_overlays_btn.x = cw - 464.0f;
   rect_query_btn.y = radar_y - 118.0f;
   rect_rci_box.y = radar_y - 82.0f;
+
+  for (int i = 0; i < EDITOR_BTN_COUNT; i++) {
+    editor_buttons[i].rect.x = (float)(TOOLBAR_WIDTH + 24) + (float)i * 88.0f;
+    editor_buttons[i].rect.y = (float)Video_GetCanvasHeight() - 34.0f;
+    editor_buttons[i].rect.w = 84.0f;
+    editor_buttons[i].rect.h = 24.0f;
+  }
 }
 
 static const SDL_Color col_white = { 245, 245, 250, 255 };
@@ -212,11 +259,14 @@ void GUI_HandleMotion(float mouse_x, float mouse_y)
   if (GUI_IsModalOpen()) {
     hovered_tool_idx = -1;
     hovered_query_btn = false;
+    hovered_editor_idx = -1;
     return;
   }
 
   hovered_tool_idx = -1;
   hovered_query_btn = false;
+  hovered_editor_idx = EditorButtonAt(mouse_x, mouse_y);
+  if (hovered_editor_idx >= 0) return;
 
   if (mouse_x >= rect_query_btn.x && mouse_x <= (rect_query_btn.x + rect_query_btn.w) &&
       mouse_y >= rect_query_btn.y && mouse_y <= (rect_query_btn.y + rect_query_btn.h)) {
@@ -311,6 +361,33 @@ bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
       SetSimSpeed(speed_cycle[(cur + 1) % cycle_len]);
       Audio_PlayRunningSound(SimSpeed);
       return true;
+    }
+    return true;
+  }
+
+  /* Scenario editor palette */
+  int editor_idx = EditorButtonAt(mouse_x, mouse_y);
+  if (editor_idx >= 0) {
+    switch (editor_idx) {
+    case EDITOR_BTN_WATER:
+    case EDITOR_BTN_LAND:
+    case EDITOR_BTN_FOREST:
+      Input_SetActiveTool(editor_buttons[editor_idx].brush_id);
+      break;
+    case EDITOR_BTN_STEP:
+      GUI_Editor_Step();
+      break;
+    case EDITOR_BTN_SETUP:
+      GUI_Dialogs_OpenEditor();
+      break;
+    case EDITOR_BTN_SAVE:
+      GUI_Editor_Save();
+      break;
+    case EDITOR_BTN_EXIT:
+      GUI_Editor_Exit();
+      break;
+    default:
+      break;
     }
     return true;
   }
@@ -453,6 +530,37 @@ static void RenderQueryToolButton(SDL_Renderer *renderer)
   SDL_RenderRect(renderer, &rect_query_btn);
 
   GUI_DrawText(renderer, (int)rect_query_btn.x + 20, (int)rect_query_btn.y + 7, "Inspect [?]", selected ? col_gold : col_white);
+}
+
+static void RenderEditorButtons(SDL_Renderer *renderer)
+{
+  int16_t cur_tool = Input_GetActiveTool();
+
+  for (int i = 0; i < EDITOR_BTN_COUNT; i++) {
+    EditorButton *btn = &editor_buttons[i];
+    bool selected = (btn->brush_id >= 0 && btn->brush_id == cur_tool);
+    bool hovered = (hovered_editor_idx == i);
+
+    if (selected) {
+      SDL_SetRenderDrawColor(renderer, 48, 85, 140, 255);
+    } else if (hovered) {
+      SDL_SetRenderDrawColor(renderer, 42, 52, 70, 255);
+    } else {
+      SDL_SetRenderDrawColor(renderer, 30, 36, 48, 255);
+    }
+    SDL_RenderFillRect(renderer, &btn->rect);
+
+    if (selected) {
+      SDL_SetRenderDrawColor(renderer, 255, 215, 0, 255);
+    } else if (hovered) {
+      SDL_SetRenderDrawColor(renderer, 120, 160, 220, 255);
+    } else {
+      SDL_SetRenderDrawColor(renderer, 60, 72, 90, 255);
+    }
+    SDL_RenderRect(renderer, &btn->rect);
+
+    GUI_DrawTextCentered(renderer, btn->rect, btn->label, selected ? col_gold : col_white);
+  }
 }
 
 void GUI_Render(SDL_Renderer *renderer)
@@ -624,6 +732,11 @@ void GUI_Render(SDL_Renderer *renderer)
     }
   }
 
+  /* Scenario editor palette (only while the editor is active) */
+  if (Scenario_EditorIsActive()) {
+    RenderEditorButtons(renderer);
+  }
+
   /* Query Tool Button (Above RCI) */
   RenderQueryToolButton(renderer);
 
@@ -661,6 +774,7 @@ HelpTopic GUI_HelpTopicAt(float mouse_x, float mouse_y)
   }
 
   if (TickerVisible() && RectContainsPoint(rect_ticker_box, mouse_x, mouse_y)) return HELP_TICKER;
+  if (EditorButtonAt(mouse_x, mouse_y) >= 0) return HELP_NONE;
   if (RectContainsPoint(rect_query_btn, mouse_x, mouse_y)) return HELP_QUERY;
   if (RectContainsPoint(rect_rci_box, mouse_x, mouse_y)) return HELP_RCI;
   if (RectContainsPoint(Video_GetMinimapRect(), mouse_x, mouse_y)) return HELP_MINIMAP;

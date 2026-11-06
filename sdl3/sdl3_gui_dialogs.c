@@ -2,6 +2,7 @@
  */
 
 #include "sdl3_dialog_common.h"
+#include "scenario.h"
 
 static GuiModalId active_modal = GUI_MODAL_NONE;
 static OverlayViewMode active_overlay_mode = OVERLAY_VIEW_NORMAL;
@@ -94,6 +95,14 @@ void GUI_Dialogs_OpenChooseCity(void (*on_confirm)(int32_t), int32_t arg)
     Dialog_ChooseCity_Show(on_confirm, arg);
 }
 
+void GUI_Dialogs_OpenEditor(void)
+{
+    if (!Scenario_EditorIsActive()) return;
+    GUI_Dialogs_Close();
+    active_modal = GUI_MODAL_EDITOR;
+    Dialog_Editor_Open();
+}
+
 void GUI_Dialogs_Close(void)
 {
     if (active_modal == GUI_MODAL_CITY_MGMT) {
@@ -106,6 +115,8 @@ void GUI_Dialogs_Close(void)
         }
     } else if (active_modal == GUI_MODAL_CHOOSE_CITY) {
         Dialog_ChooseCity_Reset();
+    } else if (active_modal == GUI_MODAL_EDITOR) {
+        Dialog_Editor_Reset();
     }
 
     active_modal = GUI_MODAL_NONE;
@@ -127,6 +138,9 @@ bool GUI_Dialogs_HandleTextInput(const char *text)
     if (active_modal == GUI_MODAL_CITY_MGMT) {
         return Dialog_City_HandleTextInput(text);
     }
+    if (active_modal == GUI_MODAL_EDITOR) {
+        return Dialog_Editor_HandleTextInput(text);
+    }
     return false;
 }
 
@@ -140,6 +154,8 @@ bool GUI_Dialogs_HandleKeyDown(SDL_Keycode key)
     if (active_modal == GUI_MODAL_NONE) return false;
 
     if (active_modal == GUI_MODAL_QUIT_CONFIRM && Dialog_File_NativePending()) return true;
+
+    if (active_modal == GUI_MODAL_EDITOR && Dialog_Editor_HandleKeyDown(key)) return true;
 
     if (key == SDLK_ESCAPE) {
         GUI_Dialogs_Close();
@@ -179,6 +195,8 @@ bool GUI_Dialogs_HandleClick(float mx, float my)
         return Dialog_Quit_HandleClick(mx, my);
     case GUI_MODAL_CHOOSE_CITY:
         return Dialog_ChooseCity_HandleClick(mx, my);
+    case GUI_MODAL_EDITOR:
+        return Dialog_Editor_HandleClick(mx, my);
     default:
         return Dialog_Notice_HandleClick(mx, my);
     }
@@ -212,6 +230,9 @@ void GUI_Dialogs_Render(SDL_Renderer *renderer)
         break;
     case GUI_MODAL_CHOOSE_CITY:
         Dialog_ChooseCity_Render(renderer);
+        break;
+    case GUI_MODAL_EDITOR:
+        Dialog_Editor_Render(renderer);
         break;
     default:
         break;
