@@ -305,6 +305,13 @@ typedef int32_t QUAD;
 #define WATERTOWER 960
 #define WATERTOWER_TILES 9
 
+/* Landfill: four 3x3 fill stages (empty, quarter, half, full) from images/landfill.xpm, tile IDs 970-1005.
+ * Keep IDs below 1024 so they do not reach ZONEBIT (0x0400). */
+#define LANDFILL 970
+#define LANDFILL_STAGE_TILES 9
+#define LANDFILL_STAGES 4
+#define LANDFILL_TILES (LANDFILL_STAGE_TILES * LANDFILL_STAGES)
+
 /* No-water icon: the tile after the water tower block, drawn on zones lacking water */
 #define WATERDROP 969
 

@@ -18,6 +18,7 @@
 extern const char **Micropolis_GetTilesXpmData(void);
 extern const char **Micropolis_GetWaterTowerXpmData(void);
 extern const char **Micropolis_GetHospitalXpmData(void);
+extern const char **Micropolis_GetLandfillXpmData(void);
 
 static uint32_t *tile_pixels = NULL;
 static int32_t sheet_width = 0;
@@ -157,7 +158,8 @@ bool Tiles_Init(void)
     uint32_t *tiles_px = NULL;
     uint32_t *tower_px = NULL;
     uint32_t *hosp_px = NULL;
-    int32_t tiles_w = 0, tiles_h = 0, tower_w = 0, tower_h = 0, hosp_w = 0, hosp_h = 0;
+    uint32_t *land_px = NULL;
+    int32_t tiles_w = 0, tiles_h = 0, tower_w = 0, tower_h = 0, hosp_w = 0, hosp_h = 0, land_w = 0, land_h = 0;
 
     if (!ParseXpmSheet(Micropolis_GetTilesXpmData(), &tiles_px, &tiles_w, &tiles_h)) return false;
 
@@ -182,27 +184,41 @@ bool Tiles_Init(void)
            (size_t)hosp_w * (size_t)hosp_h * sizeof(uint32_t));
     free(hosp_px);
 
+    if (!ParseXpmSheet(Micropolis_GetLandfillXpmData(), &land_px, &land_w, &land_h) ||
+        land_w != tiles_w || land_h != LANDFILL_TILES * TILE_H) {
+        SDL_Log("Error: Landfill sheet is missing or does not match the tile sheet.");
+        free(tiles_px);
+        free(tower_px);
+        free(land_px);
+        return false;
+    }
+
     /* Water tower tiles follow the base sheet, so tile IDs 960+ index the appended rows. */
     size_t tiles_count = (size_t)tiles_w * (size_t)tiles_h;
     size_t tower_count = (size_t)tower_w * (size_t)tower_h;
-    uint32_t *combined = (uint32_t *)calloc(tiles_count + tower_count, sizeof(uint32_t));
+    size_t land_count = (size_t)land_w * (size_t)land_h;
+    uint32_t *combined = (uint32_t *)calloc(tiles_count + tower_count + land_count, sizeof(uint32_t));
     if (!combined) {
         free(tiles_px);
         free(tower_px);
+        free(land_px);
         return false;
     }
     memcpy(combined, tiles_px, tiles_count * sizeof(uint32_t));
     memcpy(combined + tiles_count, tower_px, tower_count * sizeof(uint32_t));
+    memcpy(combined + tiles_count + tower_count, land_px, land_count * sizeof(uint32_t));
     free(tiles_px);
     free(tower_px);
+    free(land_px);
 
     free(tile_pixels);
     tile_pixels = combined;
     sheet_width = tiles_w;
-    sheet_height = tiles_h + tower_h;
+    sheet_height = tiles_h + tower_h + land_h;
     tiles_ready = true;
 
-    SDL_Log("Embedded tiles successfully initialized: %dx%d (%d base + %d water tower rows)", tiles_w, tiles_h, tiles_h, tower_h);
+    SDL_Log("Embedded tiles successfully initialized: %dx%d (%d base + %d water tower rows + %d landfill rows)",
+            tiles_w, tiles_h, tiles_h, tower_h, land_h);
     return true;
 }
 

@@ -7,12 +7,14 @@
 const char **Micropolis_GetTilesXpmData(void);
 const char **Micropolis_GetWaterTowerXpmData(void);
 const char **Micropolis_GetHospitalXpmData(void);
+const char **Micropolis_GetLandfillXpmData(void);
 
 /* Include the raw XPM files directly as C source arrays */
 #define static
 #include "../images/tiles.xpm"
 #include "../images/water_tower.xpm"
 #include "../images/hospital.xpm"
+#include "../images/landfill.xpm"
 #undef static
 
 /* Export the array symbols cleanly */
@@ -29,4 +31,9 @@ const char **Micropolis_GetWaterTowerXpmData(void)
 const char **Micropolis_GetHospitalXpmData(void)
 {
     return (const char **)hospital_xpm;
+}
+
+const char **Micropolis_GetLandfillXpmData(void)
+{
+    return (const char **)landfill_xpm;
 }
