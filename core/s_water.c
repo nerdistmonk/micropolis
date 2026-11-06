@@ -150,10 +150,19 @@ bool WaterTowerHasSource(int32_t x, int32_t y)
     return TowerHasSource(x + 1 - off % 3, y + 1 - off / 3);
 }
 
+/* Pipe runs underground beneath anything except a building, so it can cross roads, rail, and water. Buildings attach pipe at their edge, like power lines. */
+static bool PipeCanLay(uint16_t raw)
+{
+    int32_t t = raw & LOMASK;
+    if (t >= RESBASE && t <= LASTZONE) return false;
+    return !(t >= WATERTOWER && t < WATERTOWER + WATERTOWER_TILES);
+}
+
 int32_t LayPipe(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return 0;
     if (pipe_map[x][y]) return 0;
+    if (!PipeCanLay(Map[x][y])) return 0;
     if (TotalFunds < CostOf[pipeState]) return -2;
 
     pipe_map[x][y] = 1;
@@ -176,6 +185,7 @@ int32_t LayWaterTower(int32_t x, int32_t y)
     for (int32_t dy = -1; dy <= 1; dy++) {
         for (int32_t dx = -1; dx <= 1; dx++) {
             uint16_t tile = (uint16_t)(WATERTOWER + (dy + 1) * 3 + (dx + 1));
+            Water_RemovePipe(x + dx, y + dy);
             Map[x + dx][y + dy] = (uint16_t)(tile | BULLBIT);
         }
     }

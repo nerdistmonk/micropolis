@@ -341,6 +341,7 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
         for (int32_t dx = 0; dx < size; dx++) {
             int32_t tx = start_x + dx;
             int32_t ty = start_y + dy;
+            Water_RemovePipe(tx, ty);
             Map[tx][ty] = DIRT;
         }
     }
