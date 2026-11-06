@@ -4,8 +4,8 @@
  * kept in their own layer, separate from the surface Map, so they are only visible in
  * the underground overlay. Water floods outward from a tower through pipes and zone
  * buildings the same way power floods through wires. Power plants are sinks: water
- * reaches them but does not pass through. Each tower serves up to WATER_TOWER_ZONES
- * zone centers.
+ * reaches them but does not pass through. Each tower adds up to WATER_TOWER_ZONES new
+ * zone centers; zones another tower already waters do not count against it.
  */
 
 #include <string.h>
@@ -116,8 +116,10 @@ static void SupplyFromTower(int32_t tx, int32_t ty)
                 MarkPlantFootprint(nx, ny);
                 continue;
             }
-            if ((tile & ZONEBIT) && zones >= WATER_TOWER_ZONES) continue;
-            if (tile & ZONEBIT) zones++;
+            if ((tile & ZONEBIT) && !water_map[nx][ny]) {
+                if (zones >= WATER_TOWER_ZONES) continue;
+                zones++;
+            }
 
             water_map[nx][ny] = 1;
             pipe_queue[tail++] = nx * WORLD_Y + ny;

@@ -464,10 +464,13 @@ int32_t SaveCity(const char *filename)
     return 1;
 }
 
-/* .scn layout: a 376-byte little-endian header, then the 27120-byte city image used by .cty files. */
+/* .scn layout: a 376-byte little-endian header, then the 27120-byte city image used by .cty files.
+ * Version 2 appends the water pipe block and the landfill fill block, as .cty files do.
+ * Version 1 is the city image only and still loads, with no pipes or fill. */
 #define SCN_HEADER_BYTES   376
-#define SCN_TOTAL_BYTES    (SCN_HEADER_BYTES + CITY_FILE_BYTES)
-#define SCN_VERSION        1
+#define SCN_CITY_END       (SCN_HEADER_BYTES + CITY_FILE_BYTES)
+#define SCN_VERSION_CITY   1
+#define SCN_VERSION        2
 #define SCN_OFF_VERSION    4
 #define SCN_OFF_FLAGS      6
 #define SCN_OFF_NAME       8
@@ -594,7 +597,8 @@ static void EncodeScenarioHeader(const ScenarioDef *def, uint8_t *h)
 static int32_t DecodeScenarioHeader(const uint8_t *h, ScenarioDef *def)
 {
     if (memcmp(h, "MCSN", 4) != 0) return 0;
-    if (GetU16LE(h + SCN_OFF_VERSION) != SCN_VERSION) return 0;
+    uint16_t ver = GetU16LE(h + SCN_OFF_VERSION);
+    if (ver != SCN_VERSION_CITY && ver != SCN_VERSION) return 0;
 
     uint16_t flags = GetU16LE(h + SCN_OFF_FLAGS);
     if (flags & (uint16_t)~SCN_FLAG_KNOWN) return 0;
@@ -623,17 +627,33 @@ static int32_t DecodeScenarioHeader(const uint8_t *h, ScenarioDef *def)
     return 1;
 }
 
-static int32_t ReadScenarioFile(const char *path, uint8_t *buf)
+/* Total file size for each version, including the pipe and fill blocks for version 2. */
+static size_t ScnTotalBytes(uint16_t version)
+{
+    if (version == SCN_VERSION_CITY) return SCN_CITY_END;
+    return SCN_CITY_END + Water_PipeBlockBytes() + LANDFILL_FILL_BYTES;
+}
+
+/* Returns the version whose layout matches the file size, or 0 if none does. */
+static uint16_t ScnVersionForSize(long size)
+{
+    if (size == (long)ScnTotalBytes(SCN_VERSION_CITY)) return SCN_VERSION_CITY;
+    if (size == (long)ScnTotalBytes(SCN_VERSION)) return SCN_VERSION;
+    return 0;
+}
+
+/* Reads the whole file into buf, which must hold ScnTotalBytes(SCN_VERSION). Returns the byte count, or 0. */
+static long ReadScenarioFile(const char *path, uint8_t *buf)
 {
     FILE *f = fopen(path, "rb");
     if (!f) return 0;
 
-    int32_t ok = fseek(f, 0L, SEEK_END) == 0 &&
-                 ftell(f) == (long)SCN_TOTAL_BYTES &&
+    long size = (fseek(f, 0L, SEEK_END) == 0) ? ftell(f) : -1L;
+    int32_t ok = ScnVersionForSize(size) != 0 &&
                  fseek(f, 0L, SEEK_SET) == 0 &&
-                 fread(buf, 1, SCN_TOTAL_BYTES, f) == SCN_TOTAL_BYTES;
+                 fread(buf, 1, (size_t)size, f) == (size_t)size;
     fclose(f);
-    return ok;
+    return ok ? size : 0;
 }
 
 int32_t Scenario_ReadDef(const char *path, ScenarioDef *def)
@@ -642,33 +662,39 @@ int32_t Scenario_ReadDef(const char *path, ScenarioDef *def)
     FILE *f = fopen(path, "rb");
     if (!f) return 0;
 
-    int32_t ok = fseek(f, 0L, SEEK_END) == 0 &&
-                 ftell(f) == (long)SCN_TOTAL_BYTES &&
+    long size = (fseek(f, 0L, SEEK_END) == 0) ? ftell(f) : -1L;
+    uint16_t version = ScnVersionForSize(size);
+    int32_t ok = version != 0 &&
                  fseek(f, 0L, SEEK_SET) == 0 &&
                  fread(header, 1, SCN_HEADER_BYTES, f) == SCN_HEADER_BYTES;
     fclose(f);
 
-    return ok && DecodeScenarioHeader(header, def) && Scenario_Validate(def) == NULL;
+    return ok && GetU16LE(header + SCN_OFF_VERSION) == version &&
+           DecodeScenarioHeader(header, def) && Scenario_Validate(def) == NULL;
 }
 
 int32_t Scenario_LoadFile(const char *path)
 {
-    uint8_t *blob = (uint8_t *)malloc(SCN_TOTAL_BYTES);
+    uint8_t *blob = (uint8_t *)malloc(ScnTotalBytes(SCN_VERSION));
     if (!blob) return 0;
 
     /* Everything is checked before any global is touched, so a bad file leaves the current city intact. */
     ScenarioDef def;
-    int32_t ok = ReadScenarioFile(path, blob) &&
+    long size = ReadScenarioFile(path, blob);
+    int32_t ok = size != 0 &&
                  DecodeScenarioHeader(blob, &def) &&
+                 GetU16LE(blob + SCN_OFF_VERSION) == ScnVersionForSize(size) &&
                  Scenario_Validate(&def) == NULL;
     if (!ok) {
         free(blob);
         return 0;
     }
 
+    /* Version 1 has no pipe or fill blocks, so they stay empty. */
+    const int32_t has_infrastructure = GetU16LE(blob + SCN_OFF_VERSION) == SCN_VERSION;
     Scenario_EditorEnd();
     ParseCityBlob(blob + SCN_HEADER_BYTES);
-    free(blob);
+    if (has_infrastructure) Water_LoadPipes(blob + SCN_CITY_END);
 
     SetGameLevel(0);
     ResetCityWorkingState();
@@ -693,6 +719,9 @@ int32_t Scenario_LoadFile(const char *path)
     firePercent = 1.0f;
     healthPercent = 1.0f;
     LandfillResetCity();
+    /* Must follow LandfillResetCity, which clears the fill. */
+    LandfillDecodeFill(has_infrastructure ? blob + SCN_CITY_END + Water_PipeBlockBytes() : NULL);
+    free(blob);
 
     InitSimLoad = 1;
     DoInitialEval = 0;
@@ -740,11 +769,14 @@ int32_t Scenario_SaveToDirectory(const ScenarioDef *def, char *saved_path, size_
     char path[1100];
     if (snprintf(path, sizeof(path), "%s%s.scn", dir, stem) >= (int)sizeof(path)) return 0;
 
-    uint8_t *blob = (uint8_t *)malloc(SCN_TOTAL_BYTES);
+    const size_t total = ScnTotalBytes(SCN_VERSION);
+    uint8_t *blob = (uint8_t *)malloc(total);
     if (!blob) return 0;
     EncodeScenarioHeader(def, blob);
     EncodeCityBlob(blob + SCN_HEADER_BYTES);
-    int32_t ok = WriteFileAtomic(path, blob, SCN_TOTAL_BYTES);
+    Water_CopyPipes(blob + SCN_CITY_END);
+    LandfillEncodeFill(blob + SCN_CITY_END + Water_PipeBlockBytes());
+    int32_t ok = WriteFileAtomic(path, blob, total);
     free(blob);
     if (!ok) return 0;
 
