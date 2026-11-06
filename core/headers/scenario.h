@@ -116,8 +116,8 @@ int32_t Scenario_ReadDef(const char *path, ScenarioDef *def);
 int32_t Scenario_LoadFile(const char *path);
 
 /* Editor brush IDs. These are not palette tools and sit above the normal tool range. */
-#define editorWaterState  19
-#define editorLandState   20
-#define editorForestState 21
+#define editorWaterState  30
+#define editorLandState   31
+#define editorForestState 32
 
 #endif /* SCENARIO_H */

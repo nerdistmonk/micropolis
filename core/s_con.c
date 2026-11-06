@@ -619,6 +619,7 @@ static void PlayZoneExplosion(int16_t size)
 int32_t LayDoze(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return 0;
+    Water_RemovePipe(x, y);
 
     uint16_t raw_tile = Map[x][y];
     int32_t tile = raw_tile & LOMASK;

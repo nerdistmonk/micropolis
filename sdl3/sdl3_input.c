@@ -58,6 +58,27 @@ static const int16_t cycle_tools[] = {
 };
 #define CYCLE_TOOL_COUNT ((int32_t)(sizeof(cycle_tools) / sizeof(cycle_tools[0])))
 
+static OverlayViewMode overlay_before_pipe = OVERLAY_VIEW_NORMAL;
+static bool pipe_overlay_auto = false;
+
+/* The underground overlay turns on with the pipe tool and restores the previous overlay when another tool is chosen. */
+static void SetActiveTool(int16_t tool)
+{
+    if (tool == pipeState) {
+        if (!pipe_overlay_auto) {
+            overlay_before_pipe = GUI_GetActiveOverlayMode();
+            pipe_overlay_auto = true;
+            GUI_SetActiveOverlayMode(OVERLAY_VIEW_UNDERGROUND);
+        }
+    } else if (pipe_overlay_auto) {
+        pipe_overlay_auto = false;
+        if (GUI_GetActiveOverlayMode() == OVERLAY_VIEW_UNDERGROUND) {
+            GUI_SetActiveOverlayMode(overlay_before_pipe);
+        }
+    }
+    active_tool = tool;
+}
+
 static void BeginToolHold(int16_t tool)
 {
     if (tool_hold_save == -1) tool_hold_save = active_tool;
@@ -77,7 +98,7 @@ static void CycleTool(int32_t step)
         if (cycle_tools[i] == active_tool) index = i;
     }
     index = (index + step + CYCLE_TOOL_COUNT) % CYCLE_TOOL_COUNT;
-    active_tool = cycle_tools[index];
+    SetActiveTool(cycle_tools[index]);
 }
 
 static void DragConstraintBegin(DragConstraint *c, float x, float y)
@@ -197,6 +218,12 @@ static void ApplyTool(int16_t tool, int32_t tx, int32_t ty, bool first)
     case rrState:
         result = LayRail(tx, ty);
         break;
+    case waterTowerState:
+        result = LayWaterTower(tx, ty);
+        break;
+    case pipeState:
+        result = LayPipe(tx, ty);
+        break;
     default:
         if (editing) TotalFunds = saved_funds;
         return;
@@ -241,7 +268,7 @@ int16_t Input_GetActiveTool(void)
 
 void Input_SetActiveTool(int16_t tool)
 {
-    active_tool = tool;
+    SetActiveTool(tool);
 }
 
 void Input_UpdateEdgeScroll(uint64_t now)

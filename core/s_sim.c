@@ -304,6 +304,7 @@ void Simulate(int32_t mod16)
     case 11:
         if (!(Scycle % SpdPwr[x])) {
             DoPowerScan();
+            DoWaterScan();
             NewPower = 1;
         }
         break;
@@ -933,7 +934,7 @@ static void DoFire(void)
         }
     }
 
-    int16_t z_rate = FireRate[SMapX >> 3][SMapY >> 3];
+    int16_t z_rate = WaterIsSupplied(SMapX, SMapY) ? FireRate[SMapX >> 3][SMapY >> 3] : 0;
     Rate = 10;
     if (z_rate) {
         Rate = 3;
@@ -1247,6 +1248,7 @@ void Sim_InitEngine(void)
     ClearCensus();
     MapScan(0, WORLD_X);
     DoPowerScan();
+    DoWaterScan();
     NewPower = 1;
 
     PTLScan();

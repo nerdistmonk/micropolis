@@ -45,7 +45,9 @@ static const HelpEntry help_entries[HELP_TOPIC_COUNT] = {
     [HELP_TOOL_STADIUM] = { "Sports Stadium", "Adds entertainment and jobs to nearby areas." },
     [HELP_TOOL_SEAPORT] = { "Seaport", "Adds shipping and jobs." },
     [HELP_TOOL_AIRPORT] = { "Municipal Airport", "Adds air travel and jobs." },
-    [HELP_TOOL_PARK] = { "Park", "Plants a fountain or a patch of woods on empty land." }
+    [HELP_TOOL_PARK] = { "Park", "Plants a fountain or a patch of woods on empty land." },
+    [HELP_TOOL_WATER_TOWER] = { "Water Tower", "Place on dry land within four tiles of water. Supplies up to nine zones through pipes." },
+    [HELP_TOOL_PIPE] = { "Water Pipe", "Lay underground pipe to connect a tower to zones. Shows the underground view." }
 };
 
 static const SDL_Color help_title_color = { 255, 215, 90, 255 };

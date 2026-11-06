@@ -24,7 +24,8 @@ static const struct {
     { OVERLAY_VIEW_RES_ZONE, "Residential Zone" },
     { OVERLAY_VIEW_COM_ZONE, "Commercial Zone" },
     { OVERLAY_VIEW_IND_ZONE, "Industrial Zone" },
-    { OVERLAY_VIEW_TRANSPORT, "Transportation" }
+    { OVERLAY_VIEW_TRANSPORT, "Transportation" },
+    { OVERLAY_VIEW_UNDERGROUND, "Underground Pipes" }
 };
 
 #define OVERLAY_CHOICE_COUNT (sizeof(overlay_choices) / sizeof(overlay_choices[0]))

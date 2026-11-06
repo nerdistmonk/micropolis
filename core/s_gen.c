@@ -119,6 +119,7 @@ void GenerateMap(int32_t seed)
 
 void ClearMap(void)
 {
+    Water_ClearPipes();
     for (int16_t x = 0; x < WORLD_X; x++) {
         for (int16_t y = 0; y < WORLD_Y; y++) {
             Map[x][y] = DIRT;

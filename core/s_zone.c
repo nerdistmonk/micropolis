@@ -67,6 +67,9 @@ void DoZone(void)
         unPwrdZCnt++;
     }
 
+    /* Unwatered zones are treated like unpowered ones: no growth */
+    zone_pwr_flg = zone_pwr_flg && WaterIsSupplied(SMapX, SMapY);
+
     if (CChr9 > PORTBASE) {
         DoSPZone(zone_pwr_flg);
         return;

@@ -323,9 +323,11 @@ typedef int32_t QUAD;
 #define nuclearState 16
 #define airportState 17
 #define networkState 18
+#define waterTowerState 19
+#define pipeState 20
 
 #define firstState residentialState
-#define lastState networkState
+#define lastState pipeState
 
 /* Global Bounds and Validity Macros */
 #define ABS(x) (((x) < 0) ? (-(x)) : (x))
@@ -563,6 +565,18 @@ int16_t SetZPower(void);
 void DoSPZone(int16_t pwron);
 void DoNilPower(void);
 void DoPowerScan(void);
+
+/* Water supply (s_water.c) */
+void DoWaterScan(void);
+bool WaterIsSupplied(int32_t x, int32_t y);
+bool WaterHasPipe(int32_t x, int32_t y);
+int32_t LayPipe(int32_t x, int32_t y);
+int32_t LayWaterTower(int32_t x, int32_t y);
+void Water_ClearPipes(void);
+void Water_RemovePipe(int32_t x, int32_t y);
+size_t Water_PipeBlockBytes(void);
+void Water_CopyPipes(uint8_t *dst);
+void Water_LoadPipes(const uint8_t *src);
 bool MoveMapSim(int16_t mdir);
 void PushPowerStack(void);
 void SetSmoke(int32_t zone_power);

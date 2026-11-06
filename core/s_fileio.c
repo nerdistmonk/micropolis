@@ -96,6 +96,7 @@ static void SyncMiscHis(void)
 
 static void ParseCityBlob(const uint8_t *blob)
 {
+    Water_ClearPipes();
     const size_t hist_count = HISTLEN / 2;
     const size_t hist_bytes = hist_count * sizeof(int16_t);
     const size_t misc_count = MISCHISTLEN / 2;
@@ -214,25 +215,28 @@ static int32_t LoadFileInternal(const char *filename)
     long size = ftell(f);
     fseek(f, 0L, SEEK_SET);
 
-    if (size != 27120 && size != 99120 && size != 219120) {
+    const long pipe_total = (long)(CITY_FILE_BYTES + Water_PipeBlockBytes());
+    if (size != 27120 && size != 99120 && size != 219120 && size != pipe_total) {
         fclose(f);
         return 0;
     }
 
     /* Read the whole image before touching any globals, so a short read leaves the current city intact. */
-    uint8_t *blob = (uint8_t *)malloc(CITY_FILE_BYTES);
+    size_t want = (size == pipe_total) ? (size_t)pipe_total : CITY_FILE_BYTES;
+    uint8_t *blob = (uint8_t *)malloc(want);
     if (!blob) {
         fclose(f);
         return 0;
     }
-    size_t got = fread(blob, 1, CITY_FILE_BYTES, f);
+    size_t got = fread(blob, 1, want, f);
     fclose(f);
-    if (got != CITY_FILE_BYTES) {
+    if (got != want) {
         free(blob);
         return 0;
     }
 
     ParseCityBlob(blob);
+    if (want > CITY_FILE_BYTES) Water_LoadPipes(blob + CITY_FILE_BYTES);
     free(blob);
     return 1;
 }
@@ -295,6 +299,7 @@ void CityRescan(void)
     FireSpend = (int32_t)((float)FireFund * firePercent);
 
     DoPowerScan();
+    DoWaterScan();
     DoNilPower();
     PTLScan();
     CrimeScan();
@@ -381,10 +386,11 @@ int32_t SaveCity(const char *filename)
         filename = CityFileName;
     }
 
-    uint8_t *blob = (uint8_t *)malloc(CITY_FILE_BYTES);
+    uint8_t *blob = (uint8_t *)malloc(CITY_FILE_BYTES + Water_PipeBlockBytes());
     if (!blob) return 0;
     EncodeCityBlob(blob);
-    int32_t ok = WriteFileAtomic(filename, blob, CITY_FILE_BYTES);
+    Water_CopyPipes(blob + CITY_FILE_BYTES);
+    int32_t ok = WriteFileAtomic(filename, blob, CITY_FILE_BYTES + Water_PipeBlockBytes());
     free(blob);
     if (!ok) return 0;
 

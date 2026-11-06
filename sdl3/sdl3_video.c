@@ -569,6 +569,16 @@ static bool FilterViewHidesTile(OverlayViewMode mode, uint16_t raw_tile)
   }
 }
 
+/* Draws a pipe cell as a band from each edge toward the center, joining any neighbouring pipe cells. */
+static uint32_t PipeCellPixel(int32_t tx, int32_t ty, int32_t px, int32_t py, uint32_t base, uint32_t color)
+{
+  bool in_row = (py >= 6 && py <= 9);
+  bool in_col = (px >= 6 && px <= 9);
+  bool hit_h = in_row && (in_col || (px < 6 ? WaterHasPipe(tx - 1, ty) : WaterHasPipe(tx + 1, ty)));
+  bool hit_v = in_col && (in_row || (py < 6 ? WaterHasPipe(tx, ty - 1) : WaterHasPipe(tx, ty + 1)));
+  return (hit_h || hit_v) ? color : base;
+}
+
 static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty)
 {
   int32_t hx = tx >> 1;
@@ -851,6 +861,8 @@ static const ToolCursorStyle tool_cursor_style[] = {
     [nuclearState]     = { 4, 1, COLOR_LIGHTGRAY, COLOR_YELLOW },
     [airportState]     = { 6, 1, COLOR_LIGHTGRAY, COLOR_LIGHTBROWN },
     [networkState]     = { 1, 0, COLOR_LIGHTGRAY, COLOR_RED },
+    [waterTowerState]  = { 3, 1, COLOR_LIGHTBLUE, COLOR_LIGHTBLUE },
+    [pipeState]        = { 1, 0, COLOR_LIGHTBLUE, COLOR_LIGHTBLUE },
 };
 
 /* Unix w_x.c palette */
@@ -1129,7 +1141,9 @@ void Video_RenderFrame(void)
       if (tx >= 0 && tx < WORLD_X && ty >= 0 && ty < WORLD_Y) {
         uint16_t raw_tile = Map[tx][ty];
 
-        if (IsTileFilterOverlay(overlay_mode)) {
+        if (overlay_mode == OVERLAY_VIEW_UNDERGROUND) {
+          raw_tile = DIRT;
+        } else if (IsTileFilterOverlay(overlay_mode)) {
           if (FilterViewHidesTile(overlay_mode, raw_tile)) {
             raw_tile = DIRT;
           }
@@ -1143,7 +1157,10 @@ void Video_RenderFrame(void)
           pixel = 0xFF000000;
         }
 
-        if (overlay_mode != OVERLAY_VIEW_NORMAL) {
+        const uint32_t pipe_color = 0xFFFF7F3Fu;
+        if (overlay_mode == OVERLAY_VIEW_UNDERGROUND) {
+          if (WaterHasPipe(tx, ty)) pixel = PipeCellPixel(tx, ty, px, py, pixel, pipe_color);
+        } else if (overlay_mode != OVERLAY_VIEW_NORMAL) {
           uint32_t overlay_col = GetOverlayColorRamp(overlay_mode, tx, ty);
           pixel = BlendOverlayOnPixel(overlay_col, pixel);
         }
