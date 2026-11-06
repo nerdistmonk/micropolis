@@ -425,8 +425,8 @@ void Video_HandleWindowEvent(const SDL_Event *event)
 
 void Video_SetCamera(int32_t tile_x, int32_t tile_y)
 {
-  int32_t max_x = WORLD_X - (canvas_w / TILE_PIXEL_SIZE);
-  int32_t max_y = WORLD_Y - (canvas_h / TILE_PIXEL_SIZE);
+  int32_t max_x = WORLD_X - ((canvas_w - MAP_ORIGIN_X) / TILE_PIXEL_SIZE);
+  int32_t max_y = WORLD_Y - ((canvas_h - MAP_ORIGIN_Y) / TILE_PIXEL_SIZE);
 
   if (max_x < 0) max_x = 0;
   if (max_y < 0) max_y = 0;
@@ -454,14 +454,10 @@ void Video_PanCamera(int32_t delta_x, int32_t delta_y)
 
 void Video_CenterOnTile(int32_t tile_x, int32_t tile_y)
 {
-  int32_t view_w_tiles = canvas_w / TILE_PIXEL_SIZE;
-  int32_t view_h_tiles = canvas_h / TILE_PIXEL_SIZE;
+  int32_t view_w_tiles = (canvas_w - MAP_ORIGIN_X) / TILE_PIXEL_SIZE;
+  int32_t view_h_tiles = (canvas_h - MAP_ORIGIN_Y) / TILE_PIXEL_SIZE;
 
-  /* Shift target tile slightly right to compensate for the left HUD toolbar */
-  int32_t toolbar_tiles = TOOLBAR_WIDTH / TILE_PIXEL_SIZE;
-  int32_t effective_center_x = (view_w_tiles - toolbar_tiles) / 2 + toolbar_tiles;
-
-  Video_SetCamera(tile_x - effective_center_x, tile_y - (view_h_tiles / 2));
+  Video_SetCamera(tile_x - (view_w_tiles / 2), tile_y - (view_h_tiles / 2));
 }
 
 bool Video_ScreenToTile(float screen_x, float screen_y, int32_t *tile_x, int32_t *tile_y)
@@ -470,8 +466,8 @@ bool Video_ScreenToTile(float screen_x, float screen_y, int32_t *tile_x, int32_t
     return false;
   }
 
-  int32_t tx = cam_x + ((int32_t)screen_x / TILE_PIXEL_SIZE);
-  int32_t ty = cam_y + ((int32_t)screen_y / TILE_PIXEL_SIZE);
+  int32_t tx = cam_x + (((int32_t)screen_x - MAP_ORIGIN_X) / TILE_PIXEL_SIZE);
+  int32_t ty = cam_y + (((int32_t)screen_y - MAP_ORIGIN_Y) / TILE_PIXEL_SIZE);
 
   if (!TestBounds(tx, ty)) return false;
 
@@ -503,11 +499,11 @@ bool Video_HandleMinimapClick(float screen_x, float screen_y)
 
 static void DrawSpriteSlot(SDL_Renderer *renderer, const SimSprite *s, int32_t cam_pixel_x, int32_t cam_pixel_y)
 {
-  float sx = (float)(s->x + s->x_offset - cam_pixel_x);
-  float sy = (float)(s->y + s->y_offset - cam_pixel_y);
+  float sx = (float)(s->x + s->x_offset - cam_pixel_x + MAP_ORIGIN_X);
+  float sy = (float)(s->y + s->y_offset - cam_pixel_y + MAP_ORIGIN_Y);
 
-  if (sx + 48.0f < 0 || sx > (float)canvas_w ||
-      sy + 48.0f < 0 || sy > (float)canvas_h) {
+  if (sx + 48.0f < (float)MAP_ORIGIN_X || sx > (float)canvas_w ||
+      sy + 48.0f < (float)MAP_ORIGIN_Y || sy > (float)canvas_h) {
     return;
   }
 
@@ -808,8 +804,8 @@ static void UpdateAndRenderMinimap(SDL_Renderer *renderer, OverlayViewMode mode)
   SDL_RenderRect(renderer, &dst);
 
   /* Render camera viewport rectangle on radar */
-  float view_tiles_w = (float)canvas_w / (float)TILE_PIXEL_SIZE;
-  float view_tiles_h = (float)canvas_h / (float)TILE_PIXEL_SIZE;
+  float view_tiles_w = (float)(canvas_w - MAP_ORIGIN_X) / (float)TILE_PIXEL_SIZE;
+  float view_tiles_h = (float)(canvas_h - MAP_ORIGIN_Y) / (float)TILE_PIXEL_SIZE;
 
   float cam_box_x = MINIMAP_X + ((float)cam_x * MINIMAP_SCALE);
   float cam_box_y = MinimapY() + ((float)cam_y * MINIMAP_SCALE);
@@ -954,8 +950,8 @@ static void RenderToolOutline(SDL_Renderer *renderer, const MapCursor *cursor)
 
     const ToolCursorStyle *style = &tool_cursor_style[cursor->tool];
     int32_t size = style->size * TILE_PIXEL_SIZE;
-    int32_t x = (cursor->tile_x - style->offset - cam_x) * TILE_PIXEL_SIZE;
-    int32_t y = (cursor->tile_y - style->offset - cam_y) * TILE_PIXEL_SIZE;
+    int32_t x = (cursor->tile_x - style->offset - cam_x) * TILE_PIXEL_SIZE + MAP_ORIGIN_X;
+    int32_t y = (cursor->tile_y - style->offset - cam_y) * TILE_PIXEL_SIZE + MAP_ORIGIN_Y;
 
     uint8_t dark = COLOR_BLACK;
     uint8_t light = COLOR_WHITE;
@@ -982,8 +978,8 @@ static void RenderToolOutline(SDL_Renderer *renderer, const MapCursor *cursor)
 /* Mirrors the pan branch of Unix DrawCursor: a black-edged white cross at the pan anchor */
 static void RenderPanCrosshair(SDL_Renderer *renderer, const MapCursor *cursor)
 {
-    float x = (float)(cursor->pan_px - cam_x * TILE_PIXEL_SIZE);
-    float y = (float)(cursor->pan_py - cam_y * TILE_PIXEL_SIZE);
+    float x = (float)(cursor->pan_px - cam_x * TILE_PIXEL_SIZE + MAP_ORIGIN_X);
+    float y = (float)(cursor->pan_py - cam_y * TILE_PIXEL_SIZE + MAP_ORIGIN_Y);
 
     SDL_SetRenderDrawColor(renderer, cursor_palette[COLOR_BLACK].r, cursor_palette[COLOR_BLACK].g,
                            cursor_palette[COLOR_BLACK].b, 255);
@@ -1117,13 +1113,16 @@ void Video_RenderFrame(void)
   bool show_bolt = (flagBlink <= 0);
   OverlayViewMode overlay_mode = GUI_GetActiveOverlayMode();
 
+  /* Pixels left of or above the map origin sit under the HUD; they get tile index -1 and draw black */
   for (int32_t sy = 0; sy < canvas_h; sy++) {
-    int32_t ty = cam_y + (sy / TILE_PIXEL_SIZE);
-    int32_t py = sy % TILE_PIXEL_SIZE;
+    int32_t my = sy - MAP_ORIGIN_Y;
+    int32_t ty = (my < 0) ? -1 : cam_y + (my / TILE_PIXEL_SIZE);
+    int32_t py = (my < 0) ? 0 : my % TILE_PIXEL_SIZE;
 
     for (int32_t sx = 0; sx < canvas_w; sx++) {
-      int32_t tx = cam_x + (sx / TILE_PIXEL_SIZE);
-      int32_t px = sx % TILE_PIXEL_SIZE;
+      int32_t mx = sx - MAP_ORIGIN_X;
+      int32_t tx = (mx < 0) ? -1 : cam_x + (mx / TILE_PIXEL_SIZE);
+      int32_t px = (mx < 0) ? 0 : mx % TILE_PIXEL_SIZE;
       uint32_t pixel;
 
       if (tx >= 0 && tx < WORLD_X && ty >= 0 && ty < WORLD_Y) {

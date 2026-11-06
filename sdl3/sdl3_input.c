@@ -444,8 +444,8 @@ void Input_ProcessEvents(void)
                     drag_origin_y = event.button.y;
                     DragConstraintBegin(&pan_constraint, event.button.x, event.button.y);
                     Video_GetCamera(&initial_cam_x, &initial_cam_y);
-                    pan_world_px = initial_cam_x * TILE_PIXEL_SIZE + (int32_t)event.button.x;
-                    pan_world_py = initial_cam_y * TILE_PIXEL_SIZE + (int32_t)event.button.y;
+                    pan_world_px = initial_cam_x * TILE_PIXEL_SIZE + ((int32_t)event.button.x - MAP_ORIGIN_X);
+                    pan_world_py = initial_cam_y * TILE_PIXEL_SIZE + ((int32_t)event.button.y - MAP_ORIGIN_Y);
                 }
             }
             break;
