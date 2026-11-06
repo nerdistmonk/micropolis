@@ -65,6 +65,8 @@ void GUI_Dialogs_OpenOverlays(void);
 void GUI_Dialogs_OpenFile(FileDialogTab initial_tab);
 void GUI_Dialogs_OpenDisasters(void);
 void GUI_Dialogs_OpenNews(void);
+void News_OnGameEvent(int16_t event_id);
+void News_ResetLog(void);
 void GUI_Dialogs_ShowScenarioResult(bool won, const char *msg);
 void GUI_Dialogs_ShowQueryInspector(int32_t tile_x, int32_t tile_y);
 void GUI_Dialogs_ShowNotice(int16_t picture_id, int32_t tile_x, int32_t tile_y);

@@ -198,6 +198,8 @@ static void default_invalidate(void) {}
 static void default_play_sound(int16_t id, int16_t x, int16_t y) { (void)id; (void)x; (void)y; }
 static void default_make_sound(const char *c, const char *s) { (void)c; (void)s; }
 static void default_request_budget_dialog(void) {}
+static void default_news_event(int16_t event_id) { (void)event_id; }
+static void default_news_reset(void) {}
 
 SimCallbacks EngineCallbacks = {
     .update_funds = default_update_funds,
@@ -208,7 +210,9 @@ SimCallbacks EngineCallbacks = {
     .invalidate_editors = default_invalidate,
     .play_sound = default_play_sound,
     .make_sound = default_make_sound,
-    .request_budget_dialog = default_request_budget_dialog
+    .request_budget_dialog = default_request_budget_dialog,
+    .news_event = default_news_event,
+    .news_reset = default_news_reset
 };
 
 void Sim_RegisterCallbacks(const SimCallbacks *cb)
@@ -223,6 +227,8 @@ void Sim_RegisterCallbacks(const SimCallbacks *cb)
     if (cb->play_sound) EngineCallbacks.play_sound = cb->play_sound;
     if (cb->make_sound) EngineCallbacks.make_sound = cb->make_sound;
     if (cb->request_budget_dialog) EngineCallbacks.request_budget_dialog = cb->request_budget_dialog;
+    if (cb->news_event) EngineCallbacks.news_event = cb->news_event;
+    if (cb->news_reset) EngineCallbacks.news_reset = cb->news_reset;
 }
 
 void AllocateMapBuffers(void)

@@ -15,9 +15,12 @@ extern void Audio_MakeSound(const char *channel, const char *sound_name);
 static QUAD    LastCityPop = 0;
 static int16_t LastCategory = 0;
 static int16_t LastPicNum = 0;
+static bool    TreasurySampled = false;
+static int32_t LastTreasury = 0;
 
 /* Forward Declarations of Internal Functions */
 static void CheckGrowth(void);
+static void CheckTreasury(void);
 static void DoScenarioScore(int32_t type);
 static void DoAutoGoto(int16_t x, int16_t y, const char *msg);
 static const char *GetMessageText(int16_t id);
@@ -97,6 +100,7 @@ void SendMessages(void)
     Scenario_CheckYear();
 
     CheckGrowth();
+    CheckTreasury();
 
     TotalZPop = (int16_t)(ResZPop + ComZPop + IndZPop);
     power_pop = (int16_t)(NuclearPop + CoalPop);
@@ -241,6 +245,28 @@ static void CheckGrowth(void)
     }
 }
 
+/* Treasury news fires only when funds cross zero downward or the million mark upward. */
+static void CheckTreasury(void)
+{
+    if (TreasurySampled) {
+        if (LastTreasury > 0 && TotalFunds <= 0) {
+            if (EngineCallbacks.news_event) EngineCallbacks.news_event(NEWS_EVENT_TREASURY_EMPTY);
+        }
+        if (LastTreasury < 1000000 && TotalFunds >= 1000000) {
+            if (EngineCallbacks.news_event) EngineCallbacks.news_event(NEWS_EVENT_TREASURY_MILLION);
+        }
+    }
+    TreasurySampled = true;
+    LastTreasury = TotalFunds;
+}
+
+void News_ResetSession(void)
+{
+    TreasurySampled = false;
+    LastTreasury = 0;
+    if (EngineCallbacks.news_reset) EngineCallbacks.news_reset();
+}
+
 static void DoScenarioScore(int32_t type)
 {
     int16_t z = -200; /* Defeat threshold */
@@ -350,6 +376,10 @@ static void PlayMessageSound(int16_t mnum)
 
 void SendMesAt(int16_t mnum, int16_t x, int16_t y)
 {
+    /* Reported before the repeat check in SendMes, so every disaster reaches the newspaper. */
+    if (EngineCallbacks.news_event && mnum != 0) {
+        EngineCallbacks.news_event((int16_t)(mnum < 0 ? -mnum : mnum));
+    }
     if (SendMes(mnum)) {
         MesX = x;
         MesY = y;

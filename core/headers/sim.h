@@ -390,7 +390,13 @@ typedef struct SimCallbacks {
     void (*play_sound)(int16_t sound_id, int16_t x, int16_t y);
     void (*make_sound)(const char *channel, const char *sound_name);
     void (*request_budget_dialog)(void);
+    void (*news_event)(int16_t event_id);
+    void (*news_reset)(void);
 } SimCallbacks;
+
+/* Newspaper-only event ids for treasury changes. They are never shown in the message box. */
+#define NEWS_EVENT_TREASURY_EMPTY   101
+#define NEWS_EVENT_TREASURY_MILLION 102
 
 /* Engine Global Variables */
 extern uint16_t *Map[WORLD_X];
@@ -544,6 +550,7 @@ int16_t Rand16Signed(void);
 /* Lifecycle and Simulation Loop */
 void Sim_InitEngine(void);
 void Sim_RegisterCallbacks(const SimCallbacks *cb);
+void News_ResetSession(void);
 void SimFrame(void);
 void Simulate(int32_t mod16);
 void SetSimSpeed(int16_t speed);

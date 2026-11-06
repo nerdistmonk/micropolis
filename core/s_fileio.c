@@ -329,6 +329,7 @@ int32_t LoadCity(const char *filename)
         return 0;
     }
 
+    News_ResetSession();
     Scenario_EditorEnd();
 
     uint16_t f0 = (uint16_t)MiscHis[50];
@@ -678,6 +679,7 @@ int32_t Scenario_LoadFile(const char *path)
     CityEvaluation();
 
     Scenario_Activate(&def);
+    News_ResetSession();
 
     if (EngineCallbacks.update_funds) EngineCallbacks.update_funds(TotalFunds);
     if (EngineCallbacks.invalidate_maps) EngineCallbacks.invalidate_maps();

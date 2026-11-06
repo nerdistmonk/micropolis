@@ -1,5 +1,6 @@
 /* sdl3_dialog_news.c: Newspaper headlines modal, opened by clicking the status-bar date.
  * Shows only the headlines for the current in-game year, so the list changes as the year rolls over.
+ * Real-world entries come first; game events (disasters, population, treasury) follow in the order they happened.
  */
 
 #include "sdl3_dialog_common.h"
@@ -83,6 +84,44 @@ static const NewsItem news_items[] = {
 
 #define NEWS_ITEM_COUNT (sizeof(news_items) / sizeof(news_items[0]))
 
+#define NEWS_LOG_CAP 16
+#define NEWS_GAME_ROWS 8
+
+typedef struct {
+    int16_t event_id;
+    const char *headline;
+} NewsGameHeadline;
+
+static const NewsGameHeadline game_headlines[] = {
+    { 20, "Fire breaks out in the city" },
+    { 21, "Monster sighted, stomping through the city" },
+    { 22, "Tornado tears through the city" },
+    { 23, "Major earthquake rocks the city" },
+    { 24, "Plane crashes near the city" },
+    { 25, "Shipwreck reported offshore" },
+    { 26, "Train derails in a crash" },
+    { 27, "Helicopter crashes in the city" },
+    { 30, "Firebombing rocks the city" },
+    { 35, "City population reaches 2,000" },
+    { 36, "City population reaches 10,000" },
+    { 37, "City population reaches 50,000" },
+    { 38, "City population reaches 100,000" },
+    { 39, "City population reaches 500,000" },
+    { 42, "Floodwaters spread through the city" },
+    { 43, "Nuclear meltdown at the power plant" },
+    { NEWS_EVENT_TREASURY_EMPTY, "City treasury runs dry" },
+    { NEWS_EVENT_TREASURY_MILLION, "City treasury tops $1,000,000" },
+};
+
+typedef struct {
+    int32_t year;
+    int16_t event_id;
+} NewsLogEntry;
+
+static NewsLogEntry news_log[NEWS_LOG_CAP];
+static size_t news_log_head = 0;
+static size_t news_log_count = 0;
+
 static int32_t NewsCurrentYear(void)
 {
     return StartingYear + (CityTime / 48);
@@ -97,9 +136,60 @@ static size_t NewsCountForYear(int32_t year)
     return n;
 }
 
+static const char *NewsGameText(int16_t event_id)
+{
+    for (size_t i = 0; i < sizeof(game_headlines) / sizeof(game_headlines[0]); i++) {
+        if (game_headlines[i].event_id == event_id) return game_headlines[i].headline;
+    }
+    return NULL;
+}
+
+/* Index of the i-th oldest entry in the ring. */
+static size_t NewsLogIndex(size_t i)
+{
+    return (news_log_head + NEWS_LOG_CAP - news_log_count + i) % NEWS_LOG_CAP;
+}
+
+void News_OnGameEvent(int16_t event_id)
+{
+    if (!NewsGameText(event_id)) return;
+
+    news_log[news_log_head].year = NewsCurrentYear();
+    news_log[news_log_head].event_id = event_id;
+    news_log_head = (news_log_head + 1) % NEWS_LOG_CAP;
+    if (news_log_count < NEWS_LOG_CAP) news_log_count++;
+}
+
+void News_ResetLog(void)
+{
+    news_log_head = 0;
+    news_log_count = 0;
+}
+
+/* Fills out[] with the newest game headlines for `year`, oldest first. Returns how many were written. */
+static size_t NewsCollectGame(int32_t year, const char *out[NEWS_GAME_ROWS])
+{
+    size_t total = 0;
+    for (size_t i = 0; i < news_log_count; i++) {
+        if (news_log[NewsLogIndex(i)].year == year) total++;
+    }
+
+    size_t skip = total > NEWS_GAME_ROWS ? total - NEWS_GAME_ROWS : 0;
+    size_t seen = 0;
+    size_t n = 0;
+    for (size_t i = 0; i < news_log_count; i++) {
+        const NewsLogEntry *e = &news_log[NewsLogIndex(i)];
+        if (e->year != year) continue;
+        if (seen++ < skip) continue;
+        out[n++] = NewsGameText(e->event_id);
+    }
+    return n;
+}
+
 static float NewsDialogHeight(int32_t year)
 {
-    size_t rows = NewsCountForYear(year);
+    const char *game[NEWS_GAME_ROWS];
+    size_t rows = NewsCountForYear(year) + NewsCollectGame(year, game);
     if (rows == 0) rows = 1;
     return NEWS_LIST_TOP + (float)rows * NEWS_LINE_PITCH + NEWS_FOOTER_PAD;
 }
@@ -153,6 +243,14 @@ void Dialog_News_Render(SDL_Renderer *renderer)
         if (news_items[i].year != year) continue;
         float y = dy + NEWS_LIST_TOP + (float)row * NEWS_LINE_PITCH;
         GUI_DrawText(renderer, (int)(dx + NEWS_TEXT_X), (int)y, news_items[i].headline, col_white);
+        row++;
+    }
+
+    const char *game[NEWS_GAME_ROWS];
+    size_t game_count = NewsCollectGame(year, game);
+    for (size_t g = 0; g < game_count; g++) {
+        float y = dy + NEWS_LIST_TOP + (float)row * NEWS_LINE_PITCH;
+        GUI_DrawText(renderer, (int)(dx + NEWS_TEXT_X), (int)y, game[g], col_white);
         row++;
     }
 

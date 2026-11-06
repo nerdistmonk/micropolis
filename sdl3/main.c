@@ -159,7 +159,9 @@ int main(int argc, char **argv)
         .invalidate_editors = NULL,
         .play_sound = Audio_PlaySound,
         .make_sound = Audio_MakeSound,
-        .request_budget_dialog = OnRequestBudget
+        .request_budget_dialog = OnRequestBudget,
+        .news_event = News_OnGameEvent,
+        .news_reset = News_ResetLog
     };
     Sim_RegisterCallbacks(&callbacks);
 
