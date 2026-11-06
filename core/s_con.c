@@ -50,6 +50,11 @@ static bool tally(int32_t tileValue)
     return false;
 }
 
+bool AutoDozeCanClear(uint16_t low)
+{
+    return tally(low);
+}
+
 /* Unix ConnecTile autodoze for road, rail, and wire: clears only explosion debris and tiles below 64. */
 static void AutoDozeForConnect(int32_t x, int32_t y)
 {

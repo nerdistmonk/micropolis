@@ -201,12 +201,22 @@ int32_t LayWaterTower(int32_t x, int32_t y)
 {
     if (!TestBounds(x - 1, y - 1) || !TestBounds(x + 1, y + 1)) return 0;
 
+    int32_t doze_cost = 0;
     for (int32_t dy = -1; dy <= 1; dy++) {
         for (int32_t dx = -1; dx <= 1; dx++) {
-            if ((Map[x + dx][y + dy] & LOMASK) != DIRT) return 0;
+            uint16_t tile = Map[x + dx][y + dy];
+            uint16_t low = tile & LOMASK;
+            if (low != DIRT) {
+                if (autoBulldoze && AutoDozeCanClear(low)) {
+                    doze_cost++;
+                } else {
+                    return 0;
+                }
+            }
+            if (tile & (ZONEBIT | ANIMBIT)) return 0;
         }
     }
-    if (TotalFunds < CostOf[waterTowerState]) return -2;
+    if (TotalFunds < CostOf[waterTowerState] + doze_cost) return -2;
 
     for (int32_t dy = -1; dy <= 1; dy++) {
         for (int32_t dx = -1; dx <= 1; dx++) {
@@ -215,7 +225,7 @@ int32_t LayWaterTower(int32_t x, int32_t y)
             Map[x + dx][y + dy] = (uint16_t)(tile | BULLBIT);
         }
     }
-    TotalFunds -= CostOf[waterTowerState];
+    TotalFunds -= CostOf[waterTowerState] + doze_cost;
     MustUpdateFunds = 1;
     return 1;
 }
