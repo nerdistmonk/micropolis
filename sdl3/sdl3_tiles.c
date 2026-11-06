@@ -16,6 +16,7 @@
 #include <strings.h>
 
 extern const char **Micropolis_GetTilesXpmData(void);
+extern const char **Micropolis_GetWaterTowerXpmData(void);
 
 static uint32_t *tile_pixels = NULL;
 static int32_t sheet_width = 0;
@@ -61,11 +62,10 @@ static uint32_t ParseHexColor(const char *hex)
     return (0xFFu << 24) | (b << 16) | (g << 8) | r;
 }
 
-bool Tiles_Init(void)
+static bool ParseXpmSheet(const char **xpm, uint32_t **out_pixels, int32_t *out_width, int32_t *out_height)
 {
-    const char **xpm = Micropolis_GetTilesXpmData();
     if (!xpm) {
-        SDL_Log("Error: Embedded tiles_xpm data is NULL.");
+        SDL_Log("Error: Embedded XPM data is NULL.");
         return false;
     }
 
@@ -113,8 +113,8 @@ bool Tiles_Init(void)
         }
     }
 
-    tile_pixels = (uint32_t *)calloc((size_t)(width * height), sizeof(uint32_t));
-    if (!tile_pixels) {
+    uint32_t *pixels = (uint32_t *)calloc((size_t)(width * height), sizeof(uint32_t));
+    if (!pixels) {
         free(cmap);
         return false;
     }
@@ -140,16 +140,53 @@ bool Tiles_Init(void)
                     break;
                 }
             }
-            tile_pixels[row * width + col] = color;
+            pixels[row * width + col] = color;
         }
     }
 
-    sheet_width = width;
-    sheet_height = height;
-    tiles_ready = true;
     free(cmap);
+    *out_pixels = pixels;
+    *out_width = width;
+    *out_height = height;
+    return true;
+}
 
-    SDL_Log("Embedded tiles successfully initialized: %dx%d (%d colors, cpp=%d)", width, height, num_colors, cpp);
+bool Tiles_Init(void)
+{
+    uint32_t *tiles_px = NULL;
+    uint32_t *tower_px = NULL;
+    int32_t tiles_w = 0, tiles_h = 0, tower_w = 0, tower_h = 0;
+
+    if (!ParseXpmSheet(Micropolis_GetTilesXpmData(), &tiles_px, &tiles_w, &tiles_h)) return false;
+
+    if (!ParseXpmSheet(Micropolis_GetWaterTowerXpmData(), &tower_px, &tower_w, &tower_h) || tower_w != tiles_w) {
+        SDL_Log("Error: Water tower sheet is missing or does not match the tile width.");
+        free(tiles_px);
+        free(tower_px);
+        return false;
+    }
+
+    /* Water tower tiles follow the base sheet, so tile IDs 960+ index the appended rows. */
+    size_t tiles_count = (size_t)tiles_w * (size_t)tiles_h;
+    size_t tower_count = (size_t)tower_w * (size_t)tower_h;
+    uint32_t *combined = (uint32_t *)calloc(tiles_count + tower_count, sizeof(uint32_t));
+    if (!combined) {
+        free(tiles_px);
+        free(tower_px);
+        return false;
+    }
+    memcpy(combined, tiles_px, tiles_count * sizeof(uint32_t));
+    memcpy(combined + tiles_count, tower_px, tower_count * sizeof(uint32_t));
+    free(tiles_px);
+    free(tower_px);
+
+    free(tile_pixels);
+    tile_pixels = combined;
+    sheet_width = tiles_w;
+    sheet_height = tiles_h + tower_h;
+    tiles_ready = true;
+
+    SDL_Log("Embedded tiles successfully initialized: %dx%d (%d base + %d water tower rows)", tiles_w, tiles_h, tiles_h, tower_h);
     return true;
 }
 
@@ -172,7 +209,7 @@ uint32_t Tiles_GetPixel(uint16_t tile_id, int32_t px, int32_t py)
     if (!tiles_ready || !tile_pixels) return 0xFF000000;
 
     uint16_t id = tile_id & LOMASK;
-    if (id >= TOTAL_TILES) id = 0;
+    if (id >= TOTAL_SHEET_TILES) id = 0;
 
     int32_t sheet_x, sheet_y;
 

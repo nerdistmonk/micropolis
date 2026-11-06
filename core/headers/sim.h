@@ -299,6 +299,10 @@ typedef int32_t QUAD;
 
 #define TILE_COUNT 960
 
+/* Water tower: 3x3 block of tiles 960-968 from images/water_tower.xpm, row-major from top-left */
+#define WATERTOWER 960
+#define WATERTOWER_TILES 9
+
 /* Tool / Wand States */
 #define residentialState 0
 #define commercialState 1

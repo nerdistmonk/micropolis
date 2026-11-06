@@ -11,6 +11,8 @@
 #define TILE_SHEET_COLS     16
 #define TILE_SHEET_ROWS     60
 #define TOTAL_TILES         (TILE_SHEET_COLS * TILE_SHEET_ROWS) /* 960 tiles */
+#define WATER_TOWER_TILES   9 /* 3x3 water tower block appended after the base sheet */
+#define TOTAL_SHEET_TILES   (TOTAL_TILES + WATER_TOWER_TILES)
 #define TILE_W              16
 #define TILE_H              16
 

@@ -3,16 +3,23 @@
 
 #include <stddef.h>
 
-/* Forward prototype to satisfy -Wmissing-prototypes */
+/* Forward prototypes to satisfy -Wmissing-prototypes */
 const char **Micropolis_GetTilesXpmData(void);
+const char **Micropolis_GetWaterTowerXpmData(void);
 
-/* Include the raw XPM file directly as C source array */
+/* Include the raw XPM files directly as C source arrays */
 #define static
 #include "../images/tiles.xpm"
+#include "../images/water_tower.xpm"
 #undef static
 
-/* Export the array symbol cleanly */
+/* Export the array symbols cleanly */
 const char **Micropolis_GetTilesXpmData(void)
 {
     return (const char **)tiles_xpm;
+}
+
+const char **Micropolis_GetWaterTowerXpmData(void)
+{
+    return (const char **)water_tower_xpm;
 }

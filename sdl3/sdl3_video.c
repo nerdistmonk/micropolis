@@ -552,7 +552,7 @@ static bool IsTileFilterOverlay(OverlayViewMode mode)
 static bool FilterViewHidesTile(OverlayViewMode mode, uint16_t raw_tile)
 {
   uint16_t tile = raw_tile & LOMASK;
-  if (tile >= TILE_COUNT) tile -= TILE_COUNT;
+  if (tile >= TILE_COUNT) return true;
 
   switch (mode) {
   case OVERLAY_VIEW_RES_ZONE:
