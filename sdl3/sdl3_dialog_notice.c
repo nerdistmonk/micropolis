@@ -22,7 +22,7 @@ typedef struct {
     const char *body;
 } NoticeEntry;
 
-/* Historic Micropolis picture messages (res/micropolis.tcl). Only the ids the core sends are listed. */
+/* Historic Micropolis picture messages. Only the ids the core sends are listed. */
 static const NoticeEntry notice_table[] = {
     { 10, { 255, 79, 79, 255 }, "POLLUTION ALERT!",
       "Pollution in your city has exceeded the maximum allowable amounts established by the Micropolis Pollution Agency.  You are running the risk of grave ecological consequences.\n\nEither clean up your act or open a gas mask concession at city hall." },

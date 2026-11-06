@@ -1,0 +1,3 @@
+/tmp/mpmain/build/CMakeFiles/micropolis_sdl3.dir
+/tmp/mpmain/build/CMakeFiles/edit_cache.dir
+/tmp/mpmain/build/CMakeFiles/rebuild_cache.dir

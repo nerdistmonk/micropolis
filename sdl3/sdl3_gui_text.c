@@ -109,7 +109,7 @@ static const uint8_t font8x8_basic[95][8] = {
 
 static TTF_Font *LoadFont(const char *name, float pt)
 {
-    const char *dirs[] = { "fonts/", "../fonts/", "../../fonts/", "res/fonts/" };
+    const char *dirs[] = { "fonts/", "../fonts/", "../../fonts/" };
     char path[512];
     for (size_t i = 0; i < sizeof(dirs) / sizeof(dirs[0]); i++) {
         snprintf(path, sizeof(path), "%s%s", dirs[i], name);

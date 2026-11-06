@@ -75,9 +75,7 @@ static int32_t LoadFileInternal(const char *filename)
         "../scenarios/",
         "../../scenarios/",
         "cities/",
-        "../cities/",
-        "res/",
-        "../res/"
+        "../cities/"
     };
 
     for (size_t i = 0; i < sizeof(prefixes) / sizeof(prefixes[0]); i++) {
