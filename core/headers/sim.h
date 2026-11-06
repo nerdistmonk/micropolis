@@ -305,6 +305,9 @@ typedef int32_t QUAD;
 #define WATERTOWER 960
 #define WATERTOWER_TILES 9
 
+/* No-water icon: the tile after the water tower block, drawn on zones lacking water */
+#define WATERDROP 969
+
 /* Tool / Wand States */
 #define residentialState 0
 #define commercialState 1

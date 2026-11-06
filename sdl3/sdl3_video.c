@@ -1166,8 +1166,16 @@ void Video_RenderFrame(void)
           if (FilterViewHidesTile(overlay_mode, raw_tile)) {
             raw_tile = DIRT;
           }
-        } else if (show_bolt && (raw_tile & ZONEBIT) && !(raw_tile & PWRBIT)) {
-          raw_tile = LIGHTNINGBOLT;
+        } else if (raw_tile & ZONEBIT) {
+          bool no_power = !(raw_tile & PWRBIT);
+          bool no_water = !WaterIsSupplied(tx, ty);
+          if (no_power && no_water) {
+            raw_tile = show_bolt ? LIGHTNINGBOLT : WATERDROP;
+          } else if (show_bolt && no_power) {
+            raw_tile = LIGHTNINGBOLT;
+          } else if (show_bolt && no_water) {
+            raw_tile = WATERDROP;
+          }
         }
 
         if (has_tiles) {

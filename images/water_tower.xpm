@@ -1,6 +1,6 @@
 /* XPM */
 static char * water_tower_xpm[] = {
-"16 144 14 1",
+"16 160 19 1",
 " c #CCCC7F7F6666",
 ". c #161626265858",
 "X c #000000000000",
@@ -15,6 +15,11 @@ static char * water_tower_xpm[] = {
 "* c #FFFFFFFF0000",
 "= c #FFFF7F7F0000",
 "- c #43437373FFFF",
+"g c #7F7F7F7F7F7F",
+"k c #3F3F3F3F3F3F",
+"b c #3F3F7F7FFFFF",
+"n c #1B1B3A3A8C8C",
+"h c #BFBFE0E0FFFF",
 "oooooooooooooooo",
 "o               ",
 "o               ",
@@ -158,5 +163,21 @@ static char * water_tower_xpm[] = {
 "++ +   +   +   o",
 "               o",
 "               o",
-"oooooooooooooooo"
+"oooooooooooooooo",
+"&&&&&&&&&&&&&&&&",
+"&&kkkkkkkkkkkkk&",
+"&k&gggggggggggk&",
+"&kg&gggnngggggk&",
+"&kgg&gnbbnggggk&",
+"&kgggnhbbbngggk&",
+"&kggnbhbbbbnggk&",
+"&kggnbhbbbbnggk&",
+"&kggnbbbbbbnggk&",
+"&kggnbbbbbbnggk&",
+"&kgggnbbbbngggk&",
+"&kggggnbbng&ggk&",
+"&kggggnnnngg&gk&",
+"&kggggggggggg&k&",
+"&kkkkkkkkkkkkk&&",
+"&&&&&&&&&&&&&&&&"
 };
