@@ -21,6 +21,10 @@ static bool    TreasuryBustedFired = false;
 static int32_t LastTreasury = 0;
 #define TREASURY_BUSTED_LEVEL 5000
 #define TREASURY_REARM 50000
+/* Trash pool at which the land-value penalty maxes out (LandfillTrashPenalty), and the level it must drop below to re-arm. */
+#define TRASH_PILE_LEVEL 5000
+#define TRASH_REARM_LEVEL 1000
+static bool    trashPiled = false;
 
 #define NEWS_COND_SLOTS 128
 #define NEWS_THROTTLE_TICKS 48
@@ -47,6 +51,7 @@ void NewsThrottled(int16_t event_id)
 /* Forward Declarations of Internal Functions */
 static void CheckGrowth(void);
 static void CheckTreasury(void);
+static void CheckTrash(void);
 static void DoScenarioScore(int32_t type);
 static void DoAutoGoto(int16_t x, int16_t y, const char *msg);
 static const char *GetMessageText(int16_t id);
@@ -127,6 +132,7 @@ void SendMessages(void)
 
     CheckGrowth();
     CheckTreasury();
+    CheckTrash();
 
     TotalZPop = (int16_t)(ResZPop + ComZPop + IndZPop);
     power_pop = (int16_t)(NuclearPop + CoalPop);
@@ -307,12 +313,25 @@ static void CheckTreasury(void)
     LastTreasury = TotalFunds;
 }
 
+/* The pile headline re-arms only after the pool drops below TRASH_REARM_LEVEL. The capacity headline follows LandfillAtCapacity. */
+static void CheckTrash(void)
+{
+    if (TrashPending >= TRASH_PILE_LEVEL) {
+        trashPiled = true;
+    } else if (TrashPending < TRASH_REARM_LEVEL) {
+        trashPiled = false;
+    }
+    NewsCondition(NEWS_EVENT_GARBAGE_PILE, trashPiled);
+    NewsCondition(NEWS_EVENT_LANDFILL_FULL, LandfillAtCapacity);
+}
+
 void News_ResetSession(void)
 {
     TreasurySampled = false;
     TreasuryEmptyFired = false;
     TreasuryBustedFired = false;
     LastTreasury = 0;
+    trashPiled = false;
     memset(news_cond_active, 0, sizeof(news_cond_active));
     for (size_t i = 0; i < NEWS_COND_SLOTS; i++) news_last_tick[i] = -NEWS_THROTTLE_TICKS;
     if (EngineCallbacks.news_reset) EngineCallbacks.news_reset();

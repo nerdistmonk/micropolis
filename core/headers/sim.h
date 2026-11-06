@@ -70,7 +70,7 @@ typedef int32_t QUAD;
 #define HORIZ 1
 #define VERT 0
 
-#define PROB_ACTIVE 10
+#define PROB_ACTIVE 11
 #define PROB_NONE PROB_ACTIVE
 #define PROBNUM (PROB_ACTIVE + 1)
 #define HISTLEN 480
@@ -409,6 +409,8 @@ typedef struct SimCallbacks {
 #define NEWS_EVENT_POLLUTION_LOW    104
 #define NEWS_EVENT_HEALTH_SHORT     105
 #define NEWS_EVENT_TREASURY_BUSTED  106
+#define NEWS_EVENT_GARBAGE_PILE     107
+#define NEWS_EVENT_LANDFILL_FULL    108
 
 /* Engine Global Variables */
 extern uint16_t *Map[WORLD_X];
@@ -463,6 +465,7 @@ extern uint16_t *PowerMap;
 extern float roadPercent, policePercent, firePercent, healthPercent, landfillPercent;
 extern int32_t LandfillFund, LandfillSpend, TrashPending;
 extern int16_t LandfillPop;
+extern bool LandfillAtCapacity;
 extern int32_t RoadSpend, PoliceSpend, FireSpend, HealthSpend;
 extern int32_t TaxFund, RoadFund, PoliceFund, FireFund, HealthFund;
 extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect;
@@ -621,6 +624,9 @@ void DoLandfill(void);
 void LandfillBlockPlaced(int32_t x, int32_t y);
 void LandfillResetCity(void);
 void LandfillRescan(void);
+#define LANDFILL_FILL_BYTES (WORLD_X * WORLD_Y * 2)
+void LandfillEncodeFill(uint8_t *dst);
+void LandfillDecodeFill(const uint8_t *src);
 int32_t LandfillTrashPenalty(void);
 int32_t LandfillPollution(int32_t loc);
 void FireZone(int32_t xloc, int32_t yloc, int32_t ch);

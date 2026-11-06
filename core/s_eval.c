@@ -140,6 +140,7 @@ static void DoProblems(void)
     ProblemTable[7] = ShareOfZones(unPwrdZCnt);                    /* Power */
     ProblemTable[8] = ShareOfZones(UnwateredZCnt);                 /* Water */
     ProblemTable[9] = GetHealthcareProblem();                      /* Healthcare */
+    ProblemTable[10] = (int16_t)(TrashPending / 20 > 255 ? 255 : TrashPending / 20); /* Garbage: saturates at a 5100 pool */
 
     VoteProblems();
 

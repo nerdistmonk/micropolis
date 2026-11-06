@@ -236,13 +236,14 @@ static int32_t LoadFileInternal(const char *filename)
     fseek(f, 0L, SEEK_SET);
 
     const long pipe_total = (long)(CITY_FILE_BYTES + Water_PipeBlockBytes());
-    if (size != 27120 && size != 99120 && size != 219120 && size != pipe_total) {
+    const long fill_total = pipe_total + (long)LANDFILL_FILL_BYTES;
+    if (size != 27120 && size != 99120 && size != 219120 && size != pipe_total && size != fill_total) {
         fclose(f);
         return 0;
     }
 
     /* Read the whole image before touching any globals, so a short read leaves the current city intact. */
-    size_t want = (size == pipe_total) ? (size_t)pipe_total : CITY_FILE_BYTES;
+    size_t want = (size == fill_total) ? (size_t)fill_total : (size == pipe_total) ? (size_t)pipe_total : CITY_FILE_BYTES;
     uint8_t *blob = (uint8_t *)malloc(want);
     if (!blob) {
         fclose(f);
@@ -257,6 +258,7 @@ static int32_t LoadFileInternal(const char *filename)
 
     ParseCityBlob(blob);
     if (want > CITY_FILE_BYTES) Water_LoadPipes(blob + CITY_FILE_BYTES);
+    LandfillDecodeFill(want == (size_t)fill_total ? blob + pipe_total : NULL);
     free(blob);
     return 1;
 }
@@ -442,11 +444,13 @@ int32_t SaveCity(const char *filename)
         filename = CityFileName;
     }
 
-    uint8_t *blob = (uint8_t *)malloc(CITY_FILE_BYTES + Water_PipeBlockBytes());
+    size_t total = CITY_FILE_BYTES + Water_PipeBlockBytes() + LANDFILL_FILL_BYTES;
+    uint8_t *blob = (uint8_t *)malloc(total);
     if (!blob) return 0;
     EncodeCityBlob(blob);
     Water_CopyPipes(blob + CITY_FILE_BYTES);
-    int32_t ok = WriteFileAtomic(filename, blob, CITY_FILE_BYTES + Water_PipeBlockBytes());
+    LandfillEncodeFill(blob + CITY_FILE_BYTES + Water_PipeBlockBytes());
+    int32_t ok = WriteFileAtomic(filename, blob, total);
     free(blob);
     if (!ok) return 0;
 

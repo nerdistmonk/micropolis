@@ -610,7 +610,7 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         static const char *problem_names[] = {
             "Crime", "Pollution", "Housing Costs", "Taxes",
             "Traffic", "Unemployment", "Fires", "Power Outages",
-            "Water Supply", "Healthcare", "None"
+            "Water Supply", "Healthcare", "Garbage", "None"
         };
 
         for (int p = 0; p < 4; p++) {

@@ -148,6 +148,8 @@ static const NewsGameHeadline game_headlines[] = {
     { NEWS_EVENT_TREASURY_EMPTY, "City treasury runs dry" },
     { NEWS_EVENT_TREASURY_MILLION, "City treasury tops $1,000,000" },
     { NEWS_EVENT_TREASURY_BUSTED, "The city is nearly busted" },
+    { NEWS_EVENT_GARBAGE_PILE, "Garbage piles up in the streets" },
+    { NEWS_EVENT_LANDFILL_FULL, "Landfills are full, and trash has nowhere to go" },
     { NEWS_EVENT_CRIME_LOW, "Crime drops to a record low" },
     { NEWS_EVENT_POLLUTION_LOW, "Air quality reaches a record high" },
     { NEWS_EVENT_HEALTH_SHORT, "Hospitals stretched thin as health funding falls short" },

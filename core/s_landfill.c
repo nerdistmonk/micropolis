@@ -7,8 +7,8 @@
  * empty block exists, a new empty block is placed next to a full one. Trash left in the pool
  * adds pollution to zone tiles, and filled blocks pollute through LandfillPollution.
  *
- * Per-block fill is kept in LandfillFill, indexed by block centre. It is not saved.
- * LandfillRescan resyncs it to the stage floor after load.
+ * Per-block fill is kept in LandfillFill, indexed by block centre. It is saved as a trailing
+ * section of the city file. LandfillRescan keeps each loaded value within its stage's range.
  */
 
 #include <string.h>
@@ -30,6 +30,7 @@ int16_t LandfillPop = 0;
 int32_t LandfillFund = 0;
 int32_t LandfillSpend = 0;
 int32_t TrashPending = 0;
+bool LandfillAtCapacity = false;
 
 static uint16_t LandfillFill[WORLD_X][WORLD_Y];
 
@@ -105,6 +106,7 @@ void DoLandfill(void)
     int32_t spare = 0;
     int32_t fullX = -1;
     int32_t fullY = -1;
+    int32_t connected = 0;
 
     TrashPending += TotalPop / LANDFILL_GEN_DIVISOR;
     if (TrashPending > LANDFILL_POOL_MAX) {
@@ -126,6 +128,7 @@ void DoLandfill(void)
             int32_t fill = LandfillFill[x][y];
 
             if (IsConnected(x, y)) {
+                connected++;
                 if (fill >= LANDFILL_BLOCK_CAP) {
                     if (fullX < 0) {
                         fullX = x;
@@ -155,6 +158,7 @@ void DoLandfill(void)
     }
 
     LandfillPop = (int16_t)blocks;
+    LandfillAtCapacity = connected > 0 && roomy == 0 && TrashPending > 0;
 
     if (TrashPending > 0 && roomy == 0 && spare == 0 && fullX >= 0) {
         static const int32_t step[4][2] = { {3, 0}, {-3, 0}, {0, 3}, {0, -3} };
@@ -193,6 +197,7 @@ void LandfillResetCity(void)
 {
     landfillPercent = 1.0f;
     TrashPending = 0;
+    LandfillAtCapacity = false;
     LandfillPop = 0;
     LandfillFund = 0;
     LandfillSpend = 0;
@@ -202,16 +207,54 @@ void LandfillResetCity(void)
 void LandfillRescan(void)
 {
     LandfillPop = 0;
-    memset(LandfillFill, 0, sizeof LandfillFill);
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
             int32_t low = Map[x][y] & LOMASK;
-            if (IsLandfillCentre(low)) {
-                LandfillPop++;
-                LandfillFill[x][y] = (uint16_t)(LandfillStageOf(low) * LANDFILL_STAGE_CAP);
+            if (!IsLandfillCentre(low)) {
+                LandfillFill[x][y] = 0;
+                continue;
             }
+            LandfillPop++;
+            int32_t stage = LandfillStageOf(low);
+            int32_t lo = stage * LANDFILL_STAGE_CAP;
+            int32_t hi = (stage == LANDFILL_STAGES - 1) ? LANDFILL_BLOCK_CAP : lo + LANDFILL_STAGE_CAP - 1;
+            int32_t fill = LandfillFill[x][y];
+            if (fill < lo || fill > hi) {
+                fill = lo;
+            }
+            LandfillFill[x][y] = (uint16_t)fill;
         }
     }
     LandfillFund = LandfillPop * 100;
     LandfillSpend = (int32_t)((float)LandfillFund * landfillPercent);
+}
+
+static void PutU16(uint8_t *p, uint16_t v)
+{
+    p[0] = (uint8_t)(v >> 8);
+    p[1] = (uint8_t)(v & 0xFF);
+}
+
+static uint16_t GetU16(const uint8_t *p)
+{
+    return (uint16_t)(((uint16_t)p[0] << 8) | p[1]);
+}
+
+void LandfillEncodeFill(uint8_t *dst)
+{
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            PutU16(dst + ((size_t)x * WORLD_Y + (size_t)y) * 2, LandfillFill[x][y]);
+        }
+    }
+}
+
+/* A NULL src clears the fill, so a city without a fill section starts from stage floors. */
+void LandfillDecodeFill(const uint8_t *src)
+{
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            LandfillFill[x][y] = src ? GetU16(src + ((size_t)x * WORLD_Y + (size_t)y) * 2) : 0;
+        }
+    }
 }
