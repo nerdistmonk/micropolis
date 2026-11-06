@@ -23,9 +23,9 @@ static const char *cli_scenario_arg = NULL;
 static void PrintUsage(FILE *out)
 {
     fprintf(out,
-        "Usage: micropolis [--load-city FILE] [--load-scenario N|FILE]\n"
+        "Usage: micropolis [--load-city FILE] [--load-scenario FILE]\n"
         "  --load-city FILE        Start with a saved city (.cty)\n"
-        "  --load-scenario N|FILE  Start with built-in scenario N (1-8), or a scenario file\n");
+        "  --load-scenario FILE    Start with a scenario file (.scn)\n");
 }
 
 /* Returns 1 to start the game, 0 to exit successfully, -1 on a usage error. */
@@ -57,10 +57,7 @@ static int ParseArgs(int argc, char **argv)
 static bool LoadStartupFile(void)
 {
     if (cli_scenario_arg) {
-        bool builtin = strlen(cli_scenario_arg) == 1 &&
-                       cli_scenario_arg[0] >= '1' && cli_scenario_arg[0] <= '8';
-        bool ok = builtin ? LoadScenario((int16_t)(cli_scenario_arg[0] - '0')) != 0
-                          : Scenario_LoadFile(cli_scenario_arg) != 0;
+        bool ok = Scenario_LoadFile(cli_scenario_arg) != 0;
         if (!ok) fprintf(stderr, "micropolis: could not load scenario '%s'\n", cli_scenario_arg);
         return ok;
     }

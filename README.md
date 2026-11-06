@@ -19,7 +19,7 @@ This is a port of the original Micropolis Unix source, refactored from 1989 C to
     micropolis [--load-city FILE] [--load-scenario N|FILE]
 
 - `--load-city FILE` starts with a saved city (`.cty`).
-- `--load-scenario N|FILE` starts with built-in scenario `N` (1-8), or a scenario file.
+- `--load-scenario FILE` starts with a scenario file (`.scn`), e.g. `--load-scenario scenarios/Dullsville.scn`.
 
 If the requested file cannot be loaded, an error is printed to stderr and a generated map is used instead.
 
