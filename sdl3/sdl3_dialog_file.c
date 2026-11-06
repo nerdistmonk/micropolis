@@ -11,18 +11,8 @@
 #include <stdint.h>
 
 static FileDialogTab active_file_tab = FILE_TAB_SAVE_LOAD;
-static char file_status_message[128] = {0};
-static SDL_Color file_status_color = { 245, 245, 250, 255 };
 static int new_city_level = 0;
 static const char *const NewCityLevelNames[3] = { "Easy", "Medium", "Hard" };
-static Uint32 native_result_event = 0;
-static bool native_pending = false;
-
-typedef struct {
-    NativeFileRequest request;
-    char *path;
-    bool dialog_error;
-} NativeFileResult;
 
 #define TERRAIN_OPT_COUNT 4
 #define TERRAIN_OPT_VALUES 4
@@ -68,6 +58,16 @@ static SDL_FRect FileNewRect(float dx, float dy)
 static SDL_FRect FileEditorRect(float dx, float dy)
 {
     return FileActionRect(dx + 150.0f, dy + 228.0f, "Editor Mode", 24.0f, 34.0f);
+}
+
+static SDL_FRect SaveNameSaveRect(float dx, float dy)
+{
+    return FileActionRect(dx + 220.0f, dy + 242.0f, "Save", 24.0f, 34.0f);
+}
+
+static SDL_FRect SaveNameCancelRect(float dx, float dy)
+{
+    return FileActionRect(dx + 320.0f, dy + 242.0f, "Cancel", 24.0f, 34.0f);
 }
 
 static SDL_FRect FileScenarioRect(float dx, float dy)
@@ -126,8 +126,10 @@ static bool PointInRect(SDL_FRect r, float mx, float my)
 void Dialog_File_Open(FileDialogTab tab)
 {
     active_file_tab = tab;
-    file_status_message[0] = '\0';
+    CityIO_ClearStatus();
     ScnList_Close();
+    CityList_Close();
+    CitySave_Cancel();
 }
 
 static void EditorStartConfirmed(int32_t arg)
@@ -162,163 +164,6 @@ static void NewCityConfirmed(int32_t level)
     GUI_ShowStatus(buf);
 }
 
-static bool EndsWithCityExt(const char *path)
-{
-    size_t n = strlen(path);
-    if (n < 4) return false;
-    const char *ext = path + n - 4;
-    return ext[0] == '.' &&
-           tolower((unsigned char)ext[1]) == 'c' &&
-           tolower((unsigned char)ext[2]) == 't' &&
-           tolower((unsigned char)ext[3]) == 'y';
-}
-
-static void WithCityExt(const char *in, char *out, size_t cap)
-{
-    snprintf(out, cap, "%s", in);
-    if (!EndsWithCityExt(out)) {
-        strncat(out, ".cty", cap - strlen(out) - 1);
-    }
-}
-
-static const char *BaseName(const char *path)
-{
-    const char *slash = strrchr(path, '/');
-    const char *bslash = strrchr(path, '\\');
-    if (bslash && (!slash || bslash > slash)) slash = bslash;
-    return slash ? slash + 1 : path;
-}
-
-/* Runs on the main thread: the core is never touched from a dialog callback. */
-static void ApplyNativeResult(const NativeFileResult *r)
-{
-    char path[512];
-
-    switch (r->request) {
-    case NATIVE_SAVE_FILE:
-        if (r->dialog_error) {
-            snprintf(file_status_message, sizeof(file_status_message), "Error: Save dialog failed");
-            file_status_color = col_red;
-        } else if (r->path) {
-            WithCityExt(r->path, path, sizeof(path));
-            if (SaveCity(path)) {
-                snprintf(file_status_message, sizeof(file_status_message), "Successfully saved city to %.80s", BaseName(path));
-                file_status_color = col_green;
-            } else {
-                snprintf(file_status_message, sizeof(file_status_message), "Error: Could not save to %.80s", BaseName(path));
-                file_status_color = col_red;
-                Audio_MakeSound("warning", "Sorry -speed 85");
-            }
-        }
-        break;
-
-    case NATIVE_LOAD_FILE:
-        if (r->dialog_error) {
-            snprintf(file_status_message, sizeof(file_status_message), "Error: Load dialog failed");
-            file_status_color = col_red;
-        } else if (r->path) {
-            if (LoadCity(r->path)) {
-                snprintf(file_status_message, sizeof(file_status_message), "Loaded %.80s successfully", BaseName(r->path));
-                file_status_color = col_green;
-            } else {
-                snprintf(file_status_message, sizeof(file_status_message), "Failed to load %.80s", BaseName(r->path));
-                file_status_color = col_red;
-                Audio_MakeSound("warning", "Sorry -speed 85");
-            }
-        }
-        break;
-
-    case NATIVE_SAVE_QUIT:
-        if (r->dialog_error) {
-            Dialog_Quit_SaveFinished(false, NULL);
-        } else if (r->path) {
-            WithCityExt(r->path, path, sizeof(path));
-            Dialog_Quit_SaveFinished(SaveCity(path), BaseName(path));
-        }
-        break;
-    }
-}
-
-/* SDL may invoke this on any thread, so it only queues the result as a user event. */
-static void SDLCALL NativeFileCallback(void *userdata, const char *const *filelist, int filter)
-{
-    (void)filter;
-    NativeFileResult *r = (NativeFileResult *)SDL_calloc(1, sizeof(*r));
-    if (!r) return;
-
-    r->request = (NativeFileRequest)(uintptr_t)userdata;
-    if (!filelist) {
-        r->dialog_error = true;
-    } else if (filelist[0]) {
-        r->path = SDL_strdup(filelist[0]);
-    }
-
-    SDL_Event ev;
-    SDL_zero(ev);
-    ev.type = native_result_event;
-    ev.user.type = native_result_event;
-    ev.user.data1 = r;
-    if (!SDL_PushEvent(&ev)) {
-        SDL_free(r->path);
-        SDL_free(r);
-    }
-}
-
-/* Resolves the cities/ folder copied next to the executable by CMake. */
-static const char *CitiesDir(void)
-{
-    static char dir[1024];
-    if (!dir[0]) {
-        const char *base = SDL_GetBasePath();
-        snprintf(dir, sizeof(dir), "%scities", base ? base : "");
-    }
-    return dir;
-}
-
-bool Dialog_File_NativePending(void)
-{
-    return native_pending;
-}
-
-void Dialog_File_RequestNative(NativeFileRequest req)
-{
-    static const SDL_DialogFileFilter save_filters[] = { { "Micropolis city", "cty" } };
-    static const SDL_DialogFileFilter load_filters[] = { { "Micropolis city", "cty;snro" } };
-
-    if (native_pending) return;
-
-    if (!native_result_event) native_result_event = SDL_RegisterEvents(1);
-    if (!native_result_event) {
-        NativeFileResult fail = { req, NULL, true };
-        ApplyNativeResult(&fail);
-        return;
-    }
-
-    native_pending = true;
-    SDL_Window *window = Video_GetWindow();
-    void *userdata = (void *)(uintptr_t)req;
-    const char *dir = CitiesDir();
-    if (req == NATIVE_LOAD_FILE) {
-        SDL_ShowOpenFileDialog(NativeFileCallback, userdata, window, load_filters, 1, dir, false);
-    } else {
-        char default_path[1100];
-        snprintf(default_path, sizeof(default_path), "%s/mycity.cty", dir);
-        SDL_ShowSaveFileDialog(NativeFileCallback, userdata, window, save_filters, 1, default_path);
-    }
-}
-
-bool Dialog_File_HandleNativeEvent(const SDL_Event *event)
-{
-    if (!native_result_event || event->type != native_result_event) return false;
-
-    NativeFileResult *r = (NativeFileResult *)event->user.data1;
-    native_pending = false;
-    ApplyNativeResult(r);
-    SDL_free(r->path);
-    SDL_free(r);
-    return true;
-}
-
 bool Dialog_File_HandleClick(float mx, float my)
 {
     float dw = 540.0f;
@@ -335,9 +180,24 @@ bool Dialog_File_HandleClick(float mx, float my)
         SDL_FRect tr = FileTabRect(dx, dy, i);
         if (mx >= tr.x && mx <= tr.x + tr.w && my >= tr.y && my <= tr.y + tr.h) {
             ScnList_Close();
+            CityList_Close();
+            CitySave_Cancel();
             active_file_tab = (FileDialogTab)i;
             return true;
         }
+    }
+
+    if (active_file_tab == FILE_TAB_SAVE_LOAD && CitySave_IsActive()) {
+        if (PointInRect(SaveNameSaveRect(dx, dy), mx, my)) {
+            CitySave_Submit();
+        } else if (PointInRect(SaveNameCancelRect(dx, dy), mx, my)) {
+            CitySave_Cancel();
+        }
+        return true;
+    }
+
+    if (active_file_tab == FILE_TAB_SAVE_LOAD && CityList_IsOpen()) {
+        return CityList_HandleClick(mx, my, dx, dy);
     }
 
     if (active_file_tab == FILE_TAB_SAVE_LOAD && ScnList_IsOpen()) {
@@ -363,14 +223,18 @@ bool Dialog_File_HandleClick(float mx, float my)
         SDL_FRect save_btn = FileSaveRect(dx, dy);
         if (mx >= save_btn.x && mx <= save_btn.x + save_btn.w &&
             my >= save_btn.y && my <= save_btn.y + save_btn.h) {
-            Dialog_File_RequestNative(NATIVE_SAVE_FILE);
+            ScnList_Close();
+            CityList_Close();
+            CitySave_Begin(CITY_SAVE_FROM_FILE);
             return true;
         }
 
         SDL_FRect load_btn = FileLoadRect(dx, dy);
         if (mx >= load_btn.x && mx <= load_btn.x + load_btn.w &&
             my >= load_btn.y && my <= load_btn.y + load_btn.h) {
-            Dialog_File_RequestNative(NATIVE_LOAD_FILE);
+            ScnList_Close();
+            CitySave_Cancel();
+            CityList_Open();
             return true;
         }
 
@@ -391,6 +255,8 @@ bool Dialog_File_HandleClick(float mx, float my)
         SDL_FRect scn_btn = FileScenarioRect(dx, dy);
         if (mx >= scn_btn.x && mx <= scn_btn.x + scn_btn.w &&
             my >= scn_btn.y && my <= scn_btn.y + scn_btn.h) {
+            CitySave_Cancel();
+            CityList_Close();
             ScnList_Open();
             return true;
         }
@@ -539,11 +405,40 @@ void Dialog_File_Render(SDL_Renderer *renderer)
     int cx = (int)content_box.x + 16;
     int cy = (int)content_box.y + 16;
 
-    if (active_file_tab == FILE_TAB_SAVE_LOAD && ScnList_IsOpen()) {
+    if (active_file_tab == FILE_TAB_SAVE_LOAD && CitySave_IsActive()) {
+        GUI_DrawText(renderer, cx, cy, "SAVE CITY", col_gold);
+        GUI_DrawText(renderer, cx, cy + 22, "Cities are stored in the cities folder beside the game.", col_white);
+        GUI_DrawText(renderer, cx, cy + 46, "City name:", col_white);
+
+        SDL_FRect field = { dx + 32.0f, dy + 162.0f, dw - 64.0f, 32.0f };
+        CitySave_DrawField(renderer, field);
+
+        SDL_Color status_color;
+        const char *status = CityIO_Status(&status_color);
+        if (status[0] != '\0') {
+            GUI_DrawText(renderer, cx, cy + 106, status, status_color);
+        }
+
+        SDL_FRect save_btn = SaveNameSaveRect(dx, dy);
+        SDL_SetRenderDrawColor(renderer, 40, 90, 70, 255);
+        SDL_RenderFillRect(renderer, &save_btn);
+        SDL_SetRenderDrawColor(renderer, 70, 160, 120, 255);
+        SDL_RenderRect(renderer, &save_btn);
+        GUI_DrawTextCentered(renderer, save_btn, "Save", col_white);
+
+        SDL_FRect cancel_btn = SaveNameCancelRect(dx, dy);
+        SDL_SetRenderDrawColor(renderer, 44, 55, 75, 255);
+        SDL_RenderFillRect(renderer, &cancel_btn);
+        SDL_SetRenderDrawColor(renderer, 100, 130, 180, 255);
+        SDL_RenderRect(renderer, &cancel_btn);
+        GUI_DrawTextCentered(renderer, cancel_btn, "Cancel", col_white);
+    } else if (active_file_tab == FILE_TAB_SAVE_LOAD && CityList_IsOpen()) {
+        CityList_Render(renderer, dx, dy);
+    } else if (active_file_tab == FILE_TAB_SAVE_LOAD && ScnList_IsOpen()) {
         ScnList_Render(renderer, dx, dy);
     } else if (active_file_tab == FILE_TAB_SAVE_LOAD) {
         GUI_DrawText(renderer, cx, cy, "CITY PERSISTENCE & FILE DISK", col_gold);
-        GUI_DrawText(renderer, cx, cy + 22, "Save and Load open your system's file dialog.", col_white);
+        GUI_DrawText(renderer, cx, cy + 22, "Save and load cities from the cities folder beside the game.", col_white);
 
         SDL_FRect save_btn = FileSaveRect(dx, dy);
         SDL_SetRenderDrawColor(renderer, 40, 70, 110, 255);
@@ -604,8 +499,10 @@ void Dialog_File_Render(SDL_Renderer *renderer)
             GUI_DrawText(renderer, (int)opt.x + 10, (int)opt.y + 6, opt_buf, changed ? col_gold : col_white);
         }
 
-        if (file_status_message[0]) {
-            GUI_DrawText(renderer, cx, cy + 180, file_status_message, file_status_color);
+        SDL_Color status_color;
+        const char *status = CityIO_Status(&status_color);
+        if (status[0] != '\0') {
+            GUI_DrawText(renderer, cx, cy + 180, status, status_color);
         }
 
     } else if (active_file_tab == FILE_TAB_OPTIONS) {

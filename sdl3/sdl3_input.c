@@ -301,8 +301,6 @@ void Input_ProcessEvents(void)
             continue;
         }
 
-        if (GUI_Dialogs_HandleNativeEvent(&event)) continue;
-
         switch (event.type) {
         case SDL_EVENT_QUIT:
             GUI_Dialogs_OpenQuitConfirm();
