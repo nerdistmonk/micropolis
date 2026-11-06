@@ -232,7 +232,7 @@ static void GetScore(void)
     int16_t old_city_score = CityScore;
     int32_t x = 0;
 
-    for (int16_t i = 0; i < 7; i++) { /* Score uses the original seven categories */
+    for (int16_t i = 0; i < PROB_ACTIVE; i++) {
         x += ProblemTable[i];
     }
 
