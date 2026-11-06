@@ -191,7 +191,7 @@ static void ScenarioDisaster(void)
         if (DisasterWait == 1) MakeEarthquake();
         break;
     case 3: /* Hamburg */
-        DropFireBombs();
+        if (DisasterWait == 1) DropFireBombs();
         break;
     case 5: /* Tokyo */
         if (DisasterWait == 1) MakeMonster();
