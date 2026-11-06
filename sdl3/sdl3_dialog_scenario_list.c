@@ -93,18 +93,17 @@ static SDL_FRect BackRect(float dx, float dy)
 }
 
 /* Shortens text with "..." so it fits within max_w pixels. */
-static void FitText(char *text, size_t cap, int max_w)
+static void FitText(char *out, size_t cap, const char *src, int max_w)
 {
-    char trial[SCN_DESC_BYTES + 4];
-    if (GUI_GetTextWidth(text) <= max_w) return;
+    snprintf(out, cap, "%s", src);
+    if (GUI_GetTextWidth(out) <= max_w) return;
 
-    size_t len = strlen(text);
+    size_t len = strlen(src);
     while (len > 0) {
         len--;
-        snprintf(trial, sizeof(trial), "%.*s...", (int)len, text);
-        if (GUI_GetTextWidth(trial) <= max_w) break;
+        snprintf(out, cap, "%.*s...", (int)len, src);
+        if (GUI_GetTextWidth(out) <= max_w) break;
     }
-    snprintf(text, cap, "%s", trial);
 }
 
 static void DrawNavButton(SDL_Renderer *renderer, SDL_FRect r, const char *label, bool enabled)
@@ -175,10 +174,8 @@ void ScnList_Render(SDL_Renderer *renderer, float dx, float dy)
         SDL_FRect row = RowRect(dx, dy, i - scroll_top);
         char name[SCN_NAME_BYTES];
         char desc[SCN_DESC_BYTES];
-        snprintf(name, sizeof(name), "%s", entries[i].name);
-        snprintf(desc, sizeof(desc), "%s", entries[i].description);
-        FitText(name, sizeof(name), text_w);
-        FitText(desc, sizeof(desc), text_w);
+        FitText(name, sizeof(name), entries[i].name, text_w);
+        FitText(desc, sizeof(desc), entries[i].description, text_w);
 
         SDL_SetRenderDrawColor(renderer, 35, 45, 62, 255);
         SDL_RenderFillRect(renderer, &row);
