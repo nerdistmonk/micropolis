@@ -17,6 +17,7 @@
 
 extern const char **Micropolis_GetTilesXpmData(void);
 extern const char **Micropolis_GetWaterTowerXpmData(void);
+extern const char **Micropolis_GetHospitalXpmData(void);
 
 static uint32_t *tile_pixels = NULL;
 static int32_t sheet_width = 0;
@@ -155,7 +156,8 @@ bool Tiles_Init(void)
 {
     uint32_t *tiles_px = NULL;
     uint32_t *tower_px = NULL;
-    int32_t tiles_w = 0, tiles_h = 0, tower_w = 0, tower_h = 0;
+    uint32_t *hosp_px = NULL;
+    int32_t tiles_w = 0, tiles_h = 0, tower_w = 0, tower_h = 0, hosp_w = 0, hosp_h = 0;
 
     if (!ParseXpmSheet(Micropolis_GetTilesXpmData(), &tiles_px, &tiles_w, &tiles_h)) return false;
 
@@ -165,6 +167,20 @@ bool Tiles_Init(void)
         free(tower_px);
         return false;
     }
+
+    if (!ParseXpmSheet(Micropolis_GetHospitalXpmData(), &hosp_px, &hosp_w, &hosp_h) ||
+        hosp_w != tiles_w || hosp_h != HOSPITAL_SPRITE_TILES * TILE_H) {
+        SDL_Log("Error: Hospital sheet is missing or does not match the tile sheet.");
+        free(tiles_px);
+        free(tower_px);
+        free(hosp_px);
+        return false;
+    }
+
+    /* Hospital art replaces the 3x3 block indexed by HOSPITAL-4..HOSPITAL+4, so zone tile IDs are unchanged. */
+    memcpy(tiles_px + (size_t)(HOSPITAL - 4) * TILE_H * (size_t)tiles_w, hosp_px,
+           (size_t)hosp_w * (size_t)hosp_h * sizeof(uint32_t));
+    free(hosp_px);
 
     /* Water tower tiles follow the base sheet, so tile IDs 960+ index the appended rows. */
     size_t tiles_count = (size_t)tiles_w * (size_t)tiles_h;

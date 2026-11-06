@@ -12,6 +12,7 @@
 #define TILE_SHEET_ROWS     60
 #define TOTAL_TILES         (TILE_SHEET_COLS * TILE_SHEET_ROWS) /* 960 tiles */
 #define WATER_TOWER_TILES   9 /* 3x3 water tower block appended after the base sheet */
+#define HOSPITAL_SPRITE_TILES 9 /* 3x3 hospital art drawn over the base sheet at HOSPITAL-4 */
 #define TOTAL_SHEET_TILES   (TOTAL_TILES + WATER_TOWER_TILES)
 #define TILE_W              16
 #define TILE_H              16
