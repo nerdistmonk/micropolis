@@ -465,14 +465,15 @@ int32_t LoadScenario(int16_t s)
     SetGameLevel(0);
 
     ScenarioID = s;
-    DisasterEvent = dis_event;
-    DisasterWait = dis_wait;
     ScoreType = s;
     ScoreWait = score_wait;
     CityTime = (int32_t)(((start_year - 1900) * 48) + 2);
     TotalFunds = initial_funds;
     ResetCityWorkingState();
     RestoreSimState();
+    /* Set after the reset, which clears DisasterEvent. */
+    DisasterEvent = dis_event;
+    DisasterWait = dis_wait;
 
     strncpy(CityName, name, sizeof(CityName) - 1);
     CityName[sizeof(CityName) - 1] = '\0';
