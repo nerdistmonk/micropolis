@@ -12,6 +12,9 @@
 
 #define STATUS_BAR_HEIGHT 28
 #define TOOLBAR_WIDTH 108
+/* Screen pixel where the camera's tile (cam_x, cam_y) is drawn; the map lies right of the toolbar and below the status bar */
+#define MAP_ORIGIN_X TOOLBAR_WIDTH
+#define MAP_ORIGIN_Y STATUS_BAR_HEIGHT
 
 bool GUI_Init(void);
 void GUI_Shutdown(void);
