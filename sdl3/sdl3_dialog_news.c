@@ -229,8 +229,8 @@ void Dialog_News_Render(SDL_Renderer *renderer)
     SDL_SetRenderDrawColor(renderer, 80, 110, 150, 255);
     SDL_RenderRect(renderer, &win_rect);
 
-    char title[64];
-    snprintf(title, sizeof(title), "HEADLINES OF %d", (int)year);
+    char title[128];
+    snprintf(title, sizeof(title), "%s Herald - Headlines of %d", CityName, (int)year);
     GUI_DrawText(renderer, (int)dx + 16, (int)dy + (int)NEWS_TITLE_Y, title, col_gold);
 
     SDL_FRect close_rect = { dx + dw - 28.0f, dy + 8.0f, 20.0f, 20.0f };
