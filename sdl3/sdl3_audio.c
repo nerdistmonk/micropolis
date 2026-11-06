@@ -84,7 +84,7 @@ typedef struct {
     const char *stem;
 } SoundAlias;
 
-/* Unix sound names (res/sound.tcl) and core shorthand mapped to WAV stems in sounds/ */
+/* Unix sound names and core shorthand mapped to WAV stems in sounds/ */
 static const SoundAlias sound_aliases[] = {
     { "Explosion-High", "explosion-hi" },
     { "Explosion-Low", "explosion-low" },

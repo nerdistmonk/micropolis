@@ -201,9 +201,7 @@ static int32_t LoadFileInternal(const char *filename)
         "../scenarios/",
         "../../scenarios/",
         "cities/",
-        "../cities/",
-        "res/",
-        "../res/"
+        "../cities/"
     };
 
     /* Data root (the executable's directory) comes first so loading works from any cwd. */

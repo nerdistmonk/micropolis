@@ -133,7 +133,7 @@ static char CheatKeyChar(SDL_Keycode key)
     return (key >= 'a' && key <= 'z') ? (char)key : ' ';
 }
 
-/* Success tones per tool, matching Unix UIDidTool* in res/micropolis.tcl */
+/* Success tones per tool, matching the Unix UIDidTool* sounds */
 static void PlayToolTone(int16_t tool)
 {
     switch (tool) {
