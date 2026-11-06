@@ -168,6 +168,7 @@ int32_t LoadCity(const char *filename)
     if (!LoadFileInternal(filename)) {
         return 0;
     }
+    ResetMilestoneState();
 
     uint16_t f0 = (uint16_t)MiscHis[50];
     uint16_t f1 = (uint16_t)MiscHis[51];
@@ -455,6 +456,7 @@ int32_t LoadScenario(int16_t s)
     if (!LoadFileInternal(fname)) {
         return 0;
     }
+    ResetMilestoneState();
 
     if (CityFileName != NULL) {
         free(CityFileName);

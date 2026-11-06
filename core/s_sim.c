@@ -1207,6 +1207,7 @@ void Sim_InitEngine(void)
 
     ClearCityMemory();
     SetCommonInits();
+    ResetMilestoneState();
 
     for (int16_t x = 0; x < 240; x++) {
         ResHis[x] = 0;
