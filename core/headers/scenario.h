@@ -1,7 +1,6 @@
 /* scenario.h: Custom scenario definitions, win/lose evaluation, and the scenario editor model.
  *
  * Custom scenarios are stored as .scn files (see s_fileio.c for the on-disk layout).
- * Historical snro.* scenarios still use LoadScenario() and are not handled here.
  */
 
 #ifndef SCENARIO_H

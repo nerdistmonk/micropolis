@@ -122,18 +122,6 @@ void GUI_ShowStatus(const char *text)
   ticker_start_time = 0;
 }
 
-bool GUI_LoadScenarioWithStatus(int16_t id)
-{
-  if (!LoadScenario(id)) {
-    GUI_ShowStatus("Scenario files not found");
-    return false;
-  }
-  char buf[160];
-  snprintf(buf, sizeof(buf), "Loaded scenario: %s", CityName);
-  GUI_ShowStatus(buf);
-  return true;
-}
-
 #define TICKER_DURATION_MS 12000
 #define TICKER_FADE_MS     3000
 
