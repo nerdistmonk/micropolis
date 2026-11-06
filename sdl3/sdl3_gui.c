@@ -588,7 +588,7 @@ void GUI_Render(SDL_Renderer *renderer)
 
   /* 1. Status Bar */
   SDL_FRect status_rect = { 0.0f, 0.0f, (float)Video_GetCanvasWidth(), (float)STATUS_BAR_HEIGHT };
-  SDL_SetRenderDrawColor(renderer, 24, 28, 36, 245);
+  SDL_SetRenderDrawColor(renderer, 24, 28, 36, 255);
   SDL_RenderFillRect(renderer, &status_rect);
 
   SDL_SetRenderDrawColor(renderer, 60, 72, 92, 255);
@@ -711,7 +711,7 @@ void GUI_Render(SDL_Renderer *renderer)
 
   /* 3. Tool Palette sidebar */
   SDL_FRect tool_bg = { 0.0f, (float)STATUS_BAR_HEIGHT, (float)TOOLBAR_WIDTH, (float)(Video_GetCanvasHeight() - STATUS_BAR_HEIGHT) };
-  SDL_SetRenderDrawColor(renderer, 20, 24, 30, 240);
+  SDL_SetRenderDrawColor(renderer, 20, 24, 30, 255);
   SDL_RenderFillRect(renderer, &tool_bg);
 
   SDL_SetRenderDrawColor(renderer, 60, 72, 92, 255);
