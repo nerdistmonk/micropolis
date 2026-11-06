@@ -55,6 +55,31 @@ static bool WaterCanEnter(int32_t x, int32_t y)
     return pipe_map[x][y] || TILE_IS_POWER_PLANT(tile) || IsWaterConductor(tile);
 }
 
+/* A 4x4 plant is watered as one unit: find its center around (x,y) and mark every footprint tile. */
+static void MarkPlantFootprint(int32_t x, int32_t y)
+{
+    for (int32_t cy = y - 2; cy <= y + 1; cy++) {
+        for (int32_t cx = x - 2; cx <= x + 1; cx++) {
+            if (!TestBounds(cx, cy)) continue;
+            uint16_t center = Map[cx][cy] & LOMASK;
+            if (center != POWERPLANT && center != NUCLEAR) continue;
+
+            int32_t min_x = cx - 1;
+            int32_t min_y = cy - 1;
+            if (!TestBounds(min_x, min_y) || !TestBounds(min_x + 3, min_y + 3)) continue;
+
+            for (int32_t dy = 0; dy < 4; dy++) {
+                for (int32_t dx = 0; dx < 4; dx++) {
+                    int32_t px = min_x + dx;
+                    int32_t py = min_y + dy;
+                    if (TILE_IS_POWER_PLANT(Map[px][py])) water_map[px][py] = 1;
+                }
+            }
+            return;
+        }
+    }
+}
+
 static void SupplyFromTower(int32_t tx, int32_t ty)
 {
     static const int32_t step_x[4] = { 1, -1, 0, 0 };
@@ -88,6 +113,7 @@ static void SupplyFromTower(int32_t tx, int32_t ty)
             uint16_t tile = Map[nx][ny];
             if (TILE_IS_POWER_PLANT(tile)) {
                 water_map[nx][ny] = 1;
+                MarkPlantFootprint(nx, ny);
                 continue;
             }
             if ((tile & ZONEBIT) && zones >= WATER_TOWER_ZONES) continue;

@@ -45,19 +45,32 @@ bool Dialog_City_HandleTextInput(const char *text);
 void Dialog_City_Render(SDL_Renderer *renderer);
 
 /* File, Scenario & Options Manager */
-typedef enum {
-    NATIVE_SAVE_FILE,
-    NATIVE_LOAD_FILE,
-    NATIVE_SAVE_QUIT
-} NativeFileRequest;
-
 void Dialog_File_ApplyTerrainOptions(void);
 void Dialog_File_Open(FileDialogTab tab);
 bool Dialog_File_HandleClick(float mx, float my);
 void Dialog_File_Render(SDL_Renderer *renderer);
-void Dialog_File_RequestNative(NativeFileRequest req);
-bool Dialog_File_HandleNativeEvent(const SDL_Event *event);
-bool Dialog_File_NativePending(void);
+
+/* City save (name entry, shared by File and Quit) and city load list */
+typedef enum {
+    CITY_SAVE_FROM_FILE,
+    CITY_SAVE_FROM_QUIT
+} CitySaveOrigin;
+
+const char *CityIO_Dir(void);
+const char *CityIO_Status(SDL_Color *color);
+void CityIO_ClearStatus(void);
+void CitySave_Begin(CitySaveOrigin origin);
+void CitySave_Cancel(void);
+void CitySave_Submit(void);
+bool CitySave_IsActive(void);
+bool CitySave_HandleText(const char *text);
+bool CitySave_HandleKeyDown(SDL_Keycode key);
+void CitySave_DrawField(SDL_Renderer *renderer, SDL_FRect box);
+void CityList_Open(void);
+void CityList_Close(void);
+bool CityList_IsOpen(void);
+void CityList_Render(SDL_Renderer *renderer, float dx, float dy);
+bool CityList_HandleClick(float mx, float my, float dx, float dy);
 
 /* Load Scenario list (replaces the Save / Load tab body while open) */
 void ScnList_Open(void);
@@ -106,7 +119,7 @@ void Dialog_Notice_Render(SDL_Renderer *renderer);
 void Dialog_Quit_Show(void);
 bool Dialog_Quit_HandleClick(float mx, float my);
 bool Dialog_Quit_TakeConfirmed(void);
-void Dialog_Quit_SaveFinished(bool saved, const char *name);
+void Dialog_Quit_SaveFinished(void);
 void Dialog_Quit_Render(SDL_Renderer *renderer);
 
 /* Choose another city confirmation (gates New City and scenario load) */

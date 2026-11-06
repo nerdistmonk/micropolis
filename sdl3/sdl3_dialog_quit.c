@@ -12,28 +12,28 @@
 #define QUIT_BTN_GAP 20.0f
 
 enum { QUIT_BTN_SAVE = 0, QUIT_BTN_QUIT, QUIT_BTN_CANCEL, QUIT_BTN_COUNT };
+enum { QUIT_NAME_BTN_SAVE = 0, QUIT_NAME_BTN_BACK, QUIT_NAME_BTN_COUNT };
 
 static const char *const quit_labels[QUIT_BTN_COUNT] = { "Save & Quit", "Quit", "Cancel" };
+static const char *const quit_name_labels[QUIT_NAME_BTN_COUNT] = { "Save", "Back" };
 
 static bool quit_confirmed = false;
-static char quit_status[128] = { 0 };
-static SDL_Color quit_status_color = { 245, 245, 250, 255 };
 
-static SDL_FRect QuitButtonRect(int index)
+static SDL_FRect QuitButtonRect(const char *const *labels, int count, int index)
 {
-    float row_w = (float)(QUIT_BTN_COUNT - 1) * QUIT_BTN_GAP;
-    for (int i = 0; i < QUIT_BTN_COUNT; i++) row_w += GUI_ButtonWidth(quit_labels[i], QUIT_BTN_PAD);
+    float row_w = (float)(count - 1) * QUIT_BTN_GAP;
+    for (int i = 0; i < count; i++) row_w += GUI_ButtonWidth(labels[i], QUIT_BTN_PAD);
 
     float x = QUIT_X + (QUIT_W - row_w) / 2.0f;
-    for (int i = 0; i < index; i++) x += GUI_ButtonWidth(quit_labels[i], QUIT_BTN_PAD) + QUIT_BTN_GAP;
+    for (int i = 0; i < index; i++) x += GUI_ButtonWidth(labels[i], QUIT_BTN_PAD) + QUIT_BTN_GAP;
 
-    SDL_FRect r = { x, QUIT_Y + QUIT_H - 46.0f, GUI_ButtonWidth(quit_labels[index], QUIT_BTN_PAD), QUIT_BTN_H };
+    SDL_FRect r = { x, QUIT_Y + QUIT_H - 46.0f, GUI_ButtonWidth(labels[index], QUIT_BTN_PAD), QUIT_BTN_H };
     return r;
 }
 
 void Dialog_Quit_Show(void)
 {
-    quit_status[0] = '\0';
+    CitySave_Cancel();
 }
 
 bool Dialog_Quit_TakeConfirmed(void)
@@ -45,11 +45,23 @@ bool Dialog_Quit_TakeConfirmed(void)
 
 bool Dialog_Quit_HandleClick(float mx, float my)
 {
-    /* Buttons stay inert while a native save dialog is open, so Cancel can't be overtaken by a pending save-and-quit. */
-    if (Dialog_File_NativePending()) return true;
+    if (CitySave_IsActive()) {
+        for (int i = 0; i < QUIT_NAME_BTN_COUNT; i++) {
+            SDL_FRect r = QuitButtonRect(quit_name_labels, QUIT_NAME_BTN_COUNT, i);
+            if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) continue;
+
+            if (i == QUIT_NAME_BTN_SAVE) {
+                CitySave_Submit();
+            } else {
+                CitySave_Cancel();
+            }
+            return true;
+        }
+        return true;
+    }
 
     for (int i = 0; i < QUIT_BTN_COUNT; i++) {
-        SDL_FRect r = QuitButtonRect(i);
+        SDL_FRect r = QuitButtonRect(quit_labels, QUIT_BTN_COUNT, i);
         if (mx < r.x || mx > r.x + r.w || my < r.y || my > r.y + r.h) continue;
 
         if (i == QUIT_BTN_CANCEL) {
@@ -58,28 +70,18 @@ bool Dialog_Quit_HandleClick(float mx, float my)
             quit_confirmed = true;
             GUI_Dialogs_Close();
         } else {
-            Dialog_File_RequestNative(NATIVE_SAVE_QUIT);
+            CitySave_Begin(CITY_SAVE_FROM_QUIT);
         }
         return true;
     }
     return true;
 }
 
-/* name is NULL when the native save dialog itself failed. */
-void Dialog_Quit_SaveFinished(bool saved, const char *name)
+/* Called after a city has been saved from the quit dialog. */
+void Dialog_Quit_SaveFinished(void)
 {
-    if (saved) {
-        quit_confirmed = true;
-        GUI_Dialogs_Close();
-        return;
-    }
-    if (name) {
-        snprintf(quit_status, sizeof(quit_status), "Error: Could not save to %s", name);
-    } else {
-        snprintf(quit_status, sizeof(quit_status), "Error: Save dialog failed");
-    }
-    quit_status_color = col_red;
-    Audio_MakeSound("warning", "Sorry -speed 85");
+    quit_confirmed = true;
+    GUI_Dialogs_Close();
 }
 
 void Dialog_Quit_Render(SDL_Renderer *renderer)
@@ -95,17 +97,38 @@ void Dialog_Quit_Render(SDL_Renderer *renderer)
     SDL_RenderRect(renderer, &box);
 
     int tx = (int)QUIT_X + 20;
-    int ty = (int)QUIT_Y + 20;
-    GUI_DrawText(renderer, tx, ty, "QUIT MICROPOLIS?", col_gold);
-    GUI_DrawText(renderer, tx, ty + 40, "Save your city before quitting?", col_white);
-    GUI_DrawText(renderer, tx, ty + 64, "Quitting without saving loses your progress.", col_white);
+    int ty = (int)QUIT_Y + 16;
 
-    if (quit_status[0] != '\0') {
-        GUI_DrawText(renderer, tx, ty + 88, quit_status, quit_status_color);
+    if (CitySave_IsActive()) {
+        GUI_DrawText(renderer, tx, ty, "SAVE CITY BEFORE QUITTING", col_gold);
+        GUI_DrawText(renderer, tx, ty + 28, "City name:", col_white);
+
+        SDL_FRect field = { QUIT_X + 20.0f, QUIT_Y + 64.0f, QUIT_W - 40.0f, 28.0f };
+        CitySave_DrawField(renderer, field);
+
+        SDL_Color status_color;
+        const char *status = CityIO_Status(&status_color);
+        if (status[0] != '\0') {
+            GUI_DrawText(renderer, tx, (int)QUIT_Y + 100, status, status_color);
+        }
+
+        for (int i = 0; i < QUIT_NAME_BTN_COUNT; i++) {
+            SDL_FRect r = QuitButtonRect(quit_name_labels, QUIT_NAME_BTN_COUNT, i);
+            SDL_SetRenderDrawColor(renderer, 44, 55, 75, 255);
+            SDL_RenderFillRect(renderer, &r);
+            SDL_SetRenderDrawColor(renderer, 100, 130, 180, 255);
+            SDL_RenderRect(renderer, &r);
+            GUI_DrawTextCentered(renderer, r, quit_name_labels[i], col_white);
+        }
+        return;
     }
 
+    GUI_DrawText(renderer, tx, ty + 4, "QUIT MICROPOLIS?", col_gold);
+    GUI_DrawText(renderer, tx, ty + 44, "Save your city before quitting?", col_white);
+    GUI_DrawText(renderer, tx, ty + 68, "Quitting without saving loses your progress.", col_white);
+
     for (int i = 0; i < QUIT_BTN_COUNT; i++) {
-        SDL_FRect r = QuitButtonRect(i);
+        SDL_FRect r = QuitButtonRect(quit_labels, QUIT_BTN_COUNT, i);
         SDL_SetRenderDrawColor(renderer, 44, 55, 75, 255);
         SDL_RenderFillRect(renderer, &r);
         SDL_SetRenderDrawColor(renderer, 100, 130, 180, 255);

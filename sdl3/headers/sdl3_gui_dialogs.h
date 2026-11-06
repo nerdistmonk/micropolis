@@ -86,7 +86,6 @@ void GUI_Dialogs_SetActiveOverlay(OverlayViewMode mode);
 bool GUI_Dialogs_HandleClick(float mx, float my);
 bool GUI_Dialogs_HandleKeyDown(SDL_Keycode key);
 bool GUI_Dialogs_HandleTextInput(const char *text);
-bool GUI_Dialogs_HandleNativeEvent(const SDL_Event *event);
 
 void GUI_Dialogs_Render(SDL_Renderer *renderer);
 

@@ -113,6 +113,7 @@ void GUI_Dialogs_OpenEditor(void)
 
 void GUI_Dialogs_Close(void)
 {
+    CitySave_Cancel();
     if (active_modal == GUI_MODAL_CITY_MGMT) {
         Dialog_City_Reset();
         if (pending_annual_budget) {
@@ -143,6 +144,9 @@ void GUI_Dialogs_SetActiveOverlay(OverlayViewMode mode)
 
 bool GUI_Dialogs_HandleTextInput(const char *text)
 {
+    if (CitySave_IsActive()) {
+        return CitySave_HandleText(text);
+    }
     if (active_modal == GUI_MODAL_CITY_MGMT) {
         return Dialog_City_HandleTextInput(text);
     }
@@ -152,16 +156,11 @@ bool GUI_Dialogs_HandleTextInput(const char *text)
     return false;
 }
 
-bool GUI_Dialogs_HandleNativeEvent(const SDL_Event *event)
-{
-    return Dialog_File_HandleNativeEvent(event);
-}
-
 bool GUI_Dialogs_HandleKeyDown(SDL_Keycode key)
 {
     if (active_modal == GUI_MODAL_NONE) return false;
 
-    if (active_modal == GUI_MODAL_QUIT_CONFIRM && Dialog_File_NativePending()) return true;
+    if (CitySave_HandleKeyDown(key)) return true;
 
     if (active_modal == GUI_MODAL_EDITOR && Dialog_Editor_HandleKeyDown(key)) return true;
 
