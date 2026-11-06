@@ -639,6 +639,7 @@ int32_t SendMes(int16_t msg_num);
 void SendMesAt(int16_t msg_num, int16_t x, int16_t y);
 void doMessage(void);
 void ClearMes(void);
+void ResetMilestoneState(void);
 void DoLoseGame(void);
 void DoWinGame(void);
 
