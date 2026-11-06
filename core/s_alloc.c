@@ -42,7 +42,6 @@ int16_t NuclearPop = 0;
 int16_t PortPop = 0;
 int16_t APortPop = 0;
 
-int16_t NeedHosp = 0;
 int16_t NeedChurch = 0;
 int16_t CrimeAverage = 0;
 int16_t PolluteAverage = 0;

@@ -563,10 +563,6 @@ static void TakeCensus(void)
 
     CensusChanged = 1;
 
-    if (HospPop < (ResPop >> 8)) NeedHosp = TRUE;
-    if (HospPop > (ResPop >> 8)) NeedHosp = -1;
-    if (HospPop == (ResPop >> 8)) NeedHosp = FALSE;
-
     if (ChurchPop < (ResPop >> 8)) NeedChurch = TRUE;
     if (ChurchPop > (ResPop >> 8)) NeedChurch = -1;
     if (ChurchPop == (ResPop >> 8)) NeedChurch = FALSE;

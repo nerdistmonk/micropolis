@@ -415,7 +415,7 @@ extern int16_t ResZPop, ComZPop, IndZPop, TotalZPop;
 extern int16_t HospPop, ChurchPop, StadiumPop;
 extern int16_t PolicePop, FireStPop;
 extern int16_t CoalPop, NuclearPop, PortPop, APortPop;
-extern int16_t NeedHosp, NeedChurch;
+extern int16_t NeedChurch;
 extern int16_t CrimeAverage, PolluteAverage, LVAverage;
 extern int16_t CrimeRamp, PolluteRamp, AvCityTax;
 extern float EMarket;

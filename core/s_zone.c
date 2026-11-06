@@ -19,7 +19,7 @@ static void    DoHospChur(int16_t pwron);
 static void    DoResidential(int16_t zone_pwr_flg);
 static void    DoCommercial(int16_t zone_pwr_flg);
 static void    DoIndustrial(int16_t zone_pwr_flg);
-static void    MakeHosp(void);
+static void    MakeChurch(void);
 static int16_t GetCRVal(void);
 static void    DoResIn(int32_t pop, int32_t value);
 static void    DoComIn(int32_t pop, int32_t value);
@@ -100,11 +100,6 @@ static void DoHospChur(int16_t pwron)
         int16_t z = pwron ? HealthEffect : (HealthEffect >> 1);
         if (!FindPRoad()) z >>= 1;
         HospStMap[SMapX >> 3][SMapY >> 3] += z;
-        if (NeedHosp == -1) {
-            if (!Rand(20)) {
-                ZonePlop(RESBASE);
-            }
-        }
     }
 
     if (CChr9 == CHURCH) {
@@ -269,7 +264,7 @@ static void DoResidential(int16_t zone_pwr_flg)
         if ((zscore > -350) &&
             ((int16_t)(zscore - 26380) > Rand16Signed())) {
             if ((!tpop) && !(Rand16() & 3)) {
-                MakeHosp();
+                MakeChurch();
                 return;
             }
             value = GetCRVal();
@@ -285,13 +280,8 @@ static void DoResidential(int16_t zone_pwr_flg)
     }
 }
 
-static void MakeHosp(void)
+static void MakeChurch(void)
 {
-    if (NeedHosp > 0) {
-        ZonePlop(HOSPITAL - 4);
-        NeedHosp = FALSE;
-        return;
-    }
     if (NeedChurch > 0) {
         ZonePlop(CHURCH - 4);
         NeedChurch = FALSE;
