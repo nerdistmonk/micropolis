@@ -40,6 +40,7 @@ void ResetCityWorkingState(void)
     MessagePort   = 0;
     ValveFlag     = 1;
     DisasterEvent = 0;
+    FloodCnt      = 0;
     TaxFlag       = 0;
 
     for (int16_t x = 0; x < HWLDX; x++) {

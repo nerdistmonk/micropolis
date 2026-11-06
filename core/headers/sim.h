@@ -466,6 +466,7 @@ extern int16_t UserSoundOn;
 
 extern int16_t DisasterEvent;
 extern int16_t DisasterWait;
+extern int16_t FloodCnt;
 extern int16_t ResCap, ComCap, IndCap;
 extern int16_t RValve, CValve, IValve;
 extern int16_t PwrdZCnt, unPwrdZCnt;
