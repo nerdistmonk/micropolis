@@ -549,6 +549,22 @@ void GUI_Editor_Exit(void)
     GUI_ShowStatus("Left editor mode.");
 }
 
+static void EditorRandomConfirmed(int32_t arg)
+{
+    (void)arg;
+    Dialog_File_ApplyTerrainOptions();
+    Scenario_EditorRandomTerrain((int32_t)SDL_GetTicks());
+    GUI_ShowStatus("Random terrain generated.");
+}
+
+void GUI_Editor_Random(void)
+{
+    GUI_Dialogs_OpenConfirm("RANDOM TERRAIN",
+                            "This erases all painted terrain and",
+                            "buildings in this editor map. Continue?",
+                            "Randomize!", EditorRandomConfirmed, 0);
+}
+
 void Dialog_Editor_Start(void)
 {
     Scenario_EditorBegin();

@@ -68,6 +68,8 @@ void GUI_Dialogs_UpdateNotice(uint64_t now);
 void GUI_Dialogs_OpenQuitConfirm(void);
 bool GUI_Dialogs_TakeQuitConfirmed(void);
 void GUI_Dialogs_OpenChooseCity(void (*on_confirm)(int32_t), int32_t arg);
+void GUI_Dialogs_OpenConfirm(const char *title, const char *line1, const char *line2, const char *confirm_label,
+                             void (*on_confirm)(int32_t), int32_t arg);
 void GUI_Dialogs_OpenEditor(void);
 void GUI_Dialogs_Close(void);
 
@@ -75,6 +77,7 @@ void GUI_Dialogs_Close(void);
 void GUI_Editor_Save(void);
 void GUI_Editor_Step(void);
 void GUI_Editor_Exit(void);
+void GUI_Editor_Random(void);
 
 OverlayViewMode GUI_Dialogs_GetActiveOverlay(void);
 void GUI_Dialogs_SetActiveOverlay(OverlayViewMode mode);

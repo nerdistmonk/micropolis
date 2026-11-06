@@ -295,6 +295,19 @@ void Scenario_EditorSetFunds(int32_t funds)
     NotifyEngineChanged();
 }
 
+/* Regenerates terrain with the current tree/lake/river/island settings. Clears buildings and zones.
+ * Funds, the scenario rules, and the paused state are kept. */
+void Scenario_EditorRandomTerrain(int32_t seed)
+{
+    if (!editor_active) return;
+
+    GenerateMap(seed);
+    ResetCityWorkingState();
+    InitSprites();
+    CityRescan();
+    NotifyEngineChanged();
+}
+
 void Scenario_EditorPaint(int32_t brush, int32_t tx, int32_t ty)
 {
     if (!editor_active) return;

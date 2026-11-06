@@ -80,6 +80,7 @@ void Scenario_EditorSetStartYear(int32_t year);
 void Scenario_EditorSetFunds(int32_t funds);
 void Scenario_EditorPaint(int32_t brush, int32_t tx, int32_t ty);
 void Scenario_EditorStep(void);
+void Scenario_EditorRandomTerrain(int32_t seed);
 /* Returns NULL on success and fills saved_path. Otherwise returns an error message. */
 const char *Scenario_EditorSave(char *saved_path, size_t saved_len);
 

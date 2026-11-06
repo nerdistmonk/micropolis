@@ -1,4 +1,5 @@
-/* sdl3_dialog_choose.c: "Choose Another City" confirmation shown before New City or a scenario load.
+/* sdl3_dialog_choose.c: Confirmation dialog shown before a destructive action. Defaults to the
+ * "Choose Another City" wording; Dialog_Confirm_Show supplies custom text.
  */
 
 #include "sdl3_dialog_common.h"
@@ -11,7 +12,10 @@
 #define CHOOSE_BTN_PAD 16.0f
 #define CHOOSE_BTN_GAP 20.0f
 
-static const char *const choose_labels[2] = { "Keep playing.", "Another city!" };
+static const char *choose_title = "CHOOSE ANOTHER CITY";
+static const char *choose_line1 = "Do you want to abandon this city and";
+static const char *choose_line2 = "choose another one?";
+static const char *choose_labels[2] = { "Keep playing.", "Another city!" };
 
 static void (*choose_on_confirm)(int32_t) = NULL;
 static int32_t choose_arg = 0;
@@ -31,6 +35,17 @@ static SDL_FRect ChooseButtonRect(int index)
 
 void Dialog_ChooseCity_Show(void (*on_confirm)(int32_t), int32_t arg)
 {
+    Dialog_Confirm_Show("CHOOSE ANOTHER CITY", "Do you want to abandon this city and",
+                        "choose another one?", "Another city!", on_confirm, arg);
+}
+
+void Dialog_Confirm_Show(const char *title, const char *line1, const char *line2, const char *confirm_label,
+                         void (*on_confirm)(int32_t), int32_t arg)
+{
+    choose_title = title;
+    choose_line1 = line1;
+    choose_line2 = line2;
+    choose_labels[1] = confirm_label;
     choose_on_confirm = on_confirm;
     choose_arg = arg;
 }
@@ -75,9 +90,9 @@ void Dialog_ChooseCity_Render(SDL_Renderer *renderer)
 
     int tx = (int)CHOOSE_X + 20;
     int ty = (int)CHOOSE_Y + 20;
-    GUI_DrawText(renderer, tx, ty, "CHOOSE ANOTHER CITY", col_gold);
-    GUI_DrawText(renderer, tx, ty + 40, "Do you want to abandon this city and", col_white);
-    GUI_DrawText(renderer, tx, ty + 64, "choose another one?", col_white);
+    GUI_DrawText(renderer, tx, ty, choose_title, col_gold);
+    GUI_DrawText(renderer, tx, ty + 40, choose_line1, col_white);
+    GUI_DrawText(renderer, tx, ty + 64, choose_line2, col_white);
 
     for (int i = 0; i < 2; i++) {
         SDL_FRect r = ChooseButtonRect(i);

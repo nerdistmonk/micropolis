@@ -51,6 +51,7 @@ typedef enum {
     NATIVE_SAVE_QUIT
 } NativeFileRequest;
 
+void Dialog_File_ApplyTerrainOptions(void);
 void Dialog_File_Open(FileDialogTab tab);
 bool Dialog_File_HandleClick(float mx, float my);
 void Dialog_File_Render(SDL_Renderer *renderer);
@@ -110,6 +111,8 @@ void Dialog_Quit_Render(SDL_Renderer *renderer);
 
 /* Choose another city confirmation (gates New City and scenario load) */
 void Dialog_ChooseCity_Show(void (*on_confirm)(int32_t), int32_t arg);
+void Dialog_Confirm_Show(const char *title, const char *line1, const char *line2, const char *confirm_label,
+                         void (*on_confirm)(int32_t), int32_t arg);
 void Dialog_ChooseCity_Reset(void);
 bool Dialog_ChooseCity_HandleClick(float mx, float my);
 void Dialog_ChooseCity_Render(SDL_Renderer *renderer);

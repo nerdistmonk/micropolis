@@ -136,11 +136,9 @@ static void EditorStartConfirmed(int32_t arg)
     Dialog_Editor_Start();
 }
 
-/* Run only after the "Choose Another City" confirmation. */
-static void NewCityConfirmed(int32_t level)
+/* Copies the File tab's terrain choices into the generator globals. */
+void Dialog_File_ApplyTerrainOptions(void)
 {
-    Scenario_EditorEnd();
-    Sim_InitEngine();
     for (int i = 0; i < TERRAIN_OPT_COUNT; i++) {
         int32_t value = terrain_opt_values[i][terrain_opt_index[i]];
         if (i == 0) TreeLevel = value;
@@ -148,6 +146,14 @@ static void NewCityConfirmed(int32_t level)
         else if (i == 2) CurveLevel = value;
         else CreateIsland = value;
     }
+}
+
+/* Run only after the "Choose Another City" confirmation. */
+static void NewCityConfirmed(int32_t level)
+{
+    Scenario_EditorEnd();
+    Sim_InitEngine();
+    Dialog_File_ApplyTerrainOptions();
     GenerateMap((uint32_t)SDL_GetTicks());
     SetNewCityLevel((int16_t)level);
     SetSimSpeed(3);

@@ -95,6 +95,14 @@ void GUI_Dialogs_OpenChooseCity(void (*on_confirm)(int32_t), int32_t arg)
     Dialog_ChooseCity_Show(on_confirm, arg);
 }
 
+void GUI_Dialogs_OpenConfirm(const char *title, const char *line1, const char *line2, const char *confirm_label,
+                             void (*on_confirm)(int32_t), int32_t arg)
+{
+    GUI_Dialogs_Close();
+    active_modal = GUI_MODAL_CHOOSE_CITY;
+    Dialog_Confirm_Show(title, line1, line2, confirm_label, on_confirm, arg);
+}
+
 void GUI_Dialogs_OpenEditor(void)
 {
     if (!Scenario_EditorIsActive()) return;

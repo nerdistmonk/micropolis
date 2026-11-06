@@ -73,6 +73,7 @@ typedef enum {
   EDITOR_BTN_WATER,
   EDITOR_BTN_LAND,
   EDITOR_BTN_FOREST,
+  EDITOR_BTN_RANDOM,
   EDITOR_BTN_STEP,
   EDITOR_BTN_SETUP,
   EDITOR_BTN_SAVE,
@@ -90,6 +91,7 @@ static EditorButton editor_buttons[EDITOR_BTN_COUNT] = {
   { "Water",  editorWaterState,  { 0.0f, 0.0f, 0.0f, 0.0f } },
   { "Land",   editorLandState,   { 0.0f, 0.0f, 0.0f, 0.0f } },
   { "Forest", editorForestState, { 0.0f, 0.0f, 0.0f, 0.0f } },
+  { "Random", -1,                { 0.0f, 0.0f, 0.0f, 0.0f } },
   { "Step",   -1,                { 0.0f, 0.0f, 0.0f, 0.0f } },
   { "Setup",  -1,                { 0.0f, 0.0f, 0.0f, 0.0f } },
   { "Save",   -1,                { 0.0f, 0.0f, 0.0f, 0.0f } },
@@ -376,6 +378,9 @@ bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
       break;
     case EDITOR_BTN_STEP:
       GUI_Editor_Step();
+      break;
+    case EDITOR_BTN_RANDOM:
+      GUI_Editor_Random();
       break;
     case EDITOR_BTN_SETUP:
       GUI_Dialogs_OpenEditor();
