@@ -201,6 +201,7 @@ static void ApplyTool(int16_t tool, int32_t tx, int32_t ty, bool first)
     case nuclearState:
     case airportState:
     case hospitalState:
+    case landfillState:
         result = PlaceZone(tx, ty, tool);
         break;
 

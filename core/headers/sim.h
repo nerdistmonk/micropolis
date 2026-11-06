@@ -338,9 +338,10 @@ typedef int32_t QUAD;
 #define waterTowerState 19
 #define pipeState 20
 #define hospitalState 21
+#define landfillState 22
 
 #define firstState residentialState
-#define lastState hospitalState
+#define lastState landfillState
 
 /* Global Bounds and Validity Macros */
 #define ABS(x) (((x) < 0) ? (-(x)) : (x))

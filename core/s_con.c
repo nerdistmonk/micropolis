@@ -302,6 +302,11 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
         base_tile = HOSPITAL - 4;
         size = 3;
         break;
+    case landfillState:
+        base_cost = 100;
+        base_tile = LANDFILL;
+        size = 3;
+        break;
     default:
         return 0;
     }

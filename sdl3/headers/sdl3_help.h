@@ -39,6 +39,7 @@ typedef enum {
     HELP_TOOL_WATER_TOWER,
     HELP_TOOL_PIPE,
     HELP_TOOL_HOSPITAL,
+    HELP_TOOL_LANDFILL,
     HELP_TOPIC_COUNT
 } HelpTopic;
 

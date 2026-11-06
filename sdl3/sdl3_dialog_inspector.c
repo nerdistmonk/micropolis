@@ -64,6 +64,8 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         strncpy(inspect_title, "Radioactive Contamination!", sizeof(inspect_title));
     } else if (low >= WATERTOWER && low < WATERTOWER + WATERTOWER_TILES) {
         strncpy(inspect_title, "Water Tower", sizeof(inspect_title));
+    } else if (low >= LANDFILL && low < LANDFILL + LANDFILL_TILES) {
+        strncpy(inspect_title, "Landfill", sizeof(inspect_title));
     } else if (low >= RUBBLE && low <= LASTRUBBLE) {
         strncpy(inspect_title, "Demolished Rubble", sizeof(inspect_title));
     } else {

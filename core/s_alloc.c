@@ -125,7 +125,7 @@ int32_t CostOf[] = {
     20, 10, 0, 0,
     5000, 20, 3000, 3000,
     5000, 10000, 100, 500,
-    2, 500
+    2, 500, 100
 };
 
 int16_t toolSize[] = {
@@ -134,7 +134,7 @@ int16_t toolSize[] = {
     1, 1, 0, 0,
     4, 1, 4, 4,
     4, 6, 1, 3,
-    1, 3
+    1, 3, 3
 };
 
 int16_t toolOffset[] = {
@@ -143,7 +143,7 @@ int16_t toolOffset[] = {
     0, 0, 0, 0,
     1, 0, 1, 1,
     1, 1, 0, 1,
-    0, 1
+    0, 1, 1
 };
 
 /* Graphical Synchronization and Animation Tables */
