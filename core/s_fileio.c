@@ -181,11 +181,11 @@ int32_t LoadCity(const char *filename)
 
     uint16_t f0 = (uint16_t)MiscHis[50];
     uint16_t f1 = (uint16_t)MiscHis[51];
-    TotalFunds = (int32_t)((f0 << 16) | f1);
+    TotalFunds = (int32_t)(((uint32_t)f0 << 16) | f1);
 
     uint16_t t0 = (uint16_t)MiscHis[8];
     uint16_t t1 = (uint16_t)MiscHis[9];
-    CityTime = (int32_t)((t0 << 16) | t1);
+    CityTime = (int32_t)(((uint32_t)t0 << 16) | t1);
 
     autoBulldoze = MiscHis[52];
     autoBudget = MiscHis[53];
@@ -196,15 +196,15 @@ int32_t LoadCity(const char *filename)
 
     uint16_t p0 = (uint16_t)MiscHis[58];
     uint16_t p1 = (uint16_t)MiscHis[59];
-    policePercent = (float)((int32_t)((p0 << 16) | p1)) / 65536.0f;
+    policePercent = (float)((int32_t)(((uint32_t)p0 << 16) | p1)) / 65536.0f;
 
     uint16_t fi0 = (uint16_t)MiscHis[60];
     uint16_t fi1 = (uint16_t)MiscHis[61];
-    firePercent = (float)((int32_t)((fi0 << 16) | fi1)) / 65536.0f;
+    firePercent = (float)((int32_t)(((uint32_t)fi0 << 16) | fi1)) / 65536.0f;
 
     uint16_t r0 = (uint16_t)MiscHis[62];
     uint16_t r1 = (uint16_t)MiscHis[63];
-    roadPercent = (float)((int32_t)((r0 << 16) | r1)) / 65536.0f;
+    roadPercent = (float)((int32_t)(((uint32_t)r0 << 16) | r1)) / 65536.0f;
 
     if (CityTime < 0) CityTime = 0;
     if (CityTax > 20 || CityTax < 0) CityTax = 7;
