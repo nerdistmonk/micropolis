@@ -1,6 +1,7 @@
 /* sdl3_dialog_news.c: Newspaper headlines modal, opened by clicking the status-bar date.
  * Shows only the headlines for the current in-game year, so the list changes as the year rolls over.
  * Real-world entries come first; game events (disasters, population, treasury) follow in the order they happened.
+ * The list scrolls when it is longer than NEWS_VISIBLE_ROWS. Clear drops the game events; unread game events are marked read on open.
  */
 
 #include "sdl3_dialog_common.h"
@@ -10,7 +11,8 @@
 #define NEWS_LIST_TOP 52.0f
 #define NEWS_LINE_PITCH 30.0f
 #define NEWS_TEXT_X 28.0f
-#define NEWS_FOOTER_PAD 24.0f
+#define NEWS_VISIBLE_ROWS 8
+#define NEWS_FOOTER_H 48.0f
 
 typedef struct {
     int32_t year;
@@ -116,24 +118,17 @@ static const NewsGameHeadline game_headlines[] = {
 typedef struct {
     int32_t year;
     int16_t event_id;
+    bool unread;
 } NewsLogEntry;
 
 static NewsLogEntry news_log[NEWS_LOG_CAP];
 static size_t news_log_head = 0;
 static size_t news_log_count = 0;
+static size_t news_scroll = 0;
 
 static int32_t NewsCurrentYear(void)
 {
     return StartingYear + (CityTime / 48);
-}
-
-static size_t NewsCountForYear(int32_t year)
-{
-    size_t n = 0;
-    for (size_t i = 0; i < NEWS_ITEM_COUNT; i++) {
-        if (news_items[i].year == year) n++;
-    }
-    return n;
 }
 
 static const char *NewsGameText(int16_t event_id)
@@ -156,6 +151,7 @@ void News_OnGameEvent(int16_t event_id)
 
     news_log[news_log_head].year = NewsCurrentYear();
     news_log[news_log_head].event_id = event_id;
+    news_log[news_log_head].unread = true;
     news_log_head = (news_log_head + 1) % NEWS_LOG_CAP;
     if (news_log_count < NEWS_LOG_CAP) news_log_count++;
 }
@@ -164,6 +160,21 @@ void News_ResetLog(void)
 {
     news_log_head = 0;
     news_log_count = 0;
+}
+
+static void NewsMarkAllRead(void)
+{
+    for (size_t i = 0; i < news_log_count; i++) news_log[NewsLogIndex(i)].unread = false;
+}
+
+bool News_HasUnread(void)
+{
+    int32_t year = NewsCurrentYear();
+    for (size_t i = 0; i < news_log_count; i++) {
+        const NewsLogEntry *e = &news_log[NewsLogIndex(i)];
+        if (e->unread && e->year == year) return true;
+    }
+    return false;
 }
 
 /* Fills out[] with the newest game headlines for `year`, oldest first. Returns how many were written. */
@@ -186,25 +197,109 @@ static size_t NewsCollectGame(int32_t year, const char *out[NEWS_GAME_ROWS])
     return n;
 }
 
-static float NewsDialogHeight(int32_t year)
+#define NEWS_ROWS_MAX (NEWS_ITEM_COUNT + NEWS_GAME_ROWS)
+
+typedef struct {
+    float dx, dy, dw, dh;
+    size_t total;
+    size_t visible;
+    size_t max_scroll;
+} NewsGeom;
+
+typedef struct {
+    SDL_FRect clear, up, down, track;
+} NewsRects;
+
+/* Historical entries for the year first, then the game events. Returns the row count. */
+static size_t NewsBuildRows(int32_t year, const char *out[NEWS_ROWS_MAX])
 {
+    size_t n = 0;
+    for (size_t i = 0; i < NEWS_ITEM_COUNT; i++) {
+        if (news_items[i].year == year) out[n++] = news_items[i].headline;
+    }
     const char *game[NEWS_GAME_ROWS];
-    size_t rows = NewsCountForYear(year) + NewsCollectGame(year, game);
-    if (rows == 0) rows = 1;
-    return NEWS_LIST_TOP + (float)rows * NEWS_LINE_PITCH + NEWS_FOOTER_PAD;
+    size_t game_count = NewsCollectGame(year, game);
+    for (size_t g = 0; g < game_count; g++) out[n++] = game[g];
+    return n;
+}
+
+/* Also clamps the scroll offset so it never points past the last row. */
+static NewsGeom NewsLayout(int32_t year)
+{
+    NewsGeom g;
+    const char *rows[NEWS_ROWS_MAX];
+    g.total = NewsBuildRows(year, rows);
+    g.visible = g.total == 0 ? 1 : (g.total < NEWS_VISIBLE_ROWS ? g.total : NEWS_VISIBLE_ROWS);
+    g.max_scroll = g.total > g.visible ? g.total - g.visible : 0;
+    if (news_scroll > g.max_scroll) news_scroll = g.max_scroll;
+    g.dw = NEWS_DLG_W;
+    g.dh = NEWS_LIST_TOP + (float)g.visible * NEWS_LINE_PITCH + NEWS_FOOTER_H;
+    g.dx = DialogCenteredX(g.dw);
+    g.dy = DialogCenteredY(g.dh);
+    return g;
+}
+
+static NewsRects NewsRectsFor(const NewsGeom *g)
+{
+    float list_y = g->dy + NEWS_LIST_TOP;
+    float list_h = (float)g->visible * NEWS_LINE_PITCH;
+    float bar_x = g->dx + g->dw - 30.0f;
+    NewsRects r = {
+        .clear = { g->dx + 16.0f, g->dy + g->dh - 38.0f, 120.0f, 26.0f },
+        .up = { bar_x, list_y, 14.0f, 14.0f },
+        .down = { bar_x, list_y + list_h - 14.0f, 14.0f, 14.0f },
+        .track = { bar_x, list_y + 16.0f, 14.0f, list_h - 32.0f }
+    };
+    return r;
+}
+
+static bool NewsHit(SDL_FRect r, float mx, float my)
+{
+    return mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h;
+}
+
+static void NewsDrawButton(SDL_Renderer *renderer, SDL_FRect rect, const char *label, bool enabled)
+{
+    SDL_SetRenderDrawColor(renderer, enabled ? 48 : 34, enabled ? 24 : 34, enabled ? 28 : 40, 255);
+    SDL_RenderFillRect(renderer, &rect);
+    SDL_SetRenderDrawColor(renderer, enabled ? 180 : 70, enabled ? 60 : 70, enabled ? 70 : 80, 255);
+    SDL_RenderRect(renderer, &rect);
+    GUI_DrawTextCentered(renderer, rect, label, enabled ? col_white : col_gray);
+}
+
+void Dialog_News_Open(void)
+{
+    news_scroll = 0;
+    NewsMarkAllRead();
+}
+
+bool Dialog_News_HandleWheel(float wheel_y)
+{
+    NewsGeom g = NewsLayout(NewsCurrentYear());
+    if (wheel_y > 0.0f && news_scroll > 0) news_scroll--;
+    else if (wheel_y < 0.0f && news_scroll < g.max_scroll) news_scroll++;
+    return true;
 }
 
 bool Dialog_News_HandleClick(float mx, float my)
 {
-    float dw = NEWS_DLG_W;
-    float dh = NewsDialogHeight(NewsCurrentYear());
-    float dx = DialogCenteredX(dw);
-    float dy = DialogCenteredY(dh);
+    NewsGeom g = NewsLayout(NewsCurrentYear());
+    NewsRects r = NewsRectsFor(&g);
 
-    if (mx >= dx + dw - 32.0f && mx <= dx + dw - 8.0f &&
-        my >= dy + 8.0f && my <= dy + 32.0f) {
+    if (mx >= g.dx + g.dw - 32.0f && mx <= g.dx + g.dw - 8.0f &&
+        my >= g.dy + 8.0f && my <= g.dy + 32.0f) {
         GUI_Dialogs_Close();
         return true;
+    }
+
+    if (NewsHit(r.clear, mx, my)) {
+        News_ResetLog();
+        return true;
+    }
+
+    if (g.max_scroll > 0) {
+        if (NewsHit(r.up, mx, my) && news_scroll > 0) news_scroll--;
+        else if (NewsHit(r.down, mx, my) && news_scroll < g.max_scroll) news_scroll++;
     }
 
     return true;
@@ -213,10 +308,11 @@ bool Dialog_News_HandleClick(float mx, float my)
 void Dialog_News_Render(SDL_Renderer *renderer)
 {
     int32_t year = NewsCurrentYear();
-    float dw = NEWS_DLG_W;
-    float dh = NewsDialogHeight(year);
-    float dx = DialogCenteredX(dw);
-    float dy = DialogCenteredY(dh);
+    NewsGeom g = NewsLayout(year);
+    float dw = g.dw;
+    float dh = g.dh;
+    float dx = g.dx;
+    float dy = g.dy;
 
     SDL_FRect scrim = { 0.0f, 0.0f, (float)Video_GetCanvasWidth(), (float)Video_GetCanvasHeight() };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
@@ -238,23 +334,31 @@ void Dialog_News_Render(SDL_Renderer *renderer)
     SDL_RenderFillRect(renderer, &close_rect);
     GUI_DrawText(renderer, (int)close_rect.x + 6, (int)close_rect.y + 4, "X", col_white);
 
-    size_t row = 0;
-    for (size_t i = 0; i < NEWS_ITEM_COUNT; i++) {
-        if (news_items[i].year != year) continue;
-        float y = dy + NEWS_LIST_TOP + (float)row * NEWS_LINE_PITCH;
-        GUI_DrawText(renderer, (int)(dx + NEWS_TEXT_X), (int)y, news_items[i].headline, col_white);
-        row++;
-    }
-
-    const char *game[NEWS_GAME_ROWS];
-    size_t game_count = NewsCollectGame(year, game);
-    for (size_t g = 0; g < game_count; g++) {
-        float y = dy + NEWS_LIST_TOP + (float)row * NEWS_LINE_PITCH;
-        GUI_DrawText(renderer, (int)(dx + NEWS_TEXT_X), (int)y, game[g], col_white);
-        row++;
-    }
-
-    if (row == 0) {
+    const char *rows[NEWS_ROWS_MAX];
+    size_t total = NewsBuildRows(year, rows);
+    if (total == 0) {
         GUI_DrawText(renderer, (int)(dx + NEWS_TEXT_X), (int)(dy + NEWS_LIST_TOP), "No headlines this year.", col_gray);
     }
+    for (size_t i = 0; i < g.visible && news_scroll + i < total; i++) {
+        float y = dy + NEWS_LIST_TOP + (float)i * NEWS_LINE_PITCH;
+        GUI_DrawText(renderer, (int)(dx + NEWS_TEXT_X), (int)y, rows[news_scroll + i], col_white);
+    }
+
+    NewsRects r = NewsRectsFor(&g);
+    if (g.max_scroll > 0) {
+        SDL_SetRenderDrawColor(renderer, 30, 36, 50, 255);
+        SDL_RenderFillRect(renderer, &r.track);
+
+        float thumb_h = r.track.h * (float)g.visible / (float)g.total;
+        if (thumb_h < 16.0f) thumb_h = 16.0f;
+        float thumb_y = r.track.y + (r.track.h - thumb_h) * ((float)news_scroll / (float)g.max_scroll);
+        SDL_FRect thumb = { r.track.x, thumb_y, r.track.w, thumb_h };
+        SDL_SetRenderDrawColor(renderer, 80, 110, 150, 255);
+        SDL_RenderFillRect(renderer, &thumb);
+
+        NewsDrawButton(renderer, r.up, "^", news_scroll > 0);
+        NewsDrawButton(renderer, r.down, "v", news_scroll < g.max_scroll);
+    }
+
+    NewsDrawButton(renderer, r.clear, "Clear", news_log_count > 0);
 }

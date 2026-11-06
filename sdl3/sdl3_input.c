@@ -490,6 +490,10 @@ void Input_ProcessEvents(void)
             last_drag_tile_y = -1;
             break;
 
+        case SDL_EVENT_MOUSE_WHEEL:
+            if (GUI_IsModalOpen()) GUI_Dialogs_HandleWheel(event.wheel.y);
+            break;
+
         case SDL_EVENT_WINDOW_MOUSE_LEAVE:
             pointer_known = false;
             break;

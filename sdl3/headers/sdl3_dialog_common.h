@@ -75,6 +75,8 @@ bool CityList_HandleClick(float mx, float my, float dx, float dy);
 /* Newspaper headlines for the current in-game year (opened from the status-bar date) */
 bool Dialog_News_HandleClick(float mx, float my);
 void Dialog_News_Render(SDL_Renderer *renderer);
+void Dialog_News_Open(void);
+bool Dialog_News_HandleWheel(float wheel_y);
 
 /* Load Scenario list (replaces the Save / Load tab body while open) */
 void ScnList_Open(void);

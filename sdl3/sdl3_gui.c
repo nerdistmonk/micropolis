@@ -623,6 +623,16 @@ void GUI_Render(SDL_Renderer *renderer)
   SDL_RenderRect(renderer, &rect_date_btn);
   GUI_DrawText(renderer, (int)rect_date_btn.x + 8, (int)rect_date_btn.y + 4, date_buf, col_white);
 
+  if (News_HasUnread()) {
+    SDL_FRect badge = { rect_date_btn.x + rect_date_btn.w - 20.0f, rect_date_btn.y + 5.0f, 14.0f, 14.0f };
+    SDL_SetRenderDrawColor(renderer, 200, 40, 40, 255);
+    SDL_RenderFillRect(renderer, &badge);
+    SDL_SetRenderDrawColor(renderer, 255, 215, 0, 255);
+    SDL_RenderRect(renderer, &badge);
+    SDL_Color white = { 245, 245, 250, 255 };
+    GUI_DrawTextCentered(renderer, badge, "!", white);
+  }
+
   /* Funds */
   char funds_buf[64];
   snprintf(funds_buf, sizeof(funds_buf), "Funds: $%d", TotalFunds);

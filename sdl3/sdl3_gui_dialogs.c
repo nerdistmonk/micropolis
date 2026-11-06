@@ -51,6 +51,7 @@ void GUI_Dialogs_OpenDisasters(void)
 void GUI_Dialogs_OpenNews(void)
 {
     active_modal = GUI_MODAL_NEWS;
+    Dialog_News_Open();
 }
 
 void GUI_Dialogs_ShowScenarioResult(bool won, const char *msg)
@@ -214,6 +215,12 @@ bool GUI_Dialogs_HandleClick(float mx, float my)
     default:
         return Dialog_Notice_HandleClick(mx, my);
     }
+}
+
+bool GUI_Dialogs_HandleWheel(float wheel_y)
+{
+    if (active_modal == GUI_MODAL_NEWS) return Dialog_News_HandleWheel(wheel_y);
+    return false;
 }
 
 void GUI_Dialogs_Render(SDL_Renderer *renderer)

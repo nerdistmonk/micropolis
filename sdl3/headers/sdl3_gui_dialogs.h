@@ -67,6 +67,7 @@ void GUI_Dialogs_OpenDisasters(void);
 void GUI_Dialogs_OpenNews(void);
 void News_OnGameEvent(int16_t event_id);
 void News_ResetLog(void);
+bool News_HasUnread(void);
 void GUI_Dialogs_ShowScenarioResult(bool won, const char *msg);
 void GUI_Dialogs_ShowQueryInspector(int32_t tile_x, int32_t tile_y);
 void GUI_Dialogs_ShowNotice(int16_t picture_id, int32_t tile_x, int32_t tile_y);
@@ -90,6 +91,7 @@ OverlayViewMode GUI_Dialogs_GetActiveOverlay(void);
 void GUI_Dialogs_SetActiveOverlay(OverlayViewMode mode);
 
 bool GUI_Dialogs_HandleClick(float mx, float my);
+bool GUI_Dialogs_HandleWheel(float wheel_y);
 bool GUI_Dialogs_HandleKeyDown(SDL_Keycode key);
 bool GUI_Dialogs_HandleTextInput(const char *text);
 
