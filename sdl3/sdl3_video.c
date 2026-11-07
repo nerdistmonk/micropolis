@@ -789,7 +789,7 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
   return 0x00000000;
 }
 
-#define WATER_SHIMMER_MS 100u
+#define WATER_SHIMMER_MS 250u
 
 static int32_t ClampByte(int32_t v)
 {
