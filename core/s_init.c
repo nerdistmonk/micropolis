@@ -67,8 +67,6 @@ void ResetCityWorkingState(void)
             RateOGMem[x][y]       = 0;
             FireRate[x][y]        = 0;
             ComRate[x][y]         = 0;
-            PoliceMap[x][y]       = 0;
-            PoliceMapEffect[x][y] = 0;
         }
     }
 }

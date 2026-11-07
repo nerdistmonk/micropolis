@@ -122,6 +122,13 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         } else {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Water Demand: none (no river in range)");
         }
+    } else if (low >= POLICESTATION && low < (POLICESTATION + 9)) {
+        if (PoliceStationStats(tile_x, tile_y, &capacity, &demand)) {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Police Demand: %d zones | Capacity: %d zones",
+                     (int)demand, (int)capacity);
+        } else {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Police Demand: none (station not found)");
+        }
     }
 
     uint8_t pol = PollutionMem[hx][hy];

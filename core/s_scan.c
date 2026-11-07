@@ -28,7 +28,6 @@ static int16_t GetDisCC(int32_t x, int32_t y);
 static void    DoSmooth(void);
 static void    DoSmooth2(void);
 static void    ClrTemArray(void);
-static void    SmoothPSMap(void);
 static void    DistIntMarket(void);
 static void    SmoothTerrain(void);
 
@@ -257,9 +256,7 @@ void CrimeScan(void)
     int16_t numz = 0;
     int16_t cmax = 0;
 
-    SmoothPSMap();
-    SmoothPSMap();
-    SmoothPSMap();
+    PoliceAnalysis();
 
     for (int16_t x = 0; x < HWLDX; x++) {
         for (int16_t y = 0; y < HWLDY; y++) {
@@ -269,7 +266,7 @@ void CrimeScan(void)
                 int32_t z = 128 - lv;
                 z += PopDensity[x][y];
                 if (z > 300) z = 300;
-                z -= PoliceMap[x >> 2][y >> 2];
+                if (PoliceCoversCrimeCell(x, y)) z = 0;
                 if (z > 250) z = 250;
                 if (z < 0)   z = 0;
 
@@ -291,12 +288,6 @@ void CrimeScan(void)
         CrimeAverage = (int16_t)(totz / numz);
     } else {
         CrimeAverage = 0;
-    }
-
-    for (int16_t x = 0; x < SmX; x++) {
-        for (int16_t y = 0; y < SmY; y++) {
-            PoliceMapEffect[x][y] = PoliceMap[x][y];
-        }
     }
 
     NewMapFlags[DYMAP] = 1;
@@ -436,26 +427,6 @@ void SmoothServiceMap(int16_t map[SmX][SmY])
     for (int16_t x = 0; x < SmX; x++) {
         for (int16_t y = 0; y < SmY; y++) {
             map[x][y] = STem[x][y];
-        }
-    }
-}
-
-static void SmoothPSMap(void)
-{
-    for (int16_t x = 0; x < SmX; x++) {
-        for (int16_t y = 0; y < SmY; y++) {
-            int32_t edge = 0;
-            if (x > 0)          edge += PoliceMap[x - 1][y];
-            if (x < (SmX - 1))  edge += PoliceMap[x + 1][y];
-            if (y > 0)          edge += PoliceMap[x][y - 1];
-            if (y < (SmY - 1))  edge += PoliceMap[x][y + 1];
-            edge = (edge >> 2) + PoliceMap[x][y];
-            STem[x][y] = (int16_t)(edge >> 1);
-        }
-    }
-    for (int16_t x = 0; x < SmX; x++) {
-        for (int16_t y = 0; y < SmY; y++) {
-            PoliceMap[x][y] = STem[x][y];
         }
     }
 }

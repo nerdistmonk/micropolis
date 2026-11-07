@@ -453,8 +453,6 @@ extern int16_t RateOGMem[SmX][SmY];
 extern int16_t FireStMap[SmX][SmY];
 extern int16_t HospStMap[SmX][SmY];
 extern int16_t RecStMap[SmX][SmY];
-extern int16_t PoliceMap[SmX][SmY];
-extern int16_t PoliceMapEffect[SmX][SmY];
 extern int16_t ComRate[SmX][SmY];
 extern int16_t FireRate[SmX][SmY];
 extern int16_t STem[SmX][SmY];
@@ -695,6 +693,14 @@ int16_t HealthCoverageLevel(int32_t x, int32_t y);
 int32_t HealthAdjustedPop(int32_t pop, int32_t x, int32_t y);
 void PopDenScan(void);
 void PTLScan(void);
+
+#define POLICE_ZONE_NONE 0
+#define POLICE_ZONE_COVERED 1
+#define POLICE_ZONE_UNCOVERED 2
+void PoliceAnalysis(void);
+int32_t PoliceZoneState(int32_t x, int32_t y);
+bool PoliceCoversCrimeCell(int32_t hx, int32_t hy);
+bool PoliceStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned);
 void CrimeScan(void);
 
 /* Traffic and Transportation */

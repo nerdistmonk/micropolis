@@ -413,7 +413,6 @@ void ClearCensus(void)
             FireStMap[x][y] = 0;
             HospStMap[x][y] = 0;
             RecStMap[x][y] = 0;
-            PoliceMap[x][y] = 0;
         }
     }
 }
@@ -1074,9 +1073,6 @@ void DoSPZone(int16_t pwron)
         if (!(CityTime & 7)) {
             RepairZone(POLICESTATION, 3);
         }
-        z = pwron ? PoliceEffect : (PoliceEffect >> 1);
-        if (!FindPRoad()) z >>= 1;
-        PoliceMap[SMapX >> 3][SMapY >> 3] += z;
         return;
 
     case STADIUM:
@@ -1250,8 +1246,6 @@ static void ClearCityMemory(void)
             RateOGMem[x][y]       = 0;
             FireRate[x][y]        = 0;
             ComRate[x][y]         = 0;
-            PoliceMap[x][y]       = 0;
-            PoliceMapEffect[x][y] = 0;
         }
     }
 }
