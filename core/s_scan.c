@@ -116,6 +116,39 @@ static int16_t GetPDen(int32_t ch9)
     return 0;
 }
 
+static LandValueFactors lvFactorsMem[HWLDX][HWLDY];
+
+/* Land value at half-resolution cell (x, y), split into the factors that make it up. */
+static void LandValueFactorsAt(int32_t x, int32_t y, LandValueFactors *f)
+{
+    int32_t zx = x << 1;
+    int32_t zy = y << 1;
+
+    f->road = false;
+    for (int32_t mx = zx; mx <= zx + 1; mx++) {
+        for (int32_t my = zy; my <= zy + 1; my++) {
+            if ((Map[mx][my] & LOMASK) >= ROADBASE) {
+                f->road = true;
+            }
+        }
+    }
+
+    f->centre = (34 - GetDisCC(x, y)) * 4;
+    f->terrain = TerrainMem[x >> 1][y >> 1];
+    f->pollution = -(int32_t)PollutionMem[x][y];
+    f->crime = (CrimeMem[x][y] > 190) ? -20 : 0;
+
+    int32_t value = f->centre + f->terrain + f->pollution + f->crime;
+    if (value > 250) value = 250;
+    if (value < 1)   value = 1;
+    f->value = value;
+}
+
+void LandValueFactorsOf(int32_t x, int32_t y, LandValueFactors *f)
+{
+    *f = lvFactorsMem[x][y];
+}
+
 void PTLScan(void)
 {
     int32_t lvtot = 0;
@@ -134,7 +167,6 @@ void PTLScan(void)
     for (int16_t x = 0; x < HWLDX; x++) {
         for (int16_t y = 0; y < HWLDY; y++) {
             int32_t plevel = 0;
-            int32_t lvflag = 0;
             int16_t zx = (int16_t)(x << 1);
             int16_t zy = (int16_t)(y << 1);
 
@@ -150,9 +182,6 @@ void PTLScan(void)
                         if (loc >= RESBASE && loc <= LASTZONE) {
                             plevel += trashPenalty;
                         }
-                        if (loc >= ROADBASE) {
-                            lvflag++;
-                        }
                     }
                 }
             }
@@ -160,17 +189,11 @@ void PTLScan(void)
             if (plevel > 255) plevel = 255;
             tem[x][y] = (Byte)plevel;
 
-            if (lvflag) {
-                int32_t dis = 34 - GetDisCC(x, y);
-                dis <<= 2;
-                dis += TerrainMem[x >> 1][y >> 1];
-                dis -= PollutionMem[x][y];
-                if (CrimeMem[x][y] > 190) dis -= 20;
-                if (dis > 250) dis = 250;
-                if (dis < 1)   dis = 1;
-
-                LandValueMem[x][y] = (Byte)dis;
-                lvtot += dis;
+            LandValueFactorsAt(x, y, &lvFactorsMem[x][y]);
+            const LandValueFactors *lvf = &lvFactorsMem[x][y];
+            if (lvf->road) {
+                LandValueMem[x][y] = (Byte)lvf->value;
+                lvtot += lvf->value;
                 lvnum++;
             } else {
                 LandValueMem[x][y] = 0;

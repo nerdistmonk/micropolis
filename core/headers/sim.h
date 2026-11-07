@@ -444,6 +444,16 @@ extern Byte *PopDensity[HWLDX];
 extern Byte *TrfDensity[HWLDX];
 extern Byte *PollutionMem[HWLDX];
 extern Byte *LandValueMem[HWLDX];
+
+typedef struct {
+    int32_t centre;
+    int32_t terrain;
+    int32_t pollution;
+    int32_t crime;
+    int32_t value;
+    bool road;
+} LandValueFactors;
+void LandValueFactorsOf(int32_t x, int32_t y, LandValueFactors *f);
 extern Byte *CrimeMem[HWLDX];
 extern Byte *tem[HWLDX];
 extern Byte *tem2[HWLDX];

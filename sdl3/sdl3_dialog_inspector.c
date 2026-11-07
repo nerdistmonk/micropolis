@@ -11,6 +11,9 @@ static char inspect_stat_power[64] = {0};
 static char inspect_stat_pollution[64] = {0};
 static char inspect_stat_crime[64] = {0};
 static char inspect_stat_landvalue[64] = {0};
+static char inspect_stat_lvfactors[6][72];
+static int inspect_lvfactor_lines = 0;
+static const float kInspectorHeight = 448.0f;
 static char inspect_stat_growth[64] = {0};
 static char inspect_stat_water[64] = {0};
 static char inspect_stat_supply[64] = {0};
@@ -159,6 +162,27 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
     const char *lv_desc = (lv < 50) ? "Low" : (lv < 150 ? "Medium" : (lv < 200 ? "High" : "Prime Estate"));
     snprintf(inspect_stat_landvalue, sizeof(inspect_stat_landvalue), "Land Value: %s ($%d)", lv_desc, lv * 50);
 
+    LandValueFactors lvf;
+    LandValueFactorsOf(hx, hy, &lvf);
+    snprintf(inspect_stat_lvfactors[0], sizeof(inspect_stat_lvfactors[0]), "Land value breakdown:");
+    if (lvf.road) {
+        snprintf(inspect_stat_lvfactors[1], sizeof(inspect_stat_lvfactors[1]),
+                 "Near city centre: %+d (max +136)", (int)lvf.centre);
+        snprintf(inspect_stat_lvfactors[2], sizeof(inspect_stat_lvfactors[2]),
+                 "Nearby water and trees: %+d", (int)lvf.terrain);
+        snprintf(inspect_stat_lvfactors[3], sizeof(inspect_stat_lvfactors[3]),
+                 "%s: %+d", TrashPending > 0 ? "Pollution, incl. trash" : "Pollution nearby", (int)lvf.pollution);
+        snprintf(inspect_stat_lvfactors[4], sizeof(inspect_stat_lvfactors[4]),
+                 "Crime nearby: %+d (-20 when very high)", (int)lvf.crime);
+        snprintf(inspect_stat_lvfactors[5], sizeof(inspect_stat_lvfactors[5]),
+                 "Total: %d, shown as $%d", (int)lvf.value, (int)lvf.value * 50);
+        inspect_lvfactor_lines = 6;
+    } else {
+        snprintf(inspect_stat_lvfactors[1], sizeof(inspect_stat_lvfactors[1]),
+                 "No road nearby, so land value is 0");
+        inspect_lvfactor_lines = 2;
+    }
+
     int16_t rog = RateOGMem[sx][sy];
     snprintf(inspect_stat_growth, sizeof(inspect_stat_growth), "Growth Trend: %s (%+d)", (rog > 10) ? "Booming" : (rog < -10 ? "Declining" : "Stable"), rog);
 }
@@ -173,7 +197,7 @@ static SDL_FRect InspectorOkRect(float dx, float dy, float dw, float dh)
 bool Dialog_Inspector_HandleClick(float mx, float my)
 {
     float dw = 404.0f;
-    float dh = 330.0f;
+    float dh = kInspectorHeight;
     float dx = DialogCenteredX(dw);
     float dy = DialogCenteredY(dh);
 
@@ -201,7 +225,7 @@ bool Dialog_Inspector_HandleClick(float mx, float my)
 void Dialog_Inspector_Render(SDL_Renderer *renderer)
 {
     float dw = 404.0f;
-    float dh = 330.0f;
+    float dh = kInspectorHeight;
     float dx = DialogCenteredX(dw);
     float dy = DialogCenteredY(dh);
 
@@ -240,6 +264,10 @@ void Dialog_Inspector_Render(SDL_Renderer *renderer)
     GUI_DrawText(renderer, (int)dx + 24, cy + 144, inspect_stat_water, col_cyan);
     if (inspect_stat_supply[0]) {
         GUI_DrawText(renderer, (int)dx + 24, cy + 168, inspect_stat_supply, col_gold);
+    }
+    for (int i = 0; i < inspect_lvfactor_lines; i++) {
+        SDL_Color c = (i == 0 || i == inspect_lvfactor_lines - 1) ? col_gold : col_white;
+        GUI_DrawText(renderer, (int)dx + 40, cy + 192 + 20 * i, inspect_stat_lvfactors[i], c);
     }
 
     SDL_FRect ok_btn = InspectorOkRect(dx, dy, dw, dh);
