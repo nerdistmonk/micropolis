@@ -599,6 +599,7 @@ int16_t SetZPower(void);
 void DoSPZone(int16_t pwron);
 void DoNilPower(void);
 void DoPowerScan(void);
+bool PowerGridStats(int32_t x, int32_t y, int32_t *demand, int32_t *capacity);
 
 /* Water supply (s_water.c) */
 void DoWaterScan(void);
@@ -606,6 +607,7 @@ bool WaterIsSupplied(int32_t x, int32_t y);
 bool WaterHasPipe(int32_t x, int32_t y);
 bool WaterCanConnect(int32_t x, int32_t y);
 bool WaterPlantSupplied(int32_t x, int32_t y);
+bool WaterNetworkStats(int32_t x, int32_t y, int32_t *demand, int32_t *capacity);
 bool WaterTowerHasSource(int32_t x, int32_t y);
 int32_t LayPipe(int32_t x, int32_t y);
 int32_t LayWaterTower(int32_t x, int32_t y);

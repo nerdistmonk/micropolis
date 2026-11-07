@@ -12,18 +12,32 @@
 int32_t PowerStackNum = 0;
 static int16_t PowerStackX[PWRSTKSIZE];
 static int16_t PowerStackY[PWRSTKSIZE];
-#define COAL_BLACKOUT_ZONES 12
-#define COAL_EXPLODE_ZONES 18
-#define NUCLEAR_BLACKOUT_ZONES 18
-#define NUCLEAR_MELTDOWN_ZONES 30
+/* Each grid pools the capacity of all its plants. A shortfall of 1..5 zones
+ * blacks out that many zones per scan; 6 or more destroys the grid's plants. */
+#define COAL_ZONES_SUPPLIED 24
+#define NUCLEAR_ZONES_SUPPLIED 48
+#define MAX_BLACKOUT_SHORTFALL 5
+#define MELTDOWN_SHORTFALL 6
 
 static int16_t PlantSeedX[PWRSTKSIZE];
 static int16_t PlantSeedY[PWRSTKSIZE];
 static int16_t ClaimX[WORLD_X * WORLD_Y];
 static int16_t ClaimY[WORLD_X * WORLD_Y];
 
+/* Per-scan grid bookkeeping. GridTag holds grid root index + 1 (0 = not on a grid).
+ * ClaimOwner holds the plant seed index + 1 that claimed a conductor tile. SeedParent
+ * is a union-find over plant seeds, so plants that touch the same conductor network
+ * form one grid and share its capacity. */
+static int16_t GridTag[WORLD_X][WORLD_Y];
+static int16_t ClaimOwner[WORLD_X][WORLD_Y];
+static int32_t SeedParent[PWRSTKSIZE];
+static int32_t GridDemand[PWRSTKSIZE];
+static int32_t GridCapacity[PWRSTKSIZE];
+static bool GridExplodes[PWRSTKSIZE];
+static uint32_t BlackoutRotor = 0;
+#define SEED_SEEN ((int16_t)-1)
+
 /* Forward Declarations of Internal Functions */
-static bool TestForCond(int16_t dir);
 static void PullPowerStack(void);
 
 bool MoveMapSim(int16_t mdir)
@@ -78,30 +92,6 @@ bool MoveMapSim(int16_t mdir)
     return false;
 }
 
-static bool TestForCond(int16_t dir)
-{
-    int16_t xsave = SMapX;
-    int16_t ysave = SMapY;
-
-    if (MoveMapSim(dir)) {
-        if ((Map[SMapX][SMapY] & CONDBIT) &&
-            (CChr9 != NUCLEAR) &&
-            (CChr9 != POWERPLANT)) {
-            int32_t power_wrd = POWERWORD(SMapX, SMapY);
-            if ((power_wrd >= PWRMAPSIZE) ||
-                ((PowerMap[power_wrd] & (uint16_t)(1u << (SMapX & 15))) == 0)) {
-                SMapX = xsave;
-                SMapY = ysave;
-                return true;
-            }
-        }
-    }
-
-    SMapX = xsave;
-    SMapY = ysave;
-    return false;
-}
-
 void PushPowerStack(void)
 {
     if (PowerStackNum < (PWRSTKSIZE - 2)) {
@@ -120,55 +110,95 @@ static void PullPowerStack(void)
     }
 }
 
-static void ClaimPowerTile(int32_t *zones, int32_t *claimed)
+static bool IsPowerZone(uint16_t tile)
 {
-    int32_t word = POWERWORD(SMapX, SMapY);
-    uint16_t bit = (uint16_t)(1u << (SMapX & 15));
-    if (PowerMap[word] & bit) return;
-
-    PowerMap[word] |= bit;
-    ClaimX[*claimed] = SMapX;
-    ClaimY[*claimed] = SMapY;
-    (*claimed)++;
-    if ((Map[SMapX][SMapY] & ZONEBIT) && !TILE_IS_POWER_PLANT(Map[SMapX][SMapY])) (*zones)++;
+    return (tile & ZONEBIT) && !TILE_IS_POWER_PLANT(tile);
 }
 
-static void ClearClaims(int32_t count)
+static bool IsConductiveTile(int32_t x, int32_t y)
 {
-    for (int32_t i = 0; i < count; i++) {
-        int32_t x = ClaimX[i];
-        int32_t y = ClaimY[i];
+    uint16_t t = Map[x][y];
+    return (t & CONDBIT) && !TILE_IS_NUCLEAR(t) && ((t & LOMASK) != POWERPLANT);
+}
+
+static int32_t SeedFind(int32_t s)
+{
+    while (SeedParent[s] != s) {
+        SeedParent[s] = SeedParent[SeedParent[s]];
+        s = SeedParent[s];
+    }
+    return s;
+}
+
+static void SeedUnion(int32_t a, int32_t b)
+{
+    a = SeedFind(a);
+    b = SeedFind(b);
+    if (a != b) SeedParent[b] = a;
+}
+
+/* Claims an unclaimed conductor for `seed`. Touching a tile another plant already
+ * claimed joins the two plants into one grid; that grid's tiles are fully claimed
+ * by its owner, so there is nothing more to walk from here. */
+static void TryClaimNeighbor(int32_t seed, int32_t x, int32_t y, int32_t *claimed)
+{
+    if (!TestBounds(x, y)) return;
+    if (ClaimOwner[x][y]) {
+        SeedUnion(seed, ClaimOwner[x][y] - 1);
+        return;
+    }
+    if (!IsConductiveTile(x, y)) return;
+
+    PowerMap[POWERWORD(x, y)] |= (uint16_t)(1u << (x & 15));
+    ClaimOwner[x][y] = (int16_t)(seed + 1);
+    ClaimX[*claimed] = (int16_t)x;
+    ClaimY[*claimed] = (int16_t)y;
+    (*claimed)++;
+}
+
+static void FloodFromSeed(int32_t seed, int32_t sx, int32_t sy, int32_t *claimed)
+{
+    static const int32_t dx[4] = { 0, 1, 0, -1 };
+    static const int32_t dy[4] = { -1, 0, 1, 0 };
+    int32_t head = *claimed;
+
+    for (int32_t d = 0; d < 4; d++) TryClaimNeighbor(seed, sx + dx[d], sy + dy[d], claimed);
+    while (head < *claimed) {
+        int32_t x = ClaimX[head];
+        int32_t y = ClaimY[head];
+        head++;
+        for (int32_t d = 0; d < 4; d++) TryClaimNeighbor(seed, x + dx[d], y + dy[d], claimed);
+    }
+}
+
+static void ClearGridClaims(int32_t g, int32_t tiles)
+{
+    for (int32_t t = 0; t < tiles; t++) {
+        int32_t x = ClaimX[t];
+        int32_t y = ClaimY[t];
+        if (GridTag[x][y] != g + 1) continue;
         PowerMap[POWERWORD(x, y)] &= (uint16_t)~(1u << (x & 15));
     }
 }
 
-static void WalkPlantNetwork(int32_t *zones, int32_t *claimed)
+/* Unpowers `count` zones of grid g, starting at the rotating cursor so the
+ * blackout moves across the whole grid over successive scans. */
+static void DarkenGridZones(int32_t g, int32_t count, int32_t tiles)
 {
-    int16_t adir;
-    int32_t con_num, dir;
+    int32_t zones = GridDemand[g];
+    int32_t first = (int32_t)(BlackoutRotor % (uint32_t)zones);
+    int32_t index = 0;
 
-    while (PowerStackNum > 0) {
-        PullPowerStack();
-        adir = 4;
-        do {
-            MoveMapSim(adir);
-            ClaimPowerTile(zones, claimed);
-
-            con_num = 0;
-            dir = 0;
-            while ((dir < 4) && (con_num < 2)) {
-                if (TestForCond((int16_t)dir)) {
-                    con_num++;
-                    adir = (int16_t)dir;
-                }
-                dir++;
-            }
-
-            if (con_num > 1) {
-                PushPowerStack();
-            }
-        } while (con_num > 0);
+    for (int32_t t = 0; t < tiles; t++) {
+        int32_t x = ClaimX[t];
+        int32_t y = ClaimY[t];
+        if (GridTag[x][y] != g + 1 || !IsPowerZone(Map[x][y])) continue;
+        if (((index - first + zones) % zones) < count) {
+            PowerMap[POWERWORD(x, y)] &= (uint16_t)~(1u << (x & 15));
+        }
+        index++;
     }
+    BlackoutRotor += (uint32_t)count;
 }
 
 static void ExplodePlant(int32_t sx, int32_t sy)
@@ -189,9 +219,16 @@ static void ExplodePlant(int32_t sx, int32_t sy)
 void DoPowerScan(void)
 {
     int32_t plants = 0;
+    int32_t tiles = 0;
 
     for (int32_t x = 0; x < PWRMAPSIZE; x++) {
         PowerMap[x] = 0;
+    }
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            GridTag[x][y] = 0;
+            ClaimOwner[x][y] = 0;
+        }
     }
 
     while (PowerStackNum > 0) {
@@ -202,30 +239,71 @@ void DoPowerScan(void)
     }
 
     for (int32_t i = 0; i < plants; i++) {
-        int32_t zones = 0;
-        int32_t claimed = 0;
         int32_t sx = PlantSeedX[i];
         int32_t sy = PlantSeedY[i];
-        bool nuclear = TILE_IS_NUCLEAR(Map[sx][sy]);
+        GridDemand[i] = 0;
+        GridCapacity[i] = 0;
+        GridExplodes[i] = false;
+        SeedParent[i] = i;
+        if (GridTag[sx][sy] == SEED_SEEN) {
+            SeedParent[i] = -1;
+            continue;
+        }
+        GridTag[sx][sy] = SEED_SEEN;
+        FloodFromSeed(i, sx, sy, &tiles);
+    }
 
-        SMapX = (int16_t)sx;
-        SMapY = (int16_t)sy;
-        PowerStackNum = 0;
-        PushPowerStack();
-        WalkPlantNetwork(&zones, &claimed);
+    for (int32_t t = 0; t < tiles; t++) {
+        int32_t x = ClaimX[t];
+        int32_t y = ClaimY[t];
+        int32_t r = SeedFind(ClaimOwner[x][y] - 1);
+        GridTag[x][y] = (int16_t)(r + 1);
+        if (IsPowerZone(Map[x][y])) GridDemand[r]++;
+    }
 
-        int32_t meltdown_at = nuclear ? NUCLEAR_MELTDOWN_ZONES : COAL_EXPLODE_ZONES;
-        int32_t blackout_at = nuclear ? NUCLEAR_BLACKOUT_ZONES : COAL_BLACKOUT_ZONES;
+    for (int32_t i = 0; i < plants; i++) {
+        if (SeedParent[i] < 0) continue;
+        int32_t sx = PlantSeedX[i];
+        int32_t sy = PlantSeedY[i];
+        int32_t r = SeedFind(i);
+        GridTag[sx][sy] = (int16_t)(r + 1);
+        GridCapacity[r] += TILE_IS_NUCLEAR(Map[sx][sy]) ? NUCLEAR_ZONES_SUPPLIED : COAL_ZONES_SUPPLIED;
+    }
 
-        if (zones >= meltdown_at) {
-            ClearClaims(claimed);
-            ExplodePlant(sx, sy);
-        } else if (zones >= blackout_at && Rand(2) == 0) {
-            ClearClaims(claimed);
-            SendMes(40);
-            NewsThrottled(40);
+    bool blackout = false;
+    for (int32_t g = 0; g < plants; g++) {
+        if (SeedParent[g] != g) continue;
+        int32_t shortfall = GridDemand[g] - GridCapacity[g];
+        if (shortfall >= MELTDOWN_SHORTFALL) {
+            GridExplodes[g] = true;
+            ClearGridClaims(g, tiles);
+        } else if (shortfall > 0) {
+            DarkenGridZones(g, shortfall, tiles);
+            blackout = true;
+        }
+    }
+
+    if (blackout) {
+        SendMes(40);
+        NewsThrottled(40);
+    }
+
+    for (int32_t i = 0; i < plants; i++) {
+        if (SeedParent[i] < 0) continue;
+        if (GridExplodes[SeedFind(i)]) {
+            ExplodePlant(PlantSeedX[i], PlantSeedY[i]);
         }
     }
 
     PowerStackNum = 0;
+}
+
+bool PowerGridStats(int32_t x, int32_t y, int32_t *demand, int32_t *capacity)
+{
+    if (!TestBounds(x, y)) return false;
+    int16_t tag = GridTag[x][y];
+    if (!tag) return false;
+    *demand = GridDemand[tag - 1];
+    *capacity = GridCapacity[tag - 1];
+    return true;
 }

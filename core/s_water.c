@@ -127,18 +127,108 @@ static void SupplyFromTower(int32_t tx, int32_t ty)
     }
 }
 
+/* Uncapped network bookkeeping for the query tool. Each tower flood labels the tiles it
+ * reaches with its index; towers whose floods meet are merged, so a network is every
+ * tower and zone that water can reach from any of its towers. */
+static int16_t net_owner[WORLD_X][WORLD_Y];
+static int32_t net_parent[WORLD_X * WORLD_Y];
+static int32_t net_demand[WORLD_X * WORLD_Y];
+static int32_t net_capacity[WORLD_X * WORLD_Y];
+static int32_t net_towers = 0;
+
+static int32_t NetFind(int32_t t)
+{
+    while (net_parent[t] != t) {
+        net_parent[t] = net_parent[net_parent[t]];
+        t = net_parent[t];
+    }
+    return t;
+}
+
+static void NetClaim(int32_t x, int32_t y, int32_t tower, int32_t *tail)
+{
+    if (!TestBounds(x, y)) return;
+    if (TILE_IS_POWER_PLANT(Map[x][y])) return;
+    int32_t owner = net_owner[x][y];
+    if (owner == 0) {
+        net_owner[x][y] = (int16_t)(tower + 1);
+        pipe_queue[(*tail)++] = x * WORLD_Y + y;
+        return;
+    }
+    int32_t a = NetFind(owner - 1);
+    int32_t b = NetFind(tower);
+    if (a != b) net_parent[b] = a;
+}
+
+static void FloodWaterNetwork(int32_t tx, int32_t ty, int32_t tower)
+{
+    static const int32_t step_x[4] = { 1, -1, 0, 0 };
+    static const int32_t step_y[4] = { 0, 0, 1, -1 };
+    int32_t head = 0;
+    int32_t tail = 0;
+
+    for (int32_t dy = -1; dy <= 1; dy++) {
+        for (int32_t dx = -1; dx <= 1; dx++) {
+            NetClaim(tx + dx, ty + dy, tower, &tail);
+        }
+    }
+
+    while (head < tail) {
+        int32_t idx = pipe_queue[head++];
+        int32_t x = idx / WORLD_Y;
+        int32_t y = idx % WORLD_Y;
+        for (int32_t i = 0; i < 4; i++) {
+            int32_t nx = x + step_x[i];
+            int32_t ny = y + step_y[i];
+            if (!WaterCanEnter(nx, ny)) continue;
+            NetClaim(nx, ny, tower, &tail);
+        }
+    }
+}
+
 void DoWaterScan(void)
 {
     memset(water_map, 0, sizeof(water_map));
+    memset(net_owner, 0, sizeof(net_owner));
+    memset(net_demand, 0, sizeof(net_demand));
+    memset(net_capacity, 0, sizeof(net_capacity));
+    net_towers = 0;
 
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
             if ((Map[x][y] & LOMASK) != WATER_TOWER_CENTER) continue;
             if (!TowerHasSource(x, y)) continue;
             SupplyFromTower(x, y);
+            net_parent[net_towers] = net_towers;
+            FloodWaterNetwork(x, y, net_towers);
+            net_towers++;
+        }
+    }
+
+    for (int32_t t = 0; t < net_towers; t++) {
+        net_capacity[NetFind(t)] += WATER_TOWER_ZONES;
+    }
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            int16_t owner = net_owner[x][y];
+            if (!owner) continue;
+            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y])) continue;
+            net_demand[NetFind(owner - 1)]++;
         }
     }
 }
+
+bool WaterNetworkStats(int32_t x, int32_t y, int32_t *demand, int32_t *capacity)
+{
+    if (!TestBounds(x, y)) return false;
+    int16_t owner = net_owner[x][y];
+    if (!owner) return false;
+    int32_t root = NetFind(owner - 1);
+    *demand = net_demand[root];
+    *capacity = net_capacity[root];
+    return true;
+}
+
 
 bool WaterIsSupplied(int32_t x, int32_t y)
 {

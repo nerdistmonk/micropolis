@@ -13,6 +13,7 @@ static char inspect_stat_crime[64] = {0};
 static char inspect_stat_landvalue[64] = {0};
 static char inspect_stat_growth[64] = {0};
 static char inspect_stat_water[64] = {0};
+static char inspect_stat_supply[64] = {0};
 
 void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
 {
@@ -95,6 +96,34 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Supply: None");
     }
 
+    inspect_stat_supply[0] = '\0';
+    int32_t demand = 0;
+    int32_t capacity = 0;
+    if (TILE_IS_POWER_PLANT(tile)) {
+        bool found = false;
+        for (int32_t cy = tile_y - 2; cy <= tile_y + 1 && !found; cy++) {
+            for (int32_t cx = tile_x - 2; cx <= tile_x + 1 && !found; cx++) {
+                if (!TestBounds(cx, cy)) continue;
+                uint16_t center = Map[cx][cy] & LOMASK;
+                if (center != POWERPLANT && center != NUCLEAR) continue;
+                found = PowerGridStats(cx, cy, &demand, &capacity);
+            }
+        }
+        if (found) {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Power Demand: %d zones | Capacity: %d zones",
+                     (int)demand, (int)capacity);
+        } else {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Power Demand: none (plant offline)");
+        }
+    } else if (low >= WATERTOWER && low < WATERTOWER + WATERTOWER_TILES) {
+        if (WaterNetworkStats(tile_x, tile_y, &demand, &capacity)) {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Water Demand: %d zones | Capacity: %d zones",
+                     (int)demand, (int)capacity);
+        } else {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Water Demand: none (no river in range)");
+        }
+    }
+
     uint8_t pol = PollutionMem[hx][hy];
     const char *pol_desc = (pol < 30) ? "Clean Air" : (pol < 80 ? "Moderate Smog" : "Heavy Pollution");
     snprintf(inspect_stat_pollution, sizeof(inspect_stat_pollution), "Pollution: %s (%d)", pol_desc, pol);
@@ -121,7 +150,7 @@ static SDL_FRect InspectorOkRect(float dx, float dy, float dw, float dh)
 bool Dialog_Inspector_HandleClick(float mx, float my)
 {
     float dw = 404.0f;
-    float dh = 300.0f;
+    float dh = 330.0f;
     float dx = DialogCenteredX(dw);
     float dy = DialogCenteredY(dh);
 
@@ -149,7 +178,7 @@ bool Dialog_Inspector_HandleClick(float mx, float my)
 void Dialog_Inspector_Render(SDL_Renderer *renderer)
 {
     float dw = 404.0f;
-    float dh = 300.0f;
+    float dh = 330.0f;
     float dx = DialogCenteredX(dw);
     float dy = DialogCenteredY(dh);
 
@@ -186,6 +215,9 @@ void Dialog_Inspector_Render(SDL_Renderer *renderer)
     GUI_DrawText(renderer, (int)dx + 24, cy + 96, inspect_stat_landvalue, col_green);
     GUI_DrawText(renderer, (int)dx + 24, cy + 120, inspect_stat_growth, col_gold);
     GUI_DrawText(renderer, (int)dx + 24, cy + 144, inspect_stat_water, col_cyan);
+    if (inspect_stat_supply[0]) {
+        GUI_DrawText(renderer, (int)dx + 24, cy + 168, inspect_stat_supply, col_gold);
+    }
 
     SDL_FRect ok_btn = InspectorOkRect(dx, dy, dw, dh);
     SDL_SetRenderDrawColor(renderer, 44, 55, 75, 255);
