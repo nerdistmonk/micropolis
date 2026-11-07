@@ -162,7 +162,7 @@ static int32_t LayAlongDist(int32_t cx, int32_t cy)
 }
 
 /* Joins a freshly placed tower's footprint to the existing pipe network. Returns pipes laid, 0 if no network, -2 if out of funds. */
-static int32_t ConnectTower(int32_t fx, int32_t fy)
+static int32_t ConnectTowerRaw(int32_t fx, int32_t fy)
 {
     BuildDist(false, fx, fy);
     int32_t bx = -1, by = -1, bd = 0x7fffffff;
@@ -189,7 +189,8 @@ static bool TowerSiteOK(int32_t cx, int32_t cy)
     for (int32_t dy = -1; dy <= 1; dy++) {
         for (int32_t dx = -1; dx <= 1; dx++) {
             uint16_t t = Map[cx + dx][cy + dy];
-            if ((t & LOMASK) != DIRT || (t & (ZONEBIT | ANIMBIT))) return false;
+            if (t & (ZONEBIT | ANIMBIT)) return false;
+            if ((t & LOMASK) != DIRT && !AutoDozeCanClear(t & LOMASK)) return false;
         }
     }
     return true;
@@ -347,9 +348,42 @@ static void BuildSuppliedDist(void)
 /* Pipes every power plant the water flood does not reach yet. Plants never take pipe directly (zone range), so
  * the pipe ends on a passable tile beside the plant. A tower goes beside a plant only if no supplied pipe is in range.
  * Returns pipes laid, -2 if out of funds, -3 if the plant cannot be connected. */
+static bool IsZoneCenter(uint16_t t);
+static uint8_t pipe_snap[WORLD_X * WORLD_Y];
+
+/* Zone centers the game's own water scan supplies right now. */
+static int32_t SuppliedCenters(void)
+{
+    DoWaterScan();
+    int32_t n = 0;
+    for (int32_t x = 0; x < WORLD_X; x++)
+        for (int32_t y = 0; y < WORLD_Y; y++)
+            if (IsZoneCenter(Map[x][y]) && WaterIsSupplied(x, y)) n++;
+    return n;
+}
+
+/* A join is kept only if the game's water scan supplies at least as many zone centers afterward. The core shares
+ * water_map across towers in scan order, so a new pipe can let an earlier tower spend its budget elsewhere. */
+static int32_t ConnectTower(int32_t fx, int32_t fy)
+{
+    int32_t before = SuppliedCenters();
+    int32_t funds = TotalFunds;
+    Water_CopyPipes(pipe_snap);
+    int32_t p = ConnectTowerRaw(fx, fy);
+    if (p <= 0) return p;
+    if (SuppliedCenters() < before) {
+        Water_LoadPipes(pipe_snap);
+        TotalFunds = funds;
+        DoWaterScan();
+        return 0;
+    }
+    return p;
+}
+
 static int32_t ConnectPlants(void)
 {
     int32_t total = 0;
+    int32_t fallback_towers = 0;
     for (int32_t round = 0; round < MAX_ITER; round++) {
         DoWaterScan();
         int32_t px = -1, py = -1;
@@ -362,10 +396,10 @@ static int32_t ConnectPlants(void)
         int32_t bx = -1, by = -1, bd = 0x7fffffff;
         for (int32_t x = 0; x < WORLD_X; x++) {
             for (int32_t y = 0; y < WORLD_Y; y++) {
-                if (Dist[x][y] < 0 || Dist[x][y] >= bd || !Passable(x, y)) continue;
+                if (Dist[x][y] < 1 || Dist[x][y] >= bd || !Passable(x, y)) continue;
                 for (int32_t i = 0; i < 4; i++) {
                     int32_t nx = x + DX[i], ny = y + DY[i];
-                    if (IsPlantTile(nx, ny) && abs(nx - px) <= 3 && abs(ny - py) <= 3) {
+                    if (IsPlantTile(nx, ny) && !WaterIsSupplied(nx, ny) && abs(nx - px) <= 3 && abs(ny - py) <= 3) {
                         bd = Dist[x][y];
                         bx = x; by = y;
                         break;
@@ -374,28 +408,33 @@ static int32_t ConnectPlants(void)
             }
         }
 
-        if (bx < 0) {
-            int32_t cx = 0, cy = 0;
-            int32_t t = PlaceTowerNear(px, py, &cx, &cy);
-            if (t == -2) return -2;
-            if (t == 0) return -3;
-            int32_t p = ConnectTower(cx, cy);
-            if (p == -2) return -2;
-            if (p <= 0) return -3;
-            total += p;
+        int32_t laid = bx < 0 ? 0 : LayAlongDist(bx, by);
+        if (laid == -2) return -2;
+        if (laid > 0) {
+            total += laid;
             continue;
         }
-        int32_t laid = LayAlongDist(bx, by);
-        if (laid == -2) return -2;
-        if (laid <= 0) return -3;
-        total += laid;
+
+        /* The route is already piped, so nearby towers have spent their budgets before the flood reaches the plant. Add a tower beside it. */
+        if (++fallback_towers > 4) return -3;
+        int32_t cx = 0, cy = 0;
+        int32_t t = PlaceTowerNear(px, py, &cx, &cy);
+        if (t == -2) return -2;
+        if (t == 0) return -3;
+        int32_t p = ConnectTower(cx, cy);
+        if (p == -2) return -2;
+        if (p <= 0) return -3;
+        total += p;
     }
     return total;
 }
 
 /* Mirror COAL_ZONES_SUPPLIED / NUCLEAR_ZONES_SUPPLIED in core/s_power.c; keep them in step. */
-#define GEN_COAL_ZONES 24
-#define GEN_NUCLEAR_ZONES 48
+/* Zones one plant supplies. Nuclear is exactly twice coal. A coal plant is 12 power tiles and a nuclear plant 9 (ZonePlop 3x3). */
+#define GEN_COAL_ZONES 18
+#define GEN_NUCLEAR_ZONES 36
+#define GEN_COAL_TILES 12
+#define GEN_NUCLEAR_TILES 9
 #define GEN_NODES (2 * WORLD_X * WORLD_Y)
 #define PLANT_NODE(g) (WORLD_X * WORLD_Y + (g))
 
@@ -477,14 +516,14 @@ static void AnalyzeGrids(void)
             GrpSeedX[g] = x;
             GrpSeedY[g] = y;
             int32_t head = 0, tail = 0, units = 0;
-            bool nuclear = false;
+            int32_t nuc_tiles = 0;
             Q[tail++] = x * WORLD_Y + y;
             Grp[x][y] = g;
             while (head < tail) {
                 int32_t idx = Q[head++];
                 int32_t cx = idx / WORLD_Y, cy = idx % WORLD_Y;
                 units++;
-                if (TILE_IS_NUCLEAR(Map[cx][cy])) nuclear = true;
+                if (TILE_IS_NUCLEAR(Map[cx][cy])) nuc_tiles++;
                 for (int32_t i = 0; i < 4; i++) {
                     int32_t nx = cx + DX[i], ny = cy + DY[i];
                     if (IsPlantTile(nx, ny) && Grp[nx][ny] < 0) {
@@ -493,7 +532,9 @@ static void AnalyzeGrids(void)
                     }
                 }
             }
-            GrpCap[g] = ((nuclear ? GEN_NUCLEAR_ZONES : GEN_COAL_ZONES) * units + 8) / 16;
+            int32_t nuc_plants = (nuc_tiles + GEN_NUCLEAR_TILES / 2) / GEN_NUCLEAR_TILES;
+            int32_t coal_plants = (units - nuc_tiles + GEN_COAL_TILES / 2) / GEN_COAL_TILES;
+            GrpCap[g] = nuc_plants * GEN_NUCLEAR_ZONES + coal_plants * GEN_COAL_ZONES;
             GrpWatered[g] = WaterPlantSupplied(x, y);
         }
     }
@@ -572,7 +613,8 @@ static bool SiteFree(int32_t x, int32_t y)
     for (int32_t dy = -1; dy <= 2; dy++)
         for (int32_t dx = -1; dx <= 2; dx++) {
             uint16_t t = Map[x + dx][y + dy];
-            if ((t & LOMASK) != DIRT || (t & (ZONEBIT | ANIMBIT))) return false;
+            if (t & (ZONEBIT | ANIMBIT)) return false;
+            if ((t & LOMASK) != DIRT && !AutoDozeCanClear(t & LOMASK)) return false;
         }
     return true;
 }
@@ -681,6 +723,61 @@ static bool FindPlantSite(int32_t r, int32_t *ox, int32_t *oy)
     return true;
 }
 
+static int32_t plants_upgraded = 0;
+
+/* Converts one standalone, watered coal plant on grid root target to nuclear. The 4x4 nuclear footprint must cover the
+ * coal plant's tiles and otherwise sit on bare dirt, doubling the plant's capacity (GEN_NUCLEAR_ZONES vs GEN_COAL_ZONES).
+ * Returns 1 upgraded, 0 none found, -2 out of funds. */
+static int32_t UpgradeCoalForDeficit(int32_t target)
+{
+    for (int32_t g = 0; g < GrpCount; g++) {
+        if (!GrpWatered[g] || UFFind(PLANT_NODE(g)) != target) continue;
+        int32_t units = 0, minx = WORLD_X, maxx = -1, miny = WORLD_Y, maxy = -1;
+        bool nuclear = false;
+        for (int32_t x = 0; x < WORLD_X; x++)
+            for (int32_t y = 0; y < WORLD_Y; y++)
+                if (Grp[x][y] == g) {
+                    units++;
+                    if (TILE_IS_NUCLEAR(Map[x][y])) nuclear = true;
+                    if (x < minx) minx = x;
+                    if (x > maxx) maxx = x;
+                    if (y < miny) miny = y;
+                    if (y > maxy) maxy = y;
+                }
+        if (units != GEN_COAL_TILES || nuclear) continue;
+
+        for (int32_t ax = maxx - 2; ax <= minx + 1; ax++)
+            for (int32_t ay = maxy - 2; ay <= miny + 1; ay++) {
+                if (ax < 2 || ax > WORLD_X - 4 || ay < 2 || ay > WORLD_Y - 4) continue;
+                bool fits = true;
+                for (int32_t dy = -1; dy <= 2 && fits; dy++)
+                    for (int32_t dx = -1; dx <= 2 && fits; dx++) {
+                        int32_t x = ax + dx, y = ay + dy;
+                        if (Grp[x][y] == g) continue;
+                        uint16_t t = Map[x][y];
+                        bool own_smoke = x >= minx && x <= maxx && y >= miny && y <= maxy &&
+                                         (t & LOMASK) >= COALSMOKE1 && (t & LOMASK) <= COALSMOKE4 + 3;
+                        if (own_smoke) continue;
+                        if ((t & LOMASK) != DIRT || (t & (ZONEBIT | ANIMBIT))) fits = false;
+                    }
+                if (!fits) continue;
+
+                uint16_t orig[4][4];
+                for (int32_t dy = -1; dy <= 2; dy++)
+                    for (int32_t dx = -1; dx <= 2; dx++) {
+                        orig[dx + 1][dy + 1] = Map[ax + dx][ay + dy];
+                        Map[ax + dx][ay + dy] = DIRT;
+                    }
+                int32_t r = PlaceZone(ax, ay, nuclearState);
+                if (r == 1) return 1;
+                for (int32_t dy = -1; dy <= 2; dy++)
+                    for (int32_t dx = -1; dx <= 2; dx++) Map[ax + dx][ay + dy] = orig[dx + 1][dy + 1];
+                if (r == -2) return -2;
+            }
+    }
+    return 0;
+}
+
 /* Places one nuclear plant on the grid with the largest shortfall. Returns 1 placed, 0 nothing to do, -1 no site, -2 out of funds. */
 static int32_t PlaceNuclearForDeficit(void)
 {
@@ -697,6 +794,9 @@ static int32_t PlaceNuclearForDeficit(void)
 
         int32_t ox = -1, oy = -1;
         if (!FindPlantSite(target, &ox, &oy)) {
+            int32_t u = UpgradeCoalForDeficit(target);
+            if (u == -2) return -2;
+            if (u == 1) { plants_upgraded++; return 1; }
             int32_t w = LayWireToSite(target, &ox, &oy);
             if (w == -2) return -2;
             if (w == 0) { if (getenv("GEN_DEBUG")) fprintf(stderr, "  skip node %d def=%d: no site/wire\n", target, worst); NodeSkip[target] = true; continue; }
@@ -706,6 +806,97 @@ static int32_t PlaceNuclearForDeficit(void)
         if (r != 1) { if (getenv("GEN_DEBUG")) fprintf(stderr, "  skip node %d def=%d: place r=%d at (%d,%d)\n", target, worst, r, ox, oy); NodeSkip[target] = true; continue; }
         return 1;
     }
+}
+
+/* Center tile of a 3x3 water tower footprint. */
+#define WATER_TOWER_CENTER (WATERTOWER + 4)
+
+/* Mirrors TowerIsPowered in core/s_water.c: an energized tile must touch the 3x3 footprint. */
+static bool TowerPowered(int32_t tx, int32_t ty)
+{
+    for (int32_t dy = -2; dy <= 2; dy++)
+        for (int32_t dx = -2; dx <= 2; dx++) {
+            bool edge = (abs(dx) == 2 && abs(dy) <= 1) || (abs(dy) == 2 && abs(dx) <= 1);
+            int32_t x = tx + dx, y = ty + dy;
+            if (!edge || !TestBounds(x, y)) continue;
+            if (PowerMap[POWERWORD(x, y)] & (uint16_t)(1u << (x & 15))) return true;
+        }
+    return false;
+}
+
+/* Lays a line from any powered tile to an edge tile of the tower footprint over WireOK tiles and existing conductors.
+ * Returns 1 laid, 0 no route, -2 out of funds. */
+static int32_t LayWireToTower(int32_t tx, int32_t ty)
+{
+    for (int32_t x = 0; x < WORLD_X; x++)
+        for (int32_t y = 0; y < WORLD_Y; y++) { WireDist[x][y] = -1; WirePar[x][y] = -1; }
+    int32_t head = 0, tail = 0;
+    for (int32_t x = 0; x < WORLD_X; x++)
+        for (int32_t y = 0; y < WORLD_Y; y++)
+            if (PowerMap[POWERWORD(x, y)] & (uint16_t)(1u << (x & 15))) { WireDist[x][y] = 0; Q[tail++] = x * WORLD_Y + y; }
+    while (head < tail) {
+        int32_t idx = Q[head++];
+        int32_t cx = idx / WORLD_Y, cy = idx % WORLD_Y;
+        for (int32_t i = 0; i < 4; i++) {
+            int32_t nx = cx + DX[i], ny = cy + DY[i];
+            if ((!WireOK(nx, ny) && !WireThrough(nx, ny)) || WireDist[nx][ny] >= 0) continue;
+            WireDist[nx][ny] = WireDist[cx][cy] + 1;
+            WirePar[nx][ny] = idx;
+            Q[tail++] = nx * WORLD_Y + ny;
+        }
+    }
+
+    int32_t best = 0x7fffffff, bx = -1, by = -1;
+    for (int32_t dy = -2; dy <= 2; dy++)
+        for (int32_t dx = -2; dx <= 2; dx++) {
+            bool edge = (abs(dx) == 2 && abs(dy) <= 1) || (abs(dy) == 2 && abs(dx) <= 1);
+            int32_t x = tx + dx, y = ty + dy;
+            if (!edge || !TestBounds(x, y) || !WireOK(x, y) || WireDist[x][y] <= 0) continue;
+            if (WireDist[x][y] < best) { best = WireDist[x][y]; bx = x; by = y; }
+        }
+    if (bx < 0) return 0;
+
+    for (int32_t cx = bx, cy = by; WireDist[cx][cy] > 0; ) {
+        if (!WireThrough(cx, cy) && LayWire(cx, cy) == -2) return -2;
+        int32_t p = WirePar[cx][cy];
+        cx = p / WORLD_Y; cy = p % WORLD_Y;
+    }
+    return 1;
+}
+
+/* The generator never simulates, so PowerMap is empty until watered plants seed it. This mirrors the sim:
+ * a watered power plant pushes its tile (s_sim.c PushPowerStack), then DoPowerScan floods the grid.
+ * Water and power depend on each other (tower power changes zone counts), so iterate twice. */
+static void RefreshPower(void)
+{
+    for (int32_t iter = 0; iter < 2; iter++) {
+        DoWaterScan();
+        PowerStackNum = 0;
+        for (int32_t x = 0; x < WORLD_X; x++)
+            for (int32_t y = 0; y < WORLD_Y; y++)
+                if (IsPlantTile(x, y) && WaterPlantSupplied(x, y)) { SMapX = x; SMapY = y; PushPowerStack(); }
+        DoPowerScan();
+    }
+    DoWaterScan();
+}
+
+/* Wires every unpowered water tower to a powered tile. An unpowered tower supplies half its zones.
+ * Returns the number wired, or -2 out of funds. *left counts towers still unpowered. */
+static int32_t PowerTowers(int32_t *left)
+{
+    int32_t wired = 0;
+    *left = 0;
+    for (int32_t x = 0; x < WORLD_X; x++)
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            if ((Map[x][y] & LOMASK) != WATER_TOWER_CENTER) continue;
+            RefreshPower();
+            if (TowerPowered(x, y)) continue;
+            int32_t w = LayWireToTower(x, y);
+            if (w == -2) return -2;
+            if (w == 1) { wired++; RefreshPower(); }
+            if (!TowerPowered(x, y)) (*left)++;
+        }
+    return wired;
 }
 
 static uint8_t Reach[WORLD_X][WORLD_Y];
@@ -810,6 +1001,7 @@ int main(int argc, char **argv)
     }
 
     int32_t start_funds = TotalFunds;
+    RefreshPower();
     int32_t sup0, zc0 = CountZoneCenters(&sup0);
     int32_t towers = 0, pipes = 0, skipped = 0, landfills = 0, out_of_funds = 0, plant_unreached = 0, plant_site_failed = 0;
 
@@ -902,6 +1094,14 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Phase 6: wire each unpowered water tower to a powered tile, so it supplies its full zone count. */
+    int32_t towers_wired = 0, towers_unpowered = 0;
+    if (!out_of_funds) {
+        int32_t w = PowerTowers(&towers_unpowered);
+        if (w == -2) out_of_funds = 1;
+        else towers_wired = w;
+    }
+
     /* Landfill: a starting allowance so trash has somewhere to go. The game expands it when full. */
     int32_t want_lf = (TotalPop + 299) / 300;
     if (want_lf < 2) want_lf = 2;
@@ -940,6 +1140,7 @@ int main(int argc, char **argv)
     }
 
     CityRescan();
+    RefreshPower();
     int32_t sup1, zc1 = CountZoneCenters(&sup1);
     int32_t unsup_tiles = CountUnsuppliedTiles();
     int32_t plants_total = 0, plants_watered = 0;
@@ -959,10 +1160,10 @@ int main(int argc, char **argv)
 
     printf("%s: towers=%d pipes=%d skipped=%d landfill=%d spent=%d funds_left=%d "
            "centers_before=%d/%d centers_after=%d/%d unsupplied_demand_tiles=%d plants_watered=%d/%d "
-           "plants_added=%d grids_short=%d unpowered_zones=%d%s%s %s%s%s\n",
+           "plants_added=%d plants_upgraded=%d grids_short=%d unpowered_zones=%d towers_wired=%d towers_unpowered=%d%s%s %s%s%s\n",
            in, towers, pipes, skipped, landfills, spent, TotalFunds,
            sup0, zc0, sup1, zc1, unsup_tiles, plants_watered, plants_total,
-           plants_added, grids_short, unpowered,
+           plants_added, plants_upgraded, grids_short, unpowered, towers_wired, towers_unpowered,
            plant_unreached ? " (plant unreachable)" : "",
            plant_site_failed ? " (no plant site)" : "",
            ok ? "saved=" : "SAVE FAILED", ok ? saved : "",
