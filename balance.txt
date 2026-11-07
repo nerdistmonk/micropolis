@@ -5,6 +5,7 @@ Status
 ------
 - Core rebalance is applied in the repo on devworks: tax constants, landfill storage cap,
   and tiered landfill upkeep (see Changes in effect).
+- Policing overhaul is committed on devworks as e2fe343 (see Policing).
 - Harness and layout remain outside the repo (/root/mp-scratch/la/).
 - The "LA" city is a procedural map (GenerateSomeCity(12345), then ClearMap()), not real Los Angeles.
 - Goal not met: no run reached 50,000 citizens. Best runs reach about 16k to 21k at year 25.
@@ -39,6 +40,32 @@ Changes in effect (scratch only)
 6. Health: stock 80/20 residential penalty (core/s_health.c:14-15).
    A 95/5 test changed tax by 0 to 7 a year, so it is not a useful lever.
 
+Policing (committed e2fe343, core/s_police.c)
+---------------------------------------------
+Old model: PoliceMap was a smoothed radius around each station, and CrimeScan subtracted it
+from crime everywhere. Coverage was not limited, so one station covered a whole district.
+
+New model:
+1. Station capacity (zones served):
+   - 24 with power and water, 12 without one (degraded), at full funding.
+   - Scaled linearly by PoliceEffect (funding ratio, core/s_sim.c:688-689).
+     Unfunded = 0. Half funding = half capacity (rounded down).
+   - The road-access penalty (FindPRoad) was removed.
+2. Assignment: each residential, commercial, and industrial zone goes to the nearest
+   station (squared distance) with spare capacity. Zones are processed in map order.
+3. Crime: covered zones get 0. Uncovered cells get no police term.
+   Crime base is 128 - LandValue + PopDensity (unchanged).
+4. Overlay: green = covered, red = uncovered (sdl3/sdl3_video.c).
+5. Inspector: station shows "Demand" (zones assigned) and "Capacity".
+
+Verified with scratch probe (probe_police.c) on saves at 32 cycles:
+- Dingberg-1.cot, 3 stations, 24 zones, all covered at full funding.
+- Dingberg.cot, 1 station (10,2), capacity 24, 22 zones, all covered.
+- Funding sweep on Dingberg.cot, 1 station (10,2), 22 zones:
+    PoliceEffect 0    -> capacity 0,  covered 0/22,  uncovered mean crime 117.4
+    PoliceEffect 500  -> capacity 12, covered 12/22
+    PoliceEffect 1000 -> capacity 24, covered 22/22
+
 Results (25 years, seeds 1-4, tiered variant)
 ---------------------------------------------
 Seed  Yr1 cash  Yr10 pop / cash    Yr18 pop / cash     Yr25 pop / cash
@@ -65,4 +92,11 @@ Known gaps
 - Only four seeds, 25 years, GameLevel 0 (easy).
 - Map is procedural, so zone counts are fixed at about 58 to 91 cells.
 - The reload gap (5,560 vs 5,700) is unexplained.
+- Police assignment is order-dependent: earlier zones in map order take capacity first.
+  A global nearest-first pairing would be fairer. Not implemented.
+- "Demand" in the inspector is zones assigned, not unmet demand.
+- Unpowered zones still count toward station capacity.
+- Covered crime is 0. Crime is tracked per half-resolution cell, so a cell touching
+  any covered tile counts as covered. This slightly over-covers edges.
+- Policing crime tuning is not checked against long runs (no 25-year policing test yet).
 - Balance changes are not proposed for the core. Any change needs review first.
