@@ -1,12 +1,21 @@
-/* s_landfill.c: Landfill blocks take in the city's trash.
+/* s_landfill.c: Landfill blocks absorb the waste of the zones they service.
  *
- * Each CityTime tick the city makes trash equal to TotalPop / LANDFILL_GEN_DIVISOR. It goes
- * into a shared pool (TrashPending). A landfill block takes from the pool only while a road
- * touches its edge, up to LANDFILL_ACCEPT_PER_TICK scaled by landfillPercent (budget funding).
- * A block fills through three visible stages. Its upkeep is tiered: empty costs nothing, then
- * one third, two thirds, and full cost as it fills. When every connected block is full and no
- * empty block exists, a new empty block is placed next to a full one. Trash left in the pool
- * adds pollution to zone tiles, and filled blocks pollute through LandfillPollution.
+ * Each road-connected landfill block services LANDFILL_ZONES_PER_BLOCK developed zones, scaled
+ * by landfillPercent (budget funding), as police and fire stations do. Demand is the citywide
+ * count of residential, commercial, and industrial zone centres. Each CityTime tick compares
+ * demand with total capacity:
+ *   - Overloaded: each connected block that is not full gains LANDFILL_STEP_TRASH waste.
+ *     Demand beyond capacity is uncollected.
+ *   - Under capacity: each block holding waste loses LANDFILL_STEP_TRASH every
+ *     LANDFILL_EMPTY_PERIOD ticks, so it empties at one third of its fill rate.
+ *   - Balanced: nothing changes.
+ * With no capacity at all (no connected block) and demand present, trash piles up unserviced
+ * at LANDFILL_STEP_TRASH per tick, up to LANDFILL_UNSERVICED_MAX. It drains the same way once
+ * demand is gone.
+ * A block shows four stages as it fills. Its upkeep is tiered: empty costs nothing, then one
+ * third, two thirds, and full cost. Filled blocks pollute through LandfillPollution.
+ * TrashPending is the total waste: stored in blocks plus UnservicedTrash. The land-value,
+ * garbage, and pile effects read it.
  *
  * Per-block fill is kept in LandfillFill, indexed by block centre. It is saved as a trailing
  * section of the city file. LandfillRescan keeps each loaded value within its stage's range.
@@ -15,14 +24,15 @@
 #include <string.h>
 #include "sim.h"
 
-#define LANDFILL_GEN_DIVISOR     8
-#define LANDFILL_ACCEPT_PER_TICK 40
+#define LANDFILL_ZONES_PER_BLOCK 9
+#define LANDFILL_STEP_TRASH      40
+#define LANDFILL_EMPTY_PERIOD    3
 #define LANDFILL_STAGE_CAP       800
 #define LANDFILL_BLOCK_CAP       (LANDFILL_STAGE_CAP * (LANDFILL_STAGES - 1))
 #define LANDFILL_CENTRE_OFFSET   4
-#define LANDFILL_POOL_MAX        100000
 #define LANDFILL_PENALTY_DIV     250
 #define LANDFILL_PENALTY_MAX     20
+#define LANDFILL_UNSERVICED_MAX  5000
 
 static const int32_t LandfillStagePollution[LANDFILL_STAGES] = { 0, 10, 20, 30 };
 
@@ -31,6 +41,7 @@ int16_t LandfillPop = 0;
 int32_t LandfillFund = 0;
 int32_t LandfillSpend = 0;
 int32_t TrashPending = 0;
+int32_t UnservicedTrash = 0;
 bool LandfillAtCapacity = false;
 
 static uint16_t LandfillFill[WORLD_X][WORLD_Y];
@@ -85,34 +96,40 @@ static bool IsConnected(int32_t cx, int32_t cy)
     return false;
 }
 
-static bool CanPlaceBlock(int32_t cx, int32_t cy)
+static bool IsDemandZone(uint16_t t)
 {
-    if (cx < 1 || cy < 1 || cx > WORLD_X - 2 || cy > WORLD_Y - 2) {
+    int32_t low = t & LOMASK;
+    if (!(t & ZONEBIT)) {
         return false;
     }
-    for (int32_t dy = -1; dy <= 1; dy++) {
-        for (int32_t dx = -1; dx <= 1; dx++) {
-            if (Map[cx + dx][cy + dy] != DIRT) {
-                return false;
-            }
-        }
-    }
-    return true;
+    return ((low >= RESBASE) && (low < HOSPITAL)) ||
+           ((low >= COMBASE) && (low < INDBASE)) ||
+           ((low >= INDBASE) && (low < PORTBASE));
 }
 
 void DoLandfill(void)
 {
+    int32_t zones = 0;
+    int32_t connectedCount = 0;
+
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            if (IsDemandZone(Map[x][y])) {
+                zones++;
+            } else if (IsLandfillCentre(Map[x][y] & LOMASK) && IsConnected(x, y)) {
+                connectedCount++;
+            }
+        }
+    }
+
+    float capacity = (float)LANDFILL_ZONES_PER_BLOCK * landfillPercent * (float)connectedCount;
+    bool overloaded = (float)zones > capacity;
+    bool underCapacity = (float)zones < capacity;
+    bool emptyTick = (CityTime % LANDFILL_EMPTY_PERIOD) == 0;
+
     int32_t blocks = 0;
     int32_t roomy = 0;
-    int32_t spare = 0;
-    int32_t fullX = -1;
-    int32_t fullY = -1;
-    int32_t connected = 0;
-
-    TrashPending += TotalPop / LANDFILL_GEN_DIVISOR;
-    if (TrashPending > LANDFILL_POOL_MAX) {
-        TrashPending = LANDFILL_POOL_MAX;
-    }
+    int32_t waste = 0;
 
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
@@ -127,53 +144,46 @@ void DoLandfill(void)
                 LandfillFill[x][y] = (uint16_t)(stage * LANDFILL_STAGE_CAP);
             }
             int32_t fill = LandfillFill[x][y];
+            bool connected = IsConnected(x, y);
 
-            if (IsConnected(x, y)) {
-                connected++;
-                if (fill >= LANDFILL_BLOCK_CAP) {
-                    if (fullX < 0) {
-                        fullX = x;
-                        fullY = y;
-                    }
-                } else {
-                    roomy++;
-                    int32_t take = (int32_t)((float)LANDFILL_ACCEPT_PER_TICK * landfillPercent);
-                    if (take > TrashPending) take = TrashPending;
-                    if (take > LANDFILL_BLOCK_CAP - fill) take = LANDFILL_BLOCK_CAP - fill;
-                    if (take > 0) {
-                        fill += take;
-                        TrashPending -= take;
-                        LandfillFill[x][y] = (uint16_t)fill;
-                        int32_t newStage = fill / LANDFILL_STAGE_CAP;
-                        if (newStage != stage) {
-                            PlopBlock(x, y, newStage);
-                        }
-                    }
+            if (overloaded && connected && fill < LANDFILL_BLOCK_CAP) {
+                int32_t room = LANDFILL_BLOCK_CAP - fill;
+                fill += (room < LANDFILL_STEP_TRASH) ? room : LANDFILL_STEP_TRASH;
+            } else if (underCapacity && emptyTick && fill > 0) {
+                fill -= (fill < LANDFILL_STEP_TRASH) ? fill : LANDFILL_STEP_TRASH;
+            }
+
+            if (fill != LandfillFill[x][y]) {
+                LandfillFill[x][y] = (uint16_t)fill;
+                int32_t newStage = fill / LANDFILL_STAGE_CAP;
+                if (newStage != stage) {
+                    PlopBlock(x, y, newStage);
                 }
             }
 
-            if (fill == 0) {
-                spare++;
+            waste += fill;
+            if (connected && fill < LANDFILL_BLOCK_CAP) {
+                roomy++;
             }
         }
+    }
+
+    if (connectedCount == 0) {
+        if (zones > 0) {
+            UnservicedTrash += LANDFILL_STEP_TRASH;
+            if (UnservicedTrash > LANDFILL_UNSERVICED_MAX) UnservicedTrash = LANDFILL_UNSERVICED_MAX;
+        } else if (UnservicedTrash > 0) {
+            UnservicedTrash -= (UnservicedTrash < LANDFILL_STEP_TRASH) ? UnservicedTrash : LANDFILL_STEP_TRASH;
+        }
+    } else {
+        UnservicedTrash = 0;
     }
 
     LandfillPop = (int16_t)blocks;
-    LandfillAtCapacity = connected > 0 && roomy == 0 && TrashPending > 0;
-
-    if (TrashPending > 0 && roomy == 0 && spare == 0 && fullX >= 0) {
-        static const int32_t step[4][2] = { {3, 0}, {-3, 0}, {0, 3}, {0, -3} };
-        for (int32_t i = 0; i < 4; i++) {
-            int32_t nx = fullX + step[i][0];
-            int32_t ny = fullY + step[i][1];
-            if (CanPlaceBlock(nx, ny)) {
-                PlopBlock(nx, ny, 0);
-                LandfillFill[nx][ny] = 0;
-                break;
-            }
-        }
-    }
+    TrashPending = waste + UnservicedTrash;
+    LandfillAtCapacity = overloaded && roomy == 0 && (connectedCount == 0 || waste > 0);
 }
+
 
 void LandfillBlockPlaced(int32_t x, int32_t y)
 {
@@ -198,6 +208,7 @@ void LandfillResetCity(void)
 {
     landfillPercent = 1.0f;
     TrashPending = 0;
+    UnservicedTrash = 0;
     LandfillAtCapacity = false;
     LandfillPop = 0;
     LandfillFund = 0;

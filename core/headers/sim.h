@@ -485,7 +485,7 @@ extern int16_t *MoneyHis, *CrimeHis, *PollutionHis, *MiscHis;
 extern uint16_t *PowerMap;
 
 extern float roadPercent, policePercent, firePercent, healthPercent, landfillPercent;
-extern int32_t LandfillFund, LandfillSpend, TrashPending;
+extern int32_t LandfillFund, LandfillSpend, TrashPending, UnservicedTrash;
 extern int16_t LandfillPop;
 extern bool LandfillAtCapacity;
 extern int32_t RoadSpend, PoliceSpend, FireSpend, HealthSpend;

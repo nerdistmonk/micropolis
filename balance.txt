@@ -66,8 +66,8 @@ Verified with scratch probe (probe_police.c) on saves at 32 cycles:
     PoliceEffect 500  -> capacity 12, covered 12/22
     PoliceEffect 1000 -> capacity 24, covered 22/22
 
-Fire (core/s_fire.c, uncommitted)
----------------------------------
+Fire (committed 60ff8f9, core/s_fire.c)
+---------------------------------------
 Old model: each station added to a smoothed FireStMap (3 smoothing passes over 8x8 blocks).
 FireRate was the result, and it set burn-out speed (Rate 3/2/1 by strength, 10 without a station).
 Stations also lost strength without a road (FindPRoad).
@@ -89,6 +89,51 @@ Verified with scratch probe (probe_fire.c):
 - Dingberg-1.cot, 2 stations, 24 zones, all covered at full funding.
 - Dingberg-1.cot at FireEffect 500: 12 per station, 24/24 covered.
 - Dingberg-1.cot at FireEffect 0: 0 covered, 24 uncovered, no fast-burn tiles.
+
+Landfill (core/s_landfill.c, uncommitted)
+-----------------------------------------
+Old model: each CityTime tick added TotalPop / 8 to a shared pool (TrashPending, capped at
+100000). Each road-connected block took 40 x landfillPercent per tick. A full block triggered
+auto-placement of a new block beside it.
+
+New model (capacity-based):
+1. Capacity: each road-connected landfill block services 9 developed zones, scaled by
+   landfillPercent (budget slider), as police and fire stations are. Half budget = 4.5 zones
+   per block. Unconnected blocks add nothing.
+2. Demand: residential, commercial, and industrial zone centres citywide (same predicate as
+   police). Demand = zone count.
+3. Each tick, compare demand with total capacity:
+   - Overloaded (demand > capacity): each connected block that is not full gains 40 waste.
+     Demand beyond capacity is uncollected.
+   - Under capacity (demand < capacity): each block holding waste loses 40 on every third
+     tick (CityTime % 3 == 0). Net empty rate is one third of the fill rate.
+   - Balanced (demand == capacity): nothing changes.
+4. Storage: 2,400 per block (4 stages, unchanged). TrashPending is the total waste across all
+   blocks, recomputed each tick. The land-value penalty, garbage problem, and pile/capacity
+   headlines read it unchanged.
+5. No capacity (no connected block) with demand present: trash piles up unserviced at 40 per
+   tick, capped at 5,000 (UnservicedTrash). It drains at 40 per tick once demand is gone.
+   It counts toward TrashPending, so the penalties apply. The "landfill full" headline
+   (LandfillAtCapacity) fires in this state too.
+6. Removed: TotalPop-based generation, the 100,000 pool cap, and auto-placement. Blocks are
+   placed by the player only.
+7. Unchanged: tiered upkeep, stage pollution. UnservicedTrash is saved in MiscHis[77..78]
+   beside TrashPending.
+
+Verified with scratch probe (probe_landfill.c), one connected block, Legacy/freds.cty:
+- Under, zones 0, capacity 9: 1200 -> 800 in 30 ticks (10 steps of 40).
+- Overloaded, zones 5, percent 0: +40 per tick, stage tiles change at 800/1600/2400,
+  caps at 2400, LandfillAtCapacity set.
+- Balanced, zones 9, capacity 9: holds at 800.
+- Half budget, capacity 4.5: 5 zones overload (+40/tick); 4 zones drain.
+
+Open (thresholds not retuned, needs a decision):
+- Land-value penalty (/250, max 20) saturates at 5,000 stored waste (about two full blocks).
+- Pile headline TRASH_PILE_LEVEL 5,000, re-arm 1,000 (core/s_msg.c:24-25).
+- Garbage problem (/20) saturates at 5,100 stored waste.
+- Unserviced piles (no connected landfill) reach the 5,000 cap after 125 ticks at 40/tick.
+  Verified with probe_unserviced.c: 5 zones, no landfill -> 5,000 after 200 ticks; zero
+  demand drains to 0.
 
 Results (25 years, seeds 1-4, tiered variant)
 ---------------------------------------------

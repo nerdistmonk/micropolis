@@ -24,7 +24,7 @@ extern void ClearMes(void);
 /* Marks that MiscHis[66..68] hold per-class R/C/I tax rates. */
 #define TAXRATES_SAVE_TAG 0x5452
 #define HEALTH_SAVE_TAG 0x4854
-/* Marks that MiscHis[72..76] hold landfill funding (72..73), a tag (74), and the trash pool (75..76). */
+/* Marks that MiscHis[72..76] hold landfill funding (72..73), a tag (74), and the stored trash total (75..76). */
 #define LANDFILL_SAVE_TAG 0x4C46
 
 /* Fixed on-disk size of a city image (header streams plus 120x100 map). */
@@ -114,6 +114,9 @@ static void SyncMiscHis(void)
     uint32_t tp = (uint32_t)TrashPending;
     MiscHis[75] = (int16_t)((tp >> 16) & 0xFFFFu);
     MiscHis[76] = (int16_t)(tp & 0xFFFFu);
+    uint32_t ut = (uint32_t)UnservicedTrash;
+    MiscHis[77] = (int16_t)((ut >> 16) & 0xFFFFu);
+    MiscHis[78] = (int16_t)(ut & 0xFFFFu);
 }
 
 static void ParseCityBlob(const uint8_t *blob)
@@ -394,9 +397,14 @@ int32_t LoadCity(const char *filename)
         uint16_t p1 = (uint16_t)MiscHis[76];
         TrashPending = (int32_t)(((uint32_t)p0 << 16) | p1);
         if (TrashPending < 0) TrashPending = 0;
+        uint16_t u0 = (uint16_t)MiscHis[77];
+        uint16_t u1 = (uint16_t)MiscHis[78];
+        UnservicedTrash = (int32_t)(((uint32_t)u0 << 16) | u1);
+        if (UnservicedTrash < 0) UnservicedTrash = 0;
     } else {
         landfillPercent = 1.0f;
         TrashPending = 0;
+        UnservicedTrash = 0;
     }
 
     if (CityTime < 0) CityTime = 0;

@@ -20,7 +20,7 @@ static bool    TreasuryBustedFired = false;
 static int32_t LastTreasury = 0;
 #define TREASURY_BUSTED_LEVEL 5000
 #define TREASURY_REARM 50000
-/* Trash pool at which the land-value penalty maxes out (LandfillTrashPenalty), and the level it must drop below to re-arm. */
+/* Stored trash at which the land-value penalty maxes out (LandfillTrashPenalty), and the level it must drop below to re-arm. */
 #define TRASH_PILE_LEVEL 5000
 #define TRASH_REARM_LEVEL 1000
 #define UNEMPLOYMENT_LEVEL 170
@@ -299,7 +299,7 @@ static void CheckTreasury(void)
     LastTreasury = TotalFunds;
 }
 
-/* The pile headline re-arms only after the pool drops below TRASH_REARM_LEVEL. The capacity headline follows LandfillAtCapacity. */
+/* The pile headline re-arms only after stored trash drops below TRASH_REARM_LEVEL. The capacity headline follows LandfillAtCapacity. */
 static void CheckTrash(void)
 {
     if (TrashPending >= TRASH_PILE_LEVEL) {
