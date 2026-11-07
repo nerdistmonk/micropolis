@@ -323,6 +323,10 @@ bool Dialog_File_HandleClick(float mx, float my)
             Video_SetLinearFilter(Settings_GetLinearFilter());
             return true;
         }
+        if (mx >= opt_x && mx <= opt_x + 90.0f && my >= opt_y + 350.0f && my <= opt_y + 376.0f) {
+            Settings_ToggleAutumnColor();
+            return true;
+        }
     }
 
     return true;
@@ -555,6 +559,7 @@ void Dialog_File_Render(SDL_Renderer *renderer)
         DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 245, "Tile Animation (Map Blinking)", Settings_GetTileAnimation());
         DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 280, "Status Messages (Ticker)", Settings_GetStatusMessages());
         DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 315, "Linear Filtering (Smooth Scaling)", Settings_GetLinearFilter());
+        DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 350, "Autumn Colors (Seasonal Trees)", Settings_GetAutumnColor());
     } else if (active_file_tab == FILE_TAB_ABOUT) {
         static const char *about_lines[] = {
             "Micropolis Version 5.0 Copyright (C) 2026",

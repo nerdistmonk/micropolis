@@ -2,6 +2,7 @@
  */
 
 #include "sdl3_season.h"
+#include "sdl3_settings.h"
 #include "sim.h"
 #include <stdbool.h>
 
@@ -42,7 +43,9 @@ static uint8_t AutumnTarget(void)
     return 0;
 }
 
-/* Mix is kept in 1/256 units so a slow frame rate can't stall the slew on integer rounding. */
+/* Mix is kept in 1/256 units so a slow frame rate can't stall the slew on integer rounding.
+ * The slew keeps running while the option is off, so turning it back on doesn't jump.
+ */
 static uint32_t shown_q8 = 0;
 static uint32_t last_ms = 0;
 static bool primed = false;
@@ -65,6 +68,8 @@ uint8_t Season_TreeAutumnMix(uint32_t now_ms)
     } else if (shown_q8 > target_q8) {
         shown_q8 = (shown_q8 - target_q8 > max_step) ? shown_q8 - max_step : target_q8;
     }
+
+    if (!Settings_GetAutumnColor()) return 0;
 
     uint32_t mix = (shown_q8 + 128u) / 256u;
     return (uint8_t)(mix > 255u ? 255u : mix);

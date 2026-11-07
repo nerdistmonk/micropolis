@@ -13,6 +13,7 @@ static bool edge_scroll_enabled = false;
 static bool tile_animation_enabled = true;
 static bool status_messages_enabled = true;
 static bool linear_filter_enabled = true;
+static bool autumn_color_enabled = true;
 static SoundLevel sound_level = SOUND_LEVEL_FULL;
 static MusicVolume music_volume = MUSIC_VOLUME_MEDIUM;
 static MusicOrder music_order = MUSIC_ORDER_SEQUENTIAL;
@@ -45,6 +46,7 @@ static void Settings_Save(void)
     fprintf(f, "tile_animation=%d\n", tile_animation_enabled ? 1 : 0);
     fprintf(f, "status_messages=%d\n", status_messages_enabled ? 1 : 0);
     fprintf(f, "linear_filter=%d\n", linear_filter_enabled ? 1 : 0);
+    fprintf(f, "autumn_color=%d\n", autumn_color_enabled ? 1 : 0);
     fprintf(f, "music_volume=%d\n", (int)music_volume);
     fprintf(f, "music_order=%d\n", (int)music_order);
     fclose(f);
@@ -80,6 +82,8 @@ void Settings_Load(void)
                 status_messages_enabled = (value != 0);
             } else if (sscanf(line, "linear_filter=%d", &value) == 1) {
                 linear_filter_enabled = (value != 0);
+            } else if (sscanf(line, "autumn_color=%d", &value) == 1) {
+                autumn_color_enabled = (value != 0);
             } else if (sscanf(line, "music_volume=%d", &value) == 1) {
                 if (value >= 0 && value < (int)MUSIC_VOLUME_COUNT) {
                     music_volume = (MusicVolume)value;
@@ -139,6 +143,17 @@ bool Settings_GetLinearFilter(void)
 void Settings_ToggleLinearFilter(void)
 {
     linear_filter_enabled = !linear_filter_enabled;
+    Settings_Save();
+}
+
+bool Settings_GetAutumnColor(void)
+{
+    return autumn_color_enabled;
+}
+
+void Settings_ToggleAutumnColor(void)
+{
+    autumn_color_enabled = !autumn_color_enabled;
     Settings_Save();
 }
 

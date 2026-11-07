@@ -27,6 +27,9 @@ void Settings_ToggleStatusMessages(void);
 bool Settings_GetLinearFilter(void);
 void Settings_ToggleLinearFilter(void);
 
+bool Settings_GetAutumnColor(void);
+void Settings_ToggleAutumnColor(void);
+
 SoundLevel Settings_GetSoundLevel(void);
 void Settings_CycleSoundLevel(void);
 float Settings_GetSoundGain(void);
