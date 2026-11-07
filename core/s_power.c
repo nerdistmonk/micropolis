@@ -118,6 +118,7 @@ static bool IsPowerZone(uint16_t tile)
 static bool IsConductiveTile(int32_t x, int32_t y)
 {
     uint16_t t = Map[x][y];
+    if (TILE_IS_WATER_TOWER(t)) return true;
     return (t & CONDBIT) && !TILE_IS_NUCLEAR(t) && ((t & LOMASK) != POWERPLANT);
 }
 

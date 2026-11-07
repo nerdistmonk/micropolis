@@ -349,6 +349,7 @@ typedef int32_t QUAD;
 
 #define TILE_IS_NUCLEAR(tile) (((tile) & LOMASK) == NUCLEAR)
 #define TILE_IS_POWER_PLANT(tile) ((((tile) & LOMASK) >= COALBASE && ((tile) & LOMASK) <= LASTPOWERPLANT) || (((tile) & LOMASK) >= NUCLEARBASE && ((tile) & LOMASK) <= LASTZONE))
+#define TILE_IS_WATER_TOWER(tile) ((((tile) & LOMASK) >= WATERTOWER) && (((tile) & LOMASK) < WATERTOWER + WATERTOWER_TILES))
 #define TILE_IS_VULNERABLE(tile) (!((tile) & ZONEBIT) && (((tile) & LOMASK) >= RZB) && (((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_ARSONABLE(tile) (!((tile) & ZONEBIT) && (((tile) & LOMASK) >= RZB) && (((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_RIVER_EDGE(tile) ((((tile) & LOMASK) >= FIRSTRIVEDGE) && (((tile) & LOMASK) <= LASTRIVEDGE))

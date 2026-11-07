@@ -3,9 +3,9 @@
  * A tower draws from a river through a pipe: its pipe network must reach a pipe that
  * touches a river tile. Pipes are
  * kept in their own layer, separate from the surface Map, so they are only visible in
- * the underground overlay. Water floods outward from a tower through pipes and zone
- * buildings the same way power floods through wires. Power plants are sinks: water
- * reaches them but does not pass through. Each tower adds up to WATER_TOWER_ZONES new
+ * the underground overlay. Water floods outward from a tower through pipes, zone
+ * buildings, power plants, and other towers the same way power floods through wires.
+ * Each tower adds up to WATER_TOWER_ZONES new
  * zone centers, or half that when no energized power tile touches it; zones another
  * tower already waters do not count against it.
  */
@@ -74,21 +74,21 @@ static bool TowerHasSource(int32_t tx, int32_t ty)
     return false;
 }
 
-/* Conducts water like a wire conducts power: zone buildings carry CONDBIT, plants and ports do not. */
+/* Conducts water like a wire conducts power: zone buildings carry CONDBIT, ports do not. */
 static bool IsWaterConductor(uint16_t tile)
 {
     int32_t t = tile & LOMASK;
     if (!(tile & CONDBIT)) return false;
     if (t < RESBASE || t > LASTZONE) return false;
     if (t >= PORTBASE && t < COALBASE) return false;
-    return !TILE_IS_POWER_PLANT(tile);
+    return true;
 }
 
 static bool WaterCanEnter(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return false;
     uint16_t tile = Map[x][y];
-    return pipe_map[x][y] || TILE_IS_POWER_PLANT(tile) || IsWaterConductor(tile);
+    return pipe_map[x][y] || TILE_IS_POWER_PLANT(tile) || TILE_IS_WATER_TOWER(tile) || IsWaterConductor(tile);
 }
 
 /* A 4x4 plant is watered as one unit: find its center around (x,y) and mark every footprint tile. */
@@ -171,11 +171,8 @@ static void SupplyFromTower(int32_t tx, int32_t ty)
 
             uint16_t tile = Map[nx][ny];
             if (TILE_IS_POWER_PLANT(tile)) {
-                water_map[nx][ny] = 1;
                 MarkPlantFootprint(nx, ny);
-                continue;
-            }
-            if ((tile & ZONEBIT) && !water_map[nx][ny]) {
+            } else if ((tile & ZONEBIT) && !water_map[nx][ny]) {
                 if (zones >= limit) continue;
                 zones++;
             }
@@ -208,7 +205,6 @@ static int32_t NetFind(int32_t t)
 static void NetClaim(int32_t x, int32_t y, int32_t tower, int32_t *tail)
 {
     if (!TestBounds(x, y)) return;
-    if (TILE_IS_POWER_PLANT(Map[x][y])) return;
     int32_t owner = net_owner[x][y];
     if (owner == 0) {
         net_owner[x][y] = (int16_t)(tower + 1);
