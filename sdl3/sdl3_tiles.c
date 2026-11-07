@@ -241,7 +241,7 @@ uint32_t Tiles_GetPixel(uint16_t tile_id, int32_t px, int32_t py)
     if (!tiles_ready || !tile_pixels) return 0xFF000000;
 
     uint16_t id = tile_id & LOMASK;
-    if (id >= TOTAL_SHEET_TILES) id = 0;
+    if (id >= TOTAL_SHEET_TILES + LANDFILL_TILES) id = 0;
 
     int32_t sheet_x, sheet_y;
 
