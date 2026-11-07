@@ -8,6 +8,7 @@
 #include "sdl3_input.h"
 #include "sdl3_audio.h"
 #include "sdl3_video.h"
+#include "sdl3_season.h"
 #include "sim.h"
 #include "scenario.h"
 #include "sdl3_paths.h"
@@ -580,6 +581,24 @@ static void RenderEditorButtons(SDL_Renderer *renderer)
   }
 }
 
+/* Drawn after the toolbar so it isn't covered by the tool palette. */
+static void RenderSeasonTooltip(SDL_Renderer *renderer, int32_t current_month)
+{
+  bool date_hovered = cursor_x >= rect_date_btn.x && cursor_x <= rect_date_btn.x + rect_date_btn.w &&
+                      cursor_y >= rect_date_btn.y && cursor_y <= rect_date_btn.y + rect_date_btn.h;
+  if (!date_hovered || GUI_IsModalOpen()) return;
+
+  const char *season = Season_Name(Season_OfMonth(current_month));
+  float box_x = rect_date_btn.x;
+  float box_y = rect_date_btn.y + rect_date_btn.h + 4.0f;
+  SDL_FRect box = { box_x, box_y, (float)(GUI_GetTextWidth(season) + 20), 26.0f };
+  SDL_SetRenderDrawColor(renderer, 15, 18, 26, 245);
+  SDL_RenderFillRect(renderer, &box);
+  SDL_SetRenderDrawColor(renderer, 255, 215, 0, 220);
+  SDL_RenderRect(renderer, &box);
+  GUI_DrawText(renderer, (int)box_x + 10, (int)box_y + 5, season, col_white);
+}
+
 void GUI_Render(SDL_Renderer *renderer)
 {
   if (!renderer) return;
@@ -780,6 +799,7 @@ void GUI_Render(SDL_Renderer *renderer)
   if (hovered_tool_idx >= 0 && !GUI_IsModalOpen()) {
     RenderTooltip(renderer, hovered_tool_idx);
   }
+  RenderSeasonTooltip(renderer, current_month);
 
   /* 6. Context help overlay (F1) */
   Help_Render(renderer);

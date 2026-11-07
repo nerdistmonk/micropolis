@@ -3,6 +3,7 @@
 
 #include "sdl3_video.h"
 #include "sdl3_tiles.h"
+#include "sdl3_season.h"
 #include "sdl3_gui.h"
 #include "sdl3_splash.h"
 #include "sim.h"
@@ -1244,6 +1245,7 @@ void Video_RenderFrame(void)
   bool show_bolt = (flagBlink <= 0);
   OverlayViewMode overlay_mode = GUI_GetActiveOverlayMode();
   const uint32_t water_phase_ms = (uint32_t)(SDL_GetTicks() % WATER_FADE_PERIOD_MS);
+  const uint8_t autumn_mix = Season_TreeAutumnMix((uint32_t)SDL_GetTicks());
 
   /* Pixels left of or above the map origin sit under the HUD; they get tile index -1 and draw black */
   for (int32_t sy = 0; sy < canvas_h; sy++) {
@@ -1279,7 +1281,7 @@ void Video_RenderFrame(void)
         }
 
         if (has_tiles) {
-          pixel = Tiles_GetPixel(raw_tile, px, py);
+          pixel = Tiles_GetSeasonPixel(raw_tile, px, py, autumn_mix);
           if (overlay_mode == OVERLAY_VIEW_NORMAL && Tiles_IsWaterArt(raw_tile)) {
             pixel = FadeWaterPixel(pixel, tx * TILE_PIXEL_SIZE + px, ty * TILE_PIXEL_SIZE + py, water_phase_ms);
           }

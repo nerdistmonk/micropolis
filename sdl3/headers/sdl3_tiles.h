@@ -21,6 +21,7 @@ bool     Tiles_Init(void);
 void     Tiles_Shutdown(void);
 bool     Tiles_IsLoaded(void);
 uint32_t Tiles_GetPixel(uint16_t tile_id, int32_t px, int32_t py);
+uint32_t Tiles_GetSeasonPixel(uint16_t tile_id, int32_t px, int32_t py, uint8_t autumn_mix);
 bool     Tiles_IsWaterArt(uint16_t tile_id);
 
 #endif /* SDL3_TILES_H */

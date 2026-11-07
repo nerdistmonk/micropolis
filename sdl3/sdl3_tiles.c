@@ -19,8 +19,10 @@ extern const char **Micropolis_GetTilesXpmData(void);
 extern const char **Micropolis_GetWaterTowerXpmData(void);
 extern const char **Micropolis_GetHospitalXpmData(void);
 extern const char **Micropolis_GetLandfillXpmData(void);
+extern const char **Micropolis_GetAutumnTilesXpmData(void);
 
 static uint32_t *tile_pixels = NULL;
+static uint32_t *autumn_pixels = NULL;
 static int32_t sheet_width = 0;
 static int32_t sheet_height = 0;
 static bool tiles_ready = false;
@@ -209,6 +211,18 @@ bool Tiles_Init(void)
     DarkenWoodsTiles(tiles_px, tiles_w);
     RecolorWaterTiles(tiles_px, tiles_w);
 
+    int32_t autumn_w = 0, autumn_h = 0;
+    free(autumn_pixels);
+    autumn_pixels = NULL;
+    if (!ParseXpmSheet(Micropolis_GetAutumnTilesXpmData(), &autumn_pixels, &autumn_w, &autumn_h) ||
+        autumn_w != tiles_w || autumn_h != tiles_h) {
+        SDL_Log("Error: Autumn tree sheet is missing or does not match the tile sheet.");
+        free(tiles_px);
+        free(autumn_pixels);
+        autumn_pixels = NULL;
+        return false;
+    }
+
     if (!ParseXpmSheet(Micropolis_GetWaterTowerXpmData(), &tower_px, &tower_w, &tower_h) || tower_w != tiles_w) {
         SDL_Log("Error: Water tower sheet is missing or does not match the tile width.");
         free(tiles_px);
@@ -274,12 +288,33 @@ void Tiles_Shutdown(void)
         free(tile_pixels);
         tile_pixels = NULL;
     }
+    if (autumn_pixels) {
+        free(autumn_pixels);
+        autumn_pixels = NULL;
+    }
     tiles_ready = false;
 }
 
 bool Tiles_IsLoaded(void)
 {
     return tiles_ready;
+}
+
+uint32_t Tiles_GetSeasonPixel(uint16_t tile_id, int32_t px, int32_t py, uint8_t autumn_mix)
+{
+    uint32_t base = Tiles_GetPixel(tile_id, px, py);
+    uint16_t id = tile_id & LOMASK;
+    if (autumn_mix == 0 || !autumn_pixels || id < TREEBASE || id > WOODS5) return base;
+
+    uint32_t autumn = autumn_pixels[((size_t)id * TILE_H + (size_t)py) * TILE_W + (size_t)px];
+    uint32_t out = 0xFF000000u;
+    for (int shift = 0; shift < 24; shift += 8) {
+        uint32_t a = (base >> shift) & 0xFFu;
+        uint32_t b = (autumn >> shift) & 0xFFu;
+        uint32_t mixed = (a * (255u - autumn_mix) + b * autumn_mix + 127u) / 255u;
+        out |= mixed << shift;
+    }
+    return out;
 }
 
 uint32_t Tiles_GetPixel(uint16_t tile_id, int32_t px, int32_t py)
