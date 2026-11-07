@@ -75,14 +75,13 @@ void EvalInit(void)
     }
 }
 
-/* Player parks are FOUNTAIN or WOODS2-WOODS5 (only LayPark places these); natural forest is plain WOODS. */
+/* Parks are fountains; scenario maps contain natural WOODS2-WOODS5, so those are not counted. */
 static void CountParks(void)
 {
     int16_t count = 0;
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
-            int16_t t = (int16_t)(Map[x][y] & LOMASK);
-            if ((t >= WOODS2 && t <= WOODS5) || t == FOUNTAIN) {
+            if ((Map[x][y] & LOMASK) == FOUNTAIN) {
                 count++;
             }
         }

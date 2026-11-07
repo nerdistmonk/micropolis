@@ -597,13 +597,7 @@ int32_t LayPark(int32_t x, int32_t y)
 
     if (Map[x][y] != DIRT) return 0;
 
-    /* Rand(4) yields 0..4; the 4 roll places a fountain, the rest woods. */
-    int16_t roll = Rand(4);
-    if (roll == 4) {
-        Map[x][y] = FOUNTAIN | BURNBIT | BULLBIT | ANIMBIT;
-    } else {
-        Map[x][y] = (uint16_t)((WOODS2 + roll) | BURNBIT | BULLBIT);
-    }
+    Map[x][y] = FOUNTAIN | BURNBIT | BULLBIT | ANIMBIT;
 
     TotalFunds -= CostOf[parkState];
     MustUpdateFunds = 1;
