@@ -413,6 +413,27 @@ typedef struct SimCallbacks {
 #define NEWS_EVENT_GARBAGE_PILE     107
 #define NEWS_EVENT_LANDFILL_FULL    108
 
+/* Newspaper-only ids for advisories. Each mirrors the ticker message with the same meaning. */
+#define NEWS_EVENT_ADV_RESIDENTIAL  109
+#define NEWS_EVENT_ADV_COMMERCIAL   110
+#define NEWS_EVENT_ADV_INDUSTRIAL   111
+#define NEWS_EVENT_ADV_ROADS        112
+#define NEWS_EVENT_ADV_RAIL         113
+#define NEWS_EVENT_ADV_POWER        114
+#define NEWS_EVENT_ADV_STADIUM      115
+#define NEWS_EVENT_ADV_SEAPORT      116
+#define NEWS_EVENT_ADV_AIRPORT      117
+#define NEWS_EVENT_ADV_FIRE_DEPT    118
+#define NEWS_EVENT_ADV_POLICE_DEPT  119
+#define NEWS_EVENT_ADV_BLACKOUT     120
+#define NEWS_EVENT_ADV_TAX          121
+#define NEWS_EVENT_ADV_ROAD_DECAY   122
+#define NEWS_EVENT_ADV_FIRE_FUNDING 123
+#define NEWS_EVENT_ADV_POLICE_FUNDING 124
+#define NEWS_EVENT_ADV_UNEMPLOYMENT 125
+#define NEWS_EVENT_ADV_PARKS        126
+#define NEWS_EVENT_ADV_RIOTS        127
+
 /* Engine Global Variables */
 extern uint16_t *Map[WORLD_X];
 extern Byte *PopDensity[HWLDX];
@@ -528,6 +549,7 @@ extern int16_t ProblemTable[PROBNUM];
 extern int16_t ProblemVotes[PROBNUM];
 extern int16_t ProblemOrder[4];
 extern int32_t CityAssValue;
+extern int16_t ParkPop;
 
 extern int16_t InitSimLoad;
 extern int16_t DoInitialEval;

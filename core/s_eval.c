@@ -19,6 +19,7 @@ int16_t ProblemOrder[4];
 QUAD    CityPop = 0;
 QUAD    deltaCityPop = 0;
 QUAD    CityAssValue = 0;
+int16_t ParkPop = 0;
 int16_t CityClass = 0;
 int16_t CityScore = 500;
 int16_t deltaCityScore = 0;
@@ -34,11 +35,13 @@ static int16_t GetUnemployment(void);
 static int16_t GetFire(void);
 static void    GetScore(void);
 static void    DoVotes(void);
+static void    CountParks(void);
 
 void CityEvaluation(void)
 {
     EvalValid = 0;
     if (TotalPop) {
+        CountParks();
         GetAssValue();
         DoPopNum();
         DoProblems();
@@ -72,6 +75,21 @@ void EvalInit(void)
     }
 }
 
+/* Player parks are FOUNTAIN or WOODS2-WOODS5 (only LayPark places these); natural forest is plain WOODS. */
+static void CountParks(void)
+{
+    int16_t count = 0;
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            int16_t t = (int16_t)(Map[x][y] & LOMASK);
+            if ((t >= WOODS2 && t <= WOODS5) || t == FOUNTAIN) {
+                count++;
+            }
+        }
+    }
+    ParkPop = count;
+}
+
 void GetAssValue(void)
 {
     QUAD z;
@@ -82,6 +100,7 @@ void GetAssValue(void)
     z += (QUAD)FireStPop * 1000;
     z += (QUAD)HospPop * 400;
     z += (QUAD)StadiumPop * 3000;
+    z += (QUAD)ParkPop * 750;
     z += (QUAD)PortPop * 5000;
     z += (QUAD)APortPop * 10000;
     z += (QUAD)CoalPop * 3000;

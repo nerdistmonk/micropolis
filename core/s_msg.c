@@ -23,6 +23,7 @@ static int32_t LastTreasury = 0;
 /* Trash pool at which the land-value penalty maxes out (LandfillTrashPenalty), and the level it must drop below to re-arm. */
 #define TRASH_PILE_LEVEL 5000
 #define TRASH_REARM_LEVEL 1000
+#define UNEMPLOYMENT_LEVEL 170
 static bool    trashPiled = false;
 
 #define NEWS_COND_SLOTS 128
@@ -45,6 +46,13 @@ void NewsThrottled(int16_t event_id)
         news_last_tick[event_id] = CityTime;
         if (EngineCallbacks.news_event) EngineCallbacks.news_event(event_id);
     }
+}
+
+/* Ticker advisory that repeats while `need` holds. The newspaper gets one story per rising edge. */
+static void Advisory(int16_t mnum, int16_t news_id, bool need)
+{
+    NewsCondition(news_id, need);
+    if (need) SendMes(mnum);
 }
 
 /* Forward Declarations of Internal Functions */
@@ -101,8 +109,7 @@ static const char * const SimMessages[] = {
     [41] = "Heavy Traffic reported.",
     [42] = "Flooding reported !!",
     [43] = "A Nuclear Meltdown has occurred !!!",
-    [44] = "They're rioting in the streets !!",
-    [45] = "End of Demo !!"
+    [44] = "They're rioting in the streets !!"
 };
 
 static const char *GetMessageText(int16_t id)
@@ -140,69 +147,48 @@ void SendMessages(void)
 
     switch (z) {
     case 1:
-        if ((TotalZPop >> 2) >= ResZPop) {
-            SendMes(1);
-        }
+        Advisory(1, NEWS_EVENT_ADV_RESIDENTIAL, (TotalZPop >> 2) >= ResZPop);
         break;
     case 2:
         NewsCondition(NEWS_EVENT_HEALTH_SHORT, TotalPop > 60 && HealthEffect < 700);
         break;
     case 5:
-        if ((TotalZPop >> 3) >= ComZPop) {
-            SendMes(2);
-        }
+        Advisory(2, NEWS_EVENT_ADV_COMMERCIAL, (TotalZPop >> 3) >= ComZPop);
         break;
     case 10:
-        if ((TotalZPop >> 3) >= IndZPop) {
-            SendMes(3);
-        }
+        Advisory(3, NEWS_EVENT_ADV_INDUSTRIAL, (TotalZPop >> 3) >= IndZPop);
         break;
     case 14:
-        if ((TotalZPop > 10) && ((TotalZPop << 1) > RoadTotal)) {
-            SendMes(4);
-        }
+        Advisory(4, NEWS_EVENT_ADV_ROADS, (TotalZPop > 10) && ((TotalZPop << 1) > RoadTotal));
         break;
     case 18:
-        if ((TotalZPop > 50) && (TotalZPop > RailTotal)) {
-            SendMes(5);
-        }
+        Advisory(5, NEWS_EVENT_ADV_RAIL, (TotalZPop > 50) && (TotalZPop > RailTotal));
         break;
     case 22:
-        if ((TotalZPop > 10) && (power_pop == 0)) {
-            SendMes(6);
-        }
+        Advisory(6, NEWS_EVENT_ADV_POWER, (TotalZPop > 10) && (power_pop == 0));
         break;
-    case 26:
-        if ((ResPop > 500) && (StadiumPop == 0)) {
-            SendMes(7);
-            ResCap = 1;
-        } else {
-            ResCap = 0;
-        }
+    case 26: {
+        bool need = (ResPop > 500) && (StadiumPop == 0);
+        Advisory(7, NEWS_EVENT_ADV_STADIUM, need);
+        ResCap = need ? 1 : 0;
         break;
-    case 28:
-        if ((IndPop > 70) && (PortPop == 0)) {
-            SendMes(8);
-            IndCap = 1;
-        } else {
-            IndCap = 0;
-        }
+    }
+    case 28: {
+        bool need = (IndPop > 70) && (PortPop == 0);
+        Advisory(8, NEWS_EVENT_ADV_SEAPORT, need);
+        IndCap = need ? 1 : 0;
         break;
-    case 30:
-        if ((ComPop > 100) && (APortPop == 0)) {
-            SendMes(9);
-            ComCap = 1;
-        } else {
-            ComCap = 0;
-        }
+    }
+    case 30: {
+        bool need = (ComPop > 100) && (APortPop == 0);
+        Advisory(9, NEWS_EVENT_ADV_AIRPORT, need);
+        ComCap = need ? 1 : 0;
         break;
+    }
     case 32:
         total_zones = (float)(unPwrdZCnt + PwrdZCnt);
-        if (total_zones > 0.0f) {
-            if (((float)PwrdZCnt / total_zones) < 0.7f) {
-                SendMes(15);
-            }
-        }
+        Advisory(15, NEWS_EVENT_ADV_BLACKOUT,
+                 total_zones > 0.0f && ((float)PwrdZCnt / total_zones) < 0.7f);
         break;
     case 35: {
         bool polluted = NewsCondition(10, PolluteAverage > 60);
@@ -212,6 +198,12 @@ void SendMessages(void)
         }
         break;
     }
+    case 38:
+        Advisory(28, NEWS_EVENT_ADV_UNEMPLOYMENT, ProblemTable[5] > UNEMPLOYMENT_LEVEL);
+        break;
+    case 40:
+        Advisory(31, NEWS_EVENT_ADV_PARKS, (ResPop > 500) && (ParkPop == 0));
+        break;
     case 42: {
         bool criminal = NewsCondition(11, CrimeAverage > 100);
         NewsCondition(NEWS_EVENT_CRIME_LOW, TotalPop > 60 && CrimeAverage < 20);
@@ -221,34 +213,25 @@ void SendMessages(void)
         break;
     }
     case 45:
-        if ((TotalPop > 60) && (FireStPop == 0)) {
-            SendMes(13);
-        }
+        Advisory(13, NEWS_EVENT_ADV_FIRE_DEPT, (TotalPop > 60) && (FireStPop == 0));
         break;
     case 48:
-        if ((TotalPop > 60) && (PolicePop == 0)) {
-            SendMes(14);
-        }
+        Advisory(14, NEWS_EVENT_ADV_POLICE_DEPT, (TotalPop > 60) && (PolicePop == 0));
         break;
     case 51:
-        if (GetAverageTaxRate() > 12) {
-            SendMes(16);
-        }
+        Advisory(16, NEWS_EVENT_ADV_TAX, GetAverageTaxRate() > 12);
         break;
     case 54:
-        if ((RoadEffect < 20) && (RoadTotal > 30)) {
-            SendMes(17);
-        }
+        Advisory(17, NEWS_EVENT_ADV_ROAD_DECAY, (RoadEffect < 20) && (RoadTotal > 30));
         break;
     case 57:
-        if ((FireEffect < 700) && (TotalPop > 20)) {
-            SendMes(18);
-        }
+        Advisory(18, NEWS_EVENT_ADV_FIRE_FUNDING, (FireEffect < 700) && (TotalPop > 20));
         break;
     case 60:
-        if ((PoliceEffect < 700) && (TotalPop > 20)) {
-            SendMes(19);
-        }
+        Advisory(19, NEWS_EVENT_ADV_POLICE_FUNDING, (PoliceEffect < 700) && (TotalPop > 20));
+        break;
+    case 44:
+        Advisory(44, NEWS_EVENT_ADV_RIOTS, (TotalPop > 60) && (CrimeAverage > 150));
         break;
     case 63: {
         bool congested = NewsCondition(12, TrafficAverage > 60);
@@ -300,6 +283,7 @@ static void CheckTreasury(void)
     if (!TreasuryEmptyFired && TotalFunds <= 0) {
         TreasuryEmptyFired = true;
         if (EngineCallbacks.news_event) EngineCallbacks.news_event(NEWS_EVENT_TREASURY_EMPTY);
+        SendMesTickerAt(-29, 0, 0);
     } else if (TreasuryEmptyFired && TotalFunds >= TREASURY_REARM) {
         TreasuryEmptyFired = false;
     }
