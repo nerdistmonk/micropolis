@@ -96,6 +96,11 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Supply: None");
     }
 
+    if (TILE_IS_LANDFILL(tile)) {
+        snprintf(inspect_stat_power, sizeof(inspect_stat_power), "Power Grid: Not required");
+        snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Supply: Not required");
+    }
+
     inspect_stat_supply[0] = '\0';
     int32_t demand = 0;
     int32_t capacity = 0;
@@ -136,6 +141,10 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         } else {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Fire Demand: none (station not found)");
         }
+    } else if (TILE_IS_LANDFILL(tile)) {
+        LandfillSystemStats(&capacity, &demand);
+        snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Landfill Capacity: %d zones | Demand: %d zones (citywide)",
+                 (int)capacity, (int)demand);
     }
 
     uint8_t pol = PollutionMem[hx][hy];

@@ -639,7 +639,7 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
 
     if (has_power) {
       return 0x9000E5FF;
-    } else if ((tile & ZONEBIT) && !(tile & PWRBIT)) {
+    } else if ((tile & ZONEBIT) && !(tile & PWRBIT) && !TILE_IS_LANDFILL(tile)) {
       return 0x852020D0;
     }
     break;
@@ -776,7 +776,7 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
     uint16_t tile = Map[tx][ty];
     if (WaterIsSupplied(tx, ty)) {
       return 0x90FFB428u;
-    } else if (tile & ZONEBIT) {
+    } else if ((tile & ZONEBIT) && !TILE_IS_LANDFILL(tile)) {
       return 0x852828DCu;
     }
     break;
@@ -1235,7 +1235,7 @@ void Video_RenderFrame(void)
           if (FilterViewHidesTile(overlay_mode, raw_tile)) {
             raw_tile = DIRT;
           }
-        } else if (raw_tile & ZONEBIT) {
+        } else if ((raw_tile & ZONEBIT) && !TILE_IS_LANDFILL(raw_tile)) {
           bool no_power = !(raw_tile & PWRBIT);
           bool no_water = !WaterIsSupplied(tx, ty);
           if (no_power && no_water) {

@@ -353,6 +353,7 @@ typedef int32_t QUAD;
 #define TILE_IS_NUCLEAR(tile) (((tile) & LOMASK) == NUCLEAR)
 #define TILE_IS_POWER_PLANT(tile) ((((tile) & LOMASK) >= COALBASE && ((tile) & LOMASK) <= LASTPOWERPLANT) || (((tile) & LOMASK) >= NUCLEARBASE && ((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_WATER_TOWER(tile) ((((tile) & LOMASK) >= WATERTOWER) && (((tile) & LOMASK) < WATERTOWER + WATERTOWER_TILES))
+#define TILE_IS_LANDFILL(tile) ((((tile) & LOMASK) >= LANDFILL) && (((tile) & LOMASK) < LANDFILL + LANDFILL_TILES))
 #define TILE_IS_VULNERABLE(tile) (!((tile) & ZONEBIT) && (((tile) & LOMASK) >= RZB) && (((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_ARSONABLE(tile) (!((tile) & ZONEBIT) && (((tile) & LOMASK) >= RZB) && (((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_RIVER_EDGE(tile) ((((tile) & LOMASK) >= FIRSTRIVEDGE) && (((tile) & LOMASK) <= LASTRIVEDGE))
@@ -659,6 +660,7 @@ int32_t LandfillTieredCost(void);
 void LandfillEncodeFill(uint8_t *dst);
 void LandfillDecodeFill(const uint8_t *src);
 int32_t LandfillTrashPenalty(void);
+void LandfillSystemStats(int32_t *capacity, int32_t *demand);
 int32_t LandfillPollution(int32_t loc);
 void FireZone(int32_t xloc, int32_t yloc, int32_t ch);
 void DoMeltdown(int32_t sx, int32_t sy);

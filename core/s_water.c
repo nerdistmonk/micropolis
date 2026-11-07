@@ -172,7 +172,7 @@ static void SupplyFromTower(int32_t tx, int32_t ty)
             uint16_t tile = Map[nx][ny];
             if (TILE_IS_POWER_PLANT(tile)) {
                 MarkPlantFootprint(nx, ny);
-            } else if ((tile & ZONEBIT) && !water_map[nx][ny]) {
+            } else if ((tile & ZONEBIT) && !TILE_IS_LANDFILL(tile) && !water_map[nx][ny]) {
                 if (zones >= limit) continue;
                 zones++;
             }
@@ -269,7 +269,7 @@ void DoWaterScan(void)
         for (int32_t y = 0; y < WORLD_Y; y++) {
             int16_t owner = net_owner[x][y];
             if (!owner) continue;
-            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y])) continue;
+            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y])) continue;
             net_demand[NetFind(owner - 1)]++;
         }
     }

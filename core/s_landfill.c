@@ -45,6 +45,8 @@ int32_t UnservicedTrash = 0;
 bool LandfillAtCapacity = false;
 
 static uint16_t LandfillFill[WORLD_X][WORLD_Y];
+static float LandfillCapacityZones = 0.0f;
+static int32_t LandfillDemandZones = 0;
 
 static bool IsLandfillTile(int32_t low)
 {
@@ -123,6 +125,8 @@ void DoLandfill(void)
     }
 
     float capacity = (float)LANDFILL_ZONES_PER_BLOCK * landfillPercent * (float)connectedCount;
+    LandfillCapacityZones = capacity;
+    LandfillDemandZones = zones;
     bool overloaded = (float)zones > capacity;
     bool underCapacity = (float)zones < capacity;
     bool emptyTick = (CityTime % LANDFILL_EMPTY_PERIOD) == 0;
@@ -213,7 +217,15 @@ void LandfillResetCity(void)
     LandfillPop = 0;
     LandfillFund = 0;
     LandfillSpend = 0;
+    LandfillCapacityZones = 0.0f;
+    LandfillDemandZones = 0;
     memset(LandfillFill, 0, sizeof LandfillFill);
+}
+
+void LandfillSystemStats(int32_t *capacity, int32_t *demand)
+{
+    *capacity = (int32_t)LandfillCapacityZones;
+    *demand = LandfillDemandZones;
 }
 
 void LandfillRescan(void)
