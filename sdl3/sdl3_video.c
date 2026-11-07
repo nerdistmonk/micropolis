@@ -789,6 +789,31 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
   return 0x00000000;
 }
 
+#define WATER_SHIMMER_MS 100u
+
+static int32_t ClampByte(int32_t v)
+{
+  return v < 0 ? 0 : (v > 255 ? 255 : v);
+}
+
+/* Diagonal ripple over world pixel position; only blue-dominant water pixels are brightened or dimmed. */
+static uint32_t ShimmerWaterPixel(uint32_t p, int32_t wx, int32_t wy, uint32_t phase)
+{
+  int32_t r = p & 0xFF;
+  int32_t g = (p >> 8) & 0xFF;
+  int32_t b = (p >> 16) & 0xFF;
+  if (b <= r || b <= g) return p;
+
+  uint32_t s = ((uint32_t)wx + 2u * (uint32_t)wy + phase) & 15u;
+  int32_t tri = (s < 8u) ? (int32_t)s : (int32_t)(16u - s);
+  int32_t delta = (tri - 4) * 3;
+
+  r = ClampByte(r + delta);
+  g = ClampByte(g + delta);
+  b = ClampByte(b + delta);
+  return (0xFFu << 24) | ((uint32_t)b << 16) | ((uint32_t)g << 8) | (uint32_t)r;
+}
+
 /* Dims a pixel to a desaturated blue-grey so the surface reads as a ghost beneath the pipes. */
 static uint32_t GhostPixel(uint32_t p)
 {
@@ -1213,6 +1238,7 @@ void Video_RenderFrame(void)
   bool has_tiles = Tiles_IsLoaded();
   bool show_bolt = (flagBlink <= 0);
   OverlayViewMode overlay_mode = GUI_GetActiveOverlayMode();
+  const uint32_t water_phase = (uint32_t)(SDL_GetTicks() / WATER_SHIMMER_MS);
 
   /* Pixels left of or above the map origin sit under the HUD; they get tile index -1 and draw black */
   for (int32_t sy = 0; sy < canvas_h; sy++) {
@@ -1249,6 +1275,9 @@ void Video_RenderFrame(void)
 
         if (has_tiles) {
           pixel = Tiles_GetPixel(raw_tile, px, py);
+          if (overlay_mode == OVERLAY_VIEW_NORMAL && Tiles_IsWaterArt(raw_tile)) {
+            pixel = ShimmerWaterPixel(pixel, tx * TILE_PIXEL_SIZE + px, ty * TILE_PIXEL_SIZE + py, water_phase);
+          }
         } else {
           pixel = 0xFF000000;
         }

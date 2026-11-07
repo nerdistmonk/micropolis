@@ -167,6 +167,36 @@ static void DarkenWoodsTiles(uint32_t *px, int32_t width)
     }
 }
 
+/* Water art is the blue background of river tiles and of roads, rails, power lines and bridge decks drawn over water. */
+bool Tiles_IsWaterArt(uint16_t tile_id)
+{
+    uint16_t id = tile_id & LOMASK;
+    return (id >= RIVER && id <= LASTRIVEDGE) ||
+           (id >= ROADBASE && id <= VRAIL) ||
+           (id >= HBRDG0 && id <= HBRDG3) ||
+           (id >= VBRDG0 && id <= VBRDG3);
+}
+
+/* The same blues also appear in zone and other art, so only the water-art ids above are recolored. */
+#define WATER_SRC_BASE 0xFFE66666u
+#define WATER_SRC_DEEP 0xFFE60000u
+#define WATER_BASE_RGB 0xFFD2641Eu
+#define WATER_DEEP_RGB 0xFFA03200u
+
+static void RecolorWaterTiles(uint32_t *px, int32_t width)
+{
+    for (int32_t id = 0; id < TOTAL_SHEET_TILES; id++) {
+        if (!Tiles_IsWaterArt((uint16_t)id)) continue;
+        for (int32_t y = 0; y < TILE_H; y++) {
+            for (int32_t x = 0; x < width && x < TILE_W; x++) {
+                uint32_t *p = &px[((size_t)id * TILE_H + (size_t)y) * (size_t)width + (size_t)x];
+                if (*p == WATER_SRC_BASE) *p = WATER_BASE_RGB;
+                else if (*p == WATER_SRC_DEEP) *p = WATER_DEEP_RGB;
+            }
+        }
+    }
+}
+
 bool Tiles_Init(void)
 {
     uint32_t *tiles_px = NULL;
@@ -177,6 +207,7 @@ bool Tiles_Init(void)
 
     if (!ParseXpmSheet(Micropolis_GetTilesXpmData(), &tiles_px, &tiles_w, &tiles_h)) return false;
     DarkenWoodsTiles(tiles_px, tiles_w);
+    RecolorWaterTiles(tiles_px, tiles_w);
 
     if (!ParseXpmSheet(Micropolis_GetWaterTowerXpmData(), &tower_px, &tower_w, &tower_h) || tower_w != tiles_w) {
         SDL_Log("Error: Water tower sheet is missing or does not match the tile width.");
