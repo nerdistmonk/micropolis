@@ -39,15 +39,7 @@ extern int16_t DoFreePop(void);
 
 void FireAnalysis(void)
 {
-    SmoothServiceMap(FireStMap);
-    SmoothServiceMap(FireStMap);
-    SmoothServiceMap(FireStMap);
-
-    for (int16_t x = 0; x < SmX; x++) {
-        for (int16_t y = 0; y < SmY; y++) {
-            FireRate[x][y] = FireStMap[x][y];
-        }
-    }
+    FireCoverageAnalysis();
 
     NewMapFlags[DYMAP] = 1;
     NewMapFlags[FIMAP] = 1;

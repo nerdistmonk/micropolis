@@ -450,11 +450,9 @@ extern Byte *TerrainMem[QWX];
 extern Byte *Qtem[QWX];
 
 extern int16_t RateOGMem[SmX][SmY];
-extern int16_t FireStMap[SmX][SmY];
 extern int16_t HospStMap[SmX][SmY];
 extern int16_t RecStMap[SmX][SmY];
 extern int16_t ComRate[SmX][SmY];
-extern int16_t FireRate[SmX][SmY];
 extern int16_t STem[SmX][SmY];
 
 extern int16_t SMapX, SMapY;
@@ -702,6 +700,14 @@ int32_t PoliceZoneState(int32_t x, int32_t y);
 bool PoliceCoversCrimeCell(int32_t hx, int32_t hy);
 bool PoliceStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned);
 void CrimeScan(void);
+
+#define FIRE_ZONE_NONE 0
+#define FIRE_ZONE_COVERED 1
+#define FIRE_ZONE_UNCOVERED 2
+void FireCoverageAnalysis(void);
+int32_t FireZoneState(int32_t x, int32_t y);
+int16_t FireBurnRate(int32_t x, int32_t y);
+bool FireStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned);
 
 /* Traffic and Transportation */
 int32_t MakeTraf(int32_t zone_type);

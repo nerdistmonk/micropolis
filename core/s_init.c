@@ -65,7 +65,6 @@ void ResetCityWorkingState(void)
     for (int16_t x = 0; x < SmX; x++) {
         for (int16_t y = 0; y < SmY; y++) {
             RateOGMem[x][y]       = 0;
-            FireRate[x][y]        = 0;
             ComRate[x][y]         = 0;
         }
     }

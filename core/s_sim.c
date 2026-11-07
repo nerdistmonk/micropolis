@@ -410,7 +410,6 @@ void ClearCensus(void)
 
     for (int16_t x = 0; x < SmX; x++) {
         for (int16_t y = 0; y < SmY; y++) {
-            FireStMap[x][y] = 0;
             HospStMap[x][y] = 0;
             RecStMap[x][y] = 0;
         }
@@ -964,14 +963,7 @@ static void DoFire(void)
         }
     }
 
-    int16_t z_rate = WaterIsSupplied(SMapX, SMapY) ? FireRate[SMapX >> 3][SMapY >> 3] : 0;
-    Rate = 10;
-    if (z_rate) {
-        Rate = 3;
-        if (z_rate > 20) Rate = 2;
-        if (z_rate > 100) Rate = 1;
-    }
-
+    Rate = FireBurnRate(SMapX, SMapY);
     if (!Rand(Rate)) {
         Map[SMapX][SMapY] = (uint16_t)(RUBBLE + (Rand16() & 3) + BULLBIT);
     }
@@ -1022,7 +1014,6 @@ void RepairZone(int16_t zone_id, int16_t size)
 void DoSPZone(int16_t pwron)
 {
     static const int16_t MltdwnTab[3] = { 30000, 20000, 10000 };
-    int16_t z;
 
     switch (CChr9) {
     case POWERPLANT: {
@@ -1063,9 +1054,6 @@ void DoSPZone(int16_t pwron)
         if (!(CityTime & 7)) {
             RepairZone(FIRESTATION, 3);
         }
-        z = pwron ? FireEffect : (FireEffect >> 1);
-        if (!FindPRoad()) z >>= 1;
-        FireStMap[SMapX >> 3][SMapY >> 3] += z;
         return;
 
     case POLICESTATION:
@@ -1244,7 +1232,6 @@ static void ClearCityMemory(void)
     for (int16_t x = 0; x < SmX; x++) {
         for (int16_t y = 0; y < SmY; y++) {
             RateOGMem[x][y]       = 0;
-            FireRate[x][y]        = 0;
             ComRate[x][y]         = 0;
         }
     }

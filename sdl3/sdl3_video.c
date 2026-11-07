@@ -734,15 +734,12 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
   }
 
   case OVERLAY_VIEW_FIRE_COVERAGE: {
-    int32_t bx = tx >> 3;
-    int32_t by = ty >> 3;
-    if (bx < SmX && by < SmY) {
-      int32_t v = FireRate[bx][by];
-      if (v > 0) {
-        if (v > 255) v = 255;
-        uint8_t a = (uint8_t)(90 + v / 2);
-        return ((uint32_t)a << 24) | (20u << 16) | (130u << 8) | 255u;
-      }
+    int32_t st = FireZoneState(tx, ty);
+    if (st == FIRE_ZONE_COVERED) {
+      return (90u << 24) | (60u << 16) | (220u << 8) | 60u;
+    }
+    if (st == FIRE_ZONE_UNCOVERED) {
+      return (150u << 24) | (40u << 16) | (40u << 8) | 255u;
     }
     break;
   }

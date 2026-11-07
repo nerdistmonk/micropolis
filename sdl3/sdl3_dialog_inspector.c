@@ -49,15 +49,15 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         strncpy(inspect_title, "Commercial Seaport", sizeof(inspect_title));
     } else if (low >= AIRPORT && low < (AIRPORT + 36)) {
         strncpy(inspect_title, "Municipal Airport", sizeof(inspect_title));
-    } else if (low >= POWERPLANT && low < (POWERPLANT + 16)) {
+    } else if (low >= COALBASE && low <= LASTPOWERPLANT) {
         strncpy(inspect_title, "Coal Power Plant", sizeof(inspect_title));
     } else if (low >= NUCLEAR && low < (NUCLEAR + 16)) {
         strncpy(inspect_title, "Nuclear Power Plant", sizeof(inspect_title));
     } else if (low >= STADIUM && low < (STADIUM + 16)) {
         strncpy(inspect_title, "Sports Stadium", sizeof(inspect_title));
-    } else if (low >= FIRESTATION && low < (FIRESTATION + 9)) {
+    } else if (low >= FIRESTBASE && low < (FIRESTBASE + 9)) {
         strncpy(inspect_title, "Fire Department", sizeof(inspect_title));
-    } else if (low >= POLICESTATION && low < (POLICESTATION + 9)) {
+    } else if (low >= POLICESTBASE && low < (POLICESTBASE + 9)) {
         strncpy(inspect_title, "Police Headquarters", sizeof(inspect_title));
     } else if (low >= FIRE && low <= LASTFIRE) {
         strncpy(inspect_title, "Raging Firestorm!", sizeof(inspect_title));
@@ -122,12 +122,19 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         } else {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Water Demand: none (no river in range)");
         }
-    } else if (low >= POLICESTATION && low < (POLICESTATION + 9)) {
+    } else if (low >= POLICESTBASE && low < (POLICESTBASE + 9)) {
         if (PoliceStationStats(tile_x, tile_y, &capacity, &demand)) {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Police Demand: %d zones | Capacity: %d zones",
                      (int)demand, (int)capacity);
         } else {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Police Demand: none (station not found)");
+        }
+    } else if (low >= FIRESTBASE && low < (FIRESTBASE + 9)) {
+        if (FireStationStats(tile_x, tile_y, &capacity, &demand)) {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Fire Demand: %d zones | Capacity: %d zones",
+                     (int)demand, (int)capacity);
+        } else {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Fire Demand: none (station not found)");
         }
     }
 

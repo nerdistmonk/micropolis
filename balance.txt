@@ -66,6 +66,30 @@ Verified with scratch probe (probe_police.c) on saves at 32 cycles:
     PoliceEffect 500  -> capacity 12, covered 12/22
     PoliceEffect 1000 -> capacity 24, covered 22/22
 
+Fire (core/s_fire.c, uncommitted)
+---------------------------------
+Old model: each station added to a smoothed FireStMap (3 smoothing passes over 8x8 blocks).
+FireRate was the result, and it set burn-out speed (Rate 3/2/1 by strength, 10 without a station).
+Stations also lost strength without a road (FindPRoad).
+
+New model:
+1. Station capacity (zones served): same as police.
+   - 24 with power and water, 12 without one, scaled linearly by FireEffect.
+     Unfunded = 0. The road penalty (FindPRoad) was removed.
+2. Assignment: each residential, commercial, and industrial zone goes to the nearest
+   station with spare capacity, citywide, no radius limit.
+3. Burn-out: covered tiles with water burn out at Rate 2. All other tiles use the
+   stock Rate 10. The old strength tiers (3, 2, 1) are gone.
+4. Growth: the citywide valve penalty for underfunded fire (s_eval.c:277) is kept.
+5. Overlay: green = covered, red = uncovered (sdl3/sdl3_video.c), matching police.
+6. Inspector: station shows "Fire Demand" (zones assigned) and "Capacity".
+   FireStMap and FireRate are removed.
+
+Verified with scratch probe (probe_fire.c):
+- Dingberg-1.cot, 2 stations, 24 zones, all covered at full funding.
+- Dingberg-1.cot at FireEffect 500: 12 per station, 24/24 covered.
+- Dingberg-1.cot at FireEffect 0: 0 covered, 24 uncovered, no fast-burn tiles.
+
 Results (25 years, seeds 1-4, tiered variant)
 ---------------------------------------------
 Seed  Yr1 cash  Yr10 pop / cash    Yr18 pop / cash     Yr25 pop / cash
@@ -92,6 +116,10 @@ Known gaps
 - Only four seeds, 25 years, GameLevel 0 (easy).
 - Map is procedural, so zone counts are fixed at about 58 to 91 cells.
 - The reload gap (5,560 vs 5,700) is unexplained.
+- Fire assignment has the same order-dependence as police (map order, not global nearest-first).
+- Fire coverage uses the same zone footprints as police. Burning roads beside a covered zone
+  count as covered.
+- Fire burn-out rate (Rate 2 covered, 10 stock) is a new number and has not been tuned in a long run.
 - Police assignment is order-dependent: earlier zones in map order take capacity first.
   A global nearest-first pairing would be fairer. Not implemented.
 - "Demand" in the inspector is zones assigned, not unmet demand.

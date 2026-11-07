@@ -172,10 +172,8 @@ Byte *Qtem[QWX];
 
 /* 8x8 Resolution Simulation Matrices (15 x 13) */
 int16_t RateOGMem[SmX][SmY];
-int16_t FireStMap[SmX][SmY];
 int16_t HospStMap[SmX][SmY];
 int16_t RecStMap[SmX][SmY];
-int16_t FireRate[SmX][SmY];
 int16_t ComRate[SmX][SmY];
 int16_t STem[SmX][SmY];
 
