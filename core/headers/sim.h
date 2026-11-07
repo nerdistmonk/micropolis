@@ -656,6 +656,7 @@ void DoLandfill(void);
 void LandfillBlockPlaced(int32_t x, int32_t y);
 void LandfillResetCity(void);
 void LandfillRescan(void);
+int32_t LandfillTieredCost(void);
 #define LANDFILL_FILL_BYTES (WORLD_X * WORLD_Y * 2)
 void LandfillEncodeFill(uint8_t *dst);
 void LandfillDecodeFill(const uint8_t *src);

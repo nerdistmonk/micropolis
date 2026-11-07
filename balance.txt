@@ -3,8 +3,9 @@ MICROPOLIS BALANCE NOTES (devworks)
 
 Status
 ------
-- Repo core is unchanged from stock. Nothing in this file has been applied to the game.
-- All economy experiments live in a scratch harness outside the repo (/root/mp-scratch/la/).
+- Core rebalance is applied in the repo on devworks: tax constants, landfill storage cap,
+  and tiered landfill upkeep (see Changes in effect).
+- Harness and layout remain outside the repo (/root/mp-scratch/la/).
 - The "LA" city is a procedural map (GenerateSomeCity(12345), then ClearMap()), not real Los Angeles.
 - Goal not met: no run reached 50,000 citizens. Best runs reach about 16k to 21k at year 25.
 

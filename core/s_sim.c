@@ -627,14 +627,14 @@ int16_t GetAverageTaxRate(void)
     return (int16_t)((ResTax + ComTax + IndTax) / 3);
 }
 
-static const float FLevels[3] = { 1.4f, 1.2f, 0.8f };
+static const float FLevels[3] = { 3.0f, 2.5f, 2.0f };
 
 int32_t CalcTaxFund(void)
 {
     float resBase = (float)(ResTaxPop / 8);
     float weighted = (resBase * (float)ResTax) + ((float)ComPop * (float)ComTax)
                    + ((float)IndPop * (float)IndTax);
-    return (int32_t)(weighted * (float)LVAverage / 120.0f * FLevels[GameLevel]);
+    return (int32_t)(weighted * (float)LVAverage / 60.0f * FLevels[GameLevel]);
 }
 
 void CollectTax(void)
@@ -644,7 +644,7 @@ void CollectTax(void)
         PoliceFund = PolicePop * 100;
         FireFund = FireStPop * 100;
         HealthFund = HospPop * 100;
-        LandfillFund = LandfillPop * 100;
+        LandfillFund = LandfillTieredCost();
         RoadFund = CalcRoadFund(GameLevel);
         TaxFund = CalcTaxFund();
 

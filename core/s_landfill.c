@@ -3,7 +3,8 @@
  * Each CityTime tick the city makes trash equal to TotalPop / LANDFILL_GEN_DIVISOR. It goes
  * into a shared pool (TrashPending). A landfill block takes from the pool only while a road
  * touches its edge, up to LANDFILL_ACCEPT_PER_TICK scaled by landfillPercent (budget funding).
- * A block fills through three visible stages. When every connected block is full and no
+ * A block fills through three visible stages. Its upkeep is tiered: empty costs nothing, then
+ * one third, two thirds, and full cost as it fills. When every connected block is full and no
  * empty block exists, a new empty block is placed next to a full one. Trash left in the pool
  * adds pollution to zone tiles, and filled blocks pollute through LandfillPollution.
  *
@@ -16,7 +17,7 @@
 
 #define LANDFILL_GEN_DIVISOR     8
 #define LANDFILL_ACCEPT_PER_TICK 40
-#define LANDFILL_STAGE_CAP       400
+#define LANDFILL_STAGE_CAP       800
 #define LANDFILL_BLOCK_CAP       (LANDFILL_STAGE_CAP * (LANDFILL_STAGES - 1))
 #define LANDFILL_CENTRE_OFFSET   4
 #define LANDFILL_POOL_MAX        100000
@@ -227,6 +228,29 @@ void LandfillRescan(void)
     }
     LandfillFund = LandfillPop * 100;
     LandfillSpend = (int32_t)((float)LandfillFund * landfillPercent);
+}
+
+int32_t LandfillTieredCost(void)
+{
+    int32_t cost = 0;
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            int32_t low = Map[x][y] & LOMASK;
+            if (!IsLandfillCentre(low)) {
+                continue;
+            }
+            int32_t fill = LandfillFill[x][y];
+            if (fill <= 0) {
+                continue;
+            }
+            int32_t tier = (3 * fill + LANDFILL_BLOCK_CAP - 1) / LANDFILL_BLOCK_CAP;
+            if (tier > 3) {
+                tier = 3;
+            }
+            cost += 100 * tier / 3;
+        }
+    }
+    return cost;
 }
 
 static void PutU16(uint8_t *p, uint16_t v)
