@@ -737,7 +737,7 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
     int32_t bx = tx >> 3;
     int32_t by = ty >> 3;
     if (bx < SmX && by < SmY) {
-      int32_t v = FireStMap[bx][by];
+      int32_t v = FireRate[bx][by];
       if (v > 0) {
         if (v > 255) v = 255;
         uint8_t a = (uint8_t)(90 + v / 2);
@@ -751,7 +751,7 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
     int32_t bx = tx >> 3;
     int32_t by = ty >> 3;
     if (bx < SmX && by < SmY) {
-      int32_t v = PoliceMap[bx][by];
+      int32_t v = PoliceMapEffect[bx][by];
       if (v > 0) {
         if (v > 255) v = 255;
         uint8_t a = (uint8_t)(90 + v / 2);

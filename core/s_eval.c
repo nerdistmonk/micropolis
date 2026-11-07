@@ -81,7 +81,8 @@ static void CountParks(void)
     int16_t count = 0;
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
-            if ((Map[x][y] & LOMASK) == FOUNTAIN) {
+            uint16_t t = Map[x][y] & LOMASK;
+            if (t >= FOUNTAIN && t < FOUNTAIN + FOUNTAIN_FRAMES) {
                 count++;
             }
         }

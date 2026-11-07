@@ -282,6 +282,8 @@ typedef int32_t QUAD;
 #define RADAR6 838
 #define RADAR7 839
 #define FOUNTAIN 840
+/* Park fountains animate through tiles FOUNTAIN..FOUNTAIN+3 (see animtab.h). */
+#define FOUNTAIN_FRAMES 4
 #define INDBASE2 844
 #define TELEBASE 844
 #define TELELAST 851
