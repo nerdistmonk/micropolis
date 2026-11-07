@@ -38,10 +38,13 @@ static bool IsNameChar(char c)
     return isalnum((unsigned char)c) || c == ' ' || c == '-' || c == '_';
 }
 
+/* Saves use .cot, which older builds (listing .cty only) cannot see. .cty files stay readable. */
+#define CITY_SAVE_EXT ".cot"
+
 static bool HasCityExtension(const char *name)
 {
     size_t len = strlen(name);
-    return len > 4 && SDL_strcasecmp(name + len - 4, ".cty") == 0;
+    return len > 4 && (SDL_strcasecmp(name + len - 4, ".cot") == 0 || SDL_strcasecmp(name + len - 4, ".cty") == 0);
 }
 
 static bool FileExists(const char *path)
@@ -164,13 +167,13 @@ void CitySave_Submit(void)
     }
 
     char path[CITY_PATH_BYTES];
-    snprintf(path, sizeof(path), "%s%s.cty", CityIO_Dir(), name);
+    snprintf(path, sizeof(path), "%s%s" CITY_SAVE_EXT, CityIO_Dir(), name);
 
     /* An existing city needs a second Save to overwrite it */
     if (FileExists(path) && strcmp(overwrite_pending, name) != 0) {
         snprintf(overwrite_pending, sizeof(overwrite_pending), "%s", name);
         char msg[CITY_STATUS_BYTES];
-        snprintf(msg, sizeof(msg), "%s.cty exists. Press Save again to overwrite.", name);
+        snprintf(msg, sizeof(msg), "%s" CITY_SAVE_EXT " exists. Press Save again to overwrite.", name);
         SetStatus(msg, col_gold);
         return;
     }
@@ -178,7 +181,7 @@ void CitySave_Submit(void)
     SDL_CreateDirectory(CityIO_Dir());
     if (!SaveCity(path)) {
         char msg[CITY_STATUS_BYTES];
-        snprintf(msg, sizeof(msg), "Error: Could not save to %s.cty", name);
+        snprintf(msg, sizeof(msg), "Error: Could not save to %s" CITY_SAVE_EXT, name);
         SetStatus(msg, col_red);
         Audio_MakeSound("warning", "Sorry -speed 85");
         return;
@@ -189,7 +192,7 @@ void CitySave_Submit(void)
     SDL_StopTextInput(Video_GetWindow());
 
     char msg[CITY_STATUS_BYTES];
-    snprintf(msg, sizeof(msg), "Saved city to %s.cty", name);
+    snprintf(msg, sizeof(msg), "Saved city to %s" CITY_SAVE_EXT, name);
     SetStatus(msg, col_green);
     if (save_origin == CITY_SAVE_FROM_QUIT) {
         Dialog_Quit_SaveFinished();
@@ -226,7 +229,7 @@ void CityIO_ClearStatus(void)
     status[0] = '\0';
 }
 
-/* Scans the cities folder for .cty files. Entries are read when the list opens. */
+/* Scans the cities folder for .cot and .cty files. Entries are read when the list opens. */
 static SDL_EnumerationResult SDLCALL CollectCity(void *userdata, const char *dirname, const char *fname)
 {
     (void)userdata;

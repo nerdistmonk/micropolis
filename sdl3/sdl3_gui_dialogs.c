@@ -66,21 +66,6 @@ void GUI_Dialogs_ShowQueryInspector(int32_t tile_x, int32_t tile_y)
     Dialog_Inspector_Show(tile_x, tile_y);
 }
 
-void GUI_Dialogs_ShowNotice(int16_t picture_id, int32_t tile_x, int32_t tile_y)
-{
-    Dialog_Notice_Show(picture_id, tile_x, tile_y);
-}
-
-bool GUI_Dialogs_HandleNoticeKey(SDL_Keycode key)
-{
-    return Dialog_Notice_HandleKeyDown(key);
-}
-
-void GUI_Dialogs_UpdateNotice(uint64_t now)
-{
-    Dialog_Notice_Update(now);
-}
-
 void GUI_Dialogs_OpenQuitConfirm(void)
 {
     if (active_modal == GUI_MODAL_QUIT_CONFIRM) return;
@@ -213,7 +198,7 @@ bool GUI_Dialogs_HandleClick(float mx, float my)
     case GUI_MODAL_NEWS:
         return Dialog_News_HandleClick(mx, my);
     default:
-        return Dialog_Notice_HandleClick(mx, my);
+        return false;
     }
 }
 
@@ -225,8 +210,6 @@ bool GUI_Dialogs_HandleWheel(float wheel_y)
 
 void GUI_Dialogs_Render(SDL_Renderer *renderer)
 {
-    Dialog_Notice_Render(renderer);
-
     switch (active_modal) {
     case GUI_MODAL_CITY_MGMT:
         Dialog_City_Render(renderer);

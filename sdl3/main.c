@@ -24,7 +24,7 @@ static void PrintUsage(FILE *out)
 {
     fprintf(out,
         "Usage: micropolis [--load-city FILE] [--load-scenario FILE]\n"
-        "  --load-city FILE        Start with a saved city (.cty)\n"
+        "  --load-city FILE        Start with a saved city (.cot or .cty)\n"
         "  --load-scenario FILE    Start with a scenario file (.scn)\n");
 }
 
@@ -71,36 +71,14 @@ static bool LoadStartupFile(void)
     return false;
 }
 
-/* The core sends (0,0) for these notices so auto-goto does not scroll the map.
- * The notice's View button still needs a target, so take it from the sim state the way Unix does.
- */
-static void NoticeViewTarget(int16_t msg_num, int16_t *x, int16_t *y)
-{
-    if (*x != 0 || *y != 0) return;
-
-    switch (msg_num) {
-    case -10: *x = PolMaxX;   *y = PolMaxY;   break;
-    case -11: *x = CrimeMaxX; *y = CrimeMaxY; break;
-    case -12: *x = TrafMaxX;  *y = TrafMaxY;  break;
-    case -35: case -36: case -37: case -38: case -39: case -40:
-        *x = CCx; *y = CCy;
-        break;
-    default:
-        break;
-    }
-}
-
 static void OnMessageReceived(int16_t msg_num, int16_t x, int16_t y)
 {
+    (void)x;
+    (void)y;
     if (msg_num == -100) {
         GUI_Dialogs_ShowScenarioResult(true, "Congratulations, Mayor! You fulfilled the city charter.");
     } else if (msg_num == -200) {
         GUI_Dialogs_ShowScenarioResult(false, "You have been recalled! City charter objectives were not met.");
-    } else if (msg_num < 0) {
-        if (DoNotices) {
-            NoticeViewTarget(msg_num, &x, &y);
-            GUI_Dialogs_ShowNotice((int16_t)-msg_num, (int32_t)x, (int32_t)y);
-        }
     }
 }
 
@@ -180,7 +158,6 @@ int main(int argc, char **argv)
 
         uint64_t now = SDL_GetTicks();
         Splash_Update(now);
-        GUI_Dialogs_UpdateNotice(now);
         Input_UpdateEdgeScroll(now);
         Music_Update();
 

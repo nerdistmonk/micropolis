@@ -66,8 +66,8 @@ static SDL_FRect rect_speed_btn     = { 876.0f, 2.0f, 140.0f, 24.0f };
 
 /* Ticker & Notification State */
 static uint64_t ticker_start_time = 0;
-static char cached_last_message[256] = {0};
-static char ticker_dismissed_message[256] = {0};
+static uint32_t ticker_shown_serial = 0;
+static uint32_t ticker_dismissed_serial = 0;
 
 /* Floating Ticker positioned directly beneath status bar */
 static SDL_FRect rect_ticker_box     = { 280.0f, 34.0f, 464.0f, 26.0f };
@@ -121,10 +121,7 @@ int32_t GUI_CityPopDisplay(void)
 
 void GUI_ShowStatus(const char *text)
 {
-  SetMessageField(text);
-  ticker_dismissed_message[0] = '\0';
-  cached_last_message[0] = '\0';
-  ticker_start_time = 0;
+  SetMessageField(text, 0, 0, true);
 }
 
 
@@ -186,8 +183,8 @@ bool GUI_Init(void)
   hovered_tool_idx = -1;
   hovered_query_btn = false;
   ticker_start_time = 0;
-  cached_last_message[0] = '\0';
-  ticker_dismissed_message[0] = '\0';
+  ticker_shown_serial = 0;
+  ticker_dismissed_serial = 0;
   return true;
 }
 
@@ -302,7 +299,7 @@ bool GUI_HandleKeyDown(SDL_Keycode key)
 
 static bool TickerVisible(void)
 {
-  return HaveLastMessage && LastMessage[0] && strcmp(LastMessage, ticker_dismissed_message) != 0;
+  return MessageSerial != 0 && MessageSerial != ticker_dismissed_serial && LastMessage[0];
 }
 
 bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
@@ -314,15 +311,17 @@ bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
     return true;
   }
 
-  /* Dismiss Ticker Alert Click */
-  if (TickerVisible()) {
-
-    if (mouse_x >= rect_ticker_box.x && mouse_x <= (rect_ticker_box.x + rect_ticker_box.w) &&
-        mouse_y >= rect_ticker_box.y && mouse_y <= (rect_ticker_box.y + rect_ticker_box.h)) {
-      strncpy(ticker_dismissed_message, LastMessage, sizeof(ticker_dismissed_message) - 1);
-      ticker_dismissed_message[sizeof(ticker_dismissed_message) - 1] = '\0';
-      return true;
+  /* Ticker: the [x] only dismisses; clicking the rest of the box goes to the incident, then dismisses */
+  if (TickerVisible() &&
+      mouse_x >= rect_ticker_box.x && mouse_x <= (rect_ticker_box.x + rect_ticker_box.w) &&
+      mouse_y >= rect_ticker_box.y && mouse_y <= (rect_ticker_box.y + rect_ticker_box.h)) {
+    bool on_dismiss = mouse_x >= rect_ticker_dismiss.x && mouse_x <= (rect_ticker_dismiss.x + rect_ticker_dismiss.w) &&
+                      mouse_y >= rect_ticker_dismiss.y && mouse_y <= (rect_ticker_dismiss.y + rect_ticker_dismiss.h);
+    if (!on_dismiss && (MessageTargetX != 0 || MessageTargetY != 0)) {
+      Video_CenterOnTile(MessageTargetX, MessageTargetY);
     }
+    ticker_dismissed_serial = MessageSerial;
+    return true;
   }
 
   /* Radar Map Click */
@@ -677,19 +676,17 @@ void GUI_Render(SDL_Renderer *renderer)
   GUI_DrawText(renderer, (int)rect_speed_btn.x + 10, (int)rect_speed_btn.y + 4, spd_label, (SimSpeed == 0) ? col_gold : col_green);
 
   /* 2. Floating Dismissible Notification Ticker (Relocated Below Status Bar) */
-  if (HaveLastMessage && LastMessage[0] && strcmp(LastMessage, ticker_dismissed_message) != 0) {
+  if (TickerVisible()) {
     uint64_t now = SDL_GetTicks();
 
-    if (strcmp(cached_last_message, LastMessage) != 0) {
-      strncpy(cached_last_message, LastMessage, sizeof(cached_last_message) - 1);
-      cached_last_message[sizeof(cached_last_message) - 1] = '\0';
+    if (MessageSerial != ticker_shown_serial) {
+      ticker_shown_serial = MessageSerial;
       ticker_start_time = now;
     }
 
     uint64_t elapsed = now - ticker_start_time;
     if (elapsed >= TICKER_DURATION_MS) {
-      strncpy(ticker_dismissed_message, LastMessage, sizeof(ticker_dismissed_message) - 1);
-      ticker_dismissed_message[sizeof(ticker_dismissed_message) - 1] = '\0';
+      ticker_dismissed_serial = MessageSerial;
     } else {
       uint8_t alpha = 255;
       if (elapsed > (TICKER_DURATION_MS - TICKER_FADE_MS)) {

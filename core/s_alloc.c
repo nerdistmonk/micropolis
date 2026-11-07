@@ -86,6 +86,9 @@ int16_t MesX = 0;
 int16_t MesY = 0;
 int16_t HaveLastMessage = 0;
 char LastMessage[256] = "";
+uint32_t MessageSerial = 0;
+int16_t MessageTargetX = 0;
+int16_t MessageTargetY = 0;
 
 /* Tool State */
 int32_t OverRide = 0;
@@ -151,7 +154,6 @@ uint8_t tileSynch = 0x01;
 int32_t TilesAnimated = 0;
 int32_t DoAnimation = 1;
 int32_t DoMessages = 1;
-int32_t DoNotices = 1;
 int16_t flagBlink = 0;
 
 /* 2x2 Resolution Simulation Matrices (60 x 50) */

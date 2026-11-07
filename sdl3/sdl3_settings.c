@@ -12,7 +12,6 @@
 static bool edge_scroll_enabled = false;
 static bool tile_animation_enabled = true;
 static bool status_messages_enabled = true;
-static bool picture_notices_enabled = true;
 static bool linear_filter_enabled = true;
 static SoundLevel sound_level = SOUND_LEVEL_FULL;
 static MusicVolume music_volume = MUSIC_VOLUME_MEDIUM;
@@ -30,7 +29,6 @@ static void ApplySimFlags(void)
 {
     DoAnimation = tile_animation_enabled ? 1 : 0;
     DoMessages = status_messages_enabled ? 1 : 0;
-    DoNotices = picture_notices_enabled ? 1 : 0;
 }
 
 static void Settings_Save(void)
@@ -46,7 +44,6 @@ static void Settings_Save(void)
     fprintf(f, "sound_level=%d\n", (int)sound_level);
     fprintf(f, "tile_animation=%d\n", tile_animation_enabled ? 1 : 0);
     fprintf(f, "status_messages=%d\n", status_messages_enabled ? 1 : 0);
-    fprintf(f, "picture_notices=%d\n", picture_notices_enabled ? 1 : 0);
     fprintf(f, "linear_filter=%d\n", linear_filter_enabled ? 1 : 0);
     fprintf(f, "music_volume=%d\n", (int)music_volume);
     fprintf(f, "music_order=%d\n", (int)music_order);
@@ -81,8 +78,6 @@ void Settings_Load(void)
                 tile_animation_enabled = (value != 0);
             } else if (sscanf(line, "status_messages=%d", &value) == 1) {
                 status_messages_enabled = (value != 0);
-            } else if (sscanf(line, "picture_notices=%d", &value) == 1) {
-                picture_notices_enabled = (value != 0);
             } else if (sscanf(line, "linear_filter=%d", &value) == 1) {
                 linear_filter_enabled = (value != 0);
             } else if (sscanf(line, "music_volume=%d", &value) == 1) {
@@ -132,18 +127,6 @@ bool Settings_GetStatusMessages(void)
 void Settings_ToggleStatusMessages(void)
 {
     status_messages_enabled = !status_messages_enabled;
-    ApplySimFlags();
-    Settings_Save();
-}
-
-bool Settings_GetPictureNotices(void)
-{
-    return picture_notices_enabled;
-}
-
-void Settings_TogglePictureNotices(void)
-{
-    picture_notices_enabled = !picture_notices_enabled;
     ApplySimFlags();
     Settings_Save();
 }

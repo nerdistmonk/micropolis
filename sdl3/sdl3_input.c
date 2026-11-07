@@ -374,9 +374,7 @@ void Input_ProcessEvents(void)
 
             if (!event.key.repeat) Cheat_KeyPressed(CheatKeyChar(event.key.key));
 
-            /* Escape dismisses an open notice before it can quit */
             if (Help_HandleKey(event.key.key)) break;
-            if (GUI_Dialogs_HandleNoticeKey(event.key.key)) break;
 
             switch (event.key.key) {
             case SDLK_ESCAPE:
@@ -401,18 +399,18 @@ void Input_ProcessEvents(void)
 
             /* Persistence Hotkeys */
             case SDLK_F7:
-                if (SaveCity("quicksave.cty")) {
-                    GUI_ShowStatus("Quicksaved to quicksave.cty");
+                if (SaveCity("quicksave.cot")) {
+                    GUI_ShowStatus("Quicksaved to quicksave.cot");
                 } else {
                     GUI_ShowStatus("Quicksave failed");
                     Audio_MakeSound("warning", "Sorry -speed 85");
                 }
                 break;
             case SDLK_F8:
-                if (LoadCity("quicksave.cty")) {
-                    GUI_ShowStatus("Quickloaded quicksave.cty");
+                if (LoadCity("quicksave.cot")) {
+                    GUI_ShowStatus("Quickloaded quicksave.cot");
                 } else {
-                    GUI_ShowStatus("Quickload failed: quicksave.cty missing or unreadable");
+                    GUI_ShowStatus("Quickload failed: quicksave.cot missing or unreadable");
                     Audio_MakeSound("warning", "Sorry -speed 85");
                 }
                 break;
@@ -448,7 +446,7 @@ void Input_ProcessEvents(void)
 
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             if (Help_IsModeActive() && !GUI_IsModalOpen() && event.button.button == SDL_BUTTON_LEFT) {
-                /* Notice buttons keep working in help mode */
+                /* Help mode still lets the modal dialog buttons work */
                 if (!GUI_Dialogs_HandleClick(event.button.x, event.button.y)) {
                     Help_HandleClick(event.button.x, event.button.y,
                                      GUI_HelpTopicAt(event.button.x, event.button.y));

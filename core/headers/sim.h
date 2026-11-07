@@ -486,7 +486,6 @@ extern uint8_t aniSynch[];
 extern int32_t TilesAnimated;
 extern int32_t DoAnimation;
 extern int32_t DoMessages;
-extern int32_t DoNotices;
 
 /* Saved in MiscHis[57], so new codes must be appended, never renumbered. */
 #define SIM_SPEED_PAUSED 0
@@ -551,6 +550,11 @@ extern int16_t MesX;
 extern int16_t MesY;
 extern int16_t HaveLastMessage;
 extern char LastMessage[256];
+/* Bumped whenever the ticker should show a message, even if its text repeats. */
+extern uint32_t MessageSerial;
+/* Tile the current ticker message refers to; (0,0) means none. */
+extern int16_t MessageTargetX;
+extern int16_t MessageTargetY;
 
 extern SimSprite *GlobalSprites[OBJN];
 extern SimCallbacks EngineCallbacks;
@@ -575,7 +579,7 @@ void SetSimSpeed(int16_t speed);
 int16_t GetLastRunSpeed(void);
 void SetGameLevel(int16_t level);
 void SetNewCityLevel(int16_t level);
-void SetMessageField(const char *str);
+void SetMessageField(const char *str, int16_t x, int16_t y, bool is_event);
 int32_t CalcRoadFund(int16_t level);
 void InitWillStuff(void);
 void ResetCityWorkingState(void);

@@ -18,7 +18,7 @@ This is a port of the original Micropolis Unix source, refactored from 1989 C to
 
     micropolis [--load-city FILE] [--load-scenario N|FILE]
 
-- `--load-city FILE` starts with a saved city (`.cty`).
+- `--load-city FILE` starts with a saved city (`.cot`, or legacy `.cty`).
 - `--load-scenario FILE` starts with a scenario file (`.scn`), e.g. `--load-scenario Legacy/Dullsville.scn`.
 
 If the requested file cannot be loaded, an error is printed to stderr and a generated map is used instead.
@@ -38,9 +38,9 @@ If the requested file cannot be loaded, an error is printed to stderr and a gene
 | T | Hold for rail (release to return to the previous tool) |
 | Arrow keys, or A / E / , / O | Scroll the map |
 | F1 | Toggle help mode |
-| F7 | Quick save to `quicksave.cty` |
-| F8 | Quick load from `quicksave.cty` |
-| Esc | Quit (asks for confirmation); closes an open notice |
+| F7 | Quick save to `quicksave.cot` |
+| F8 | Quick load from `quicksave.cot` |
+| Esc | Quit (asks for confirmation) |
 
 ### Mouse
 

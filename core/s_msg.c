@@ -14,7 +14,6 @@ extern void Audio_MakeSound(const char *channel, const char *sound_name);
 /* Internal Message State Tracking */
 static QUAD    LastCityPop = 0;
 static int16_t LastCategory = 0;
-static int16_t LastPicNum = 0;
 static bool    TreasurySampled = false;
 static bool    TreasuryEmptyFired = false;
 static bool    TreasuryBustedFired = false;
@@ -31,13 +30,13 @@ static bool    trashPiled = false;
 static bool    news_cond_active[NEWS_COND_SLOTS];
 static int32_t news_last_tick[NEWS_COND_SLOTS];
 
-/* Fires once when a condition turns on, and again only after it turns off and on. */
-static void NewsCondition(int16_t event_id, bool active)
+/* Fires once when a condition turns on, and again only after it turns off and on. Returns true on that rising edge. */
+static bool NewsCondition(int16_t event_id, bool active)
 {
-    if (active && !news_cond_active[event_id]) {
-        if (EngineCallbacks.news_event) EngineCallbacks.news_event(event_id);
-    }
+    bool rising = active && !news_cond_active[event_id];
+    if (rising && EngineCallbacks.news_event) EngineCallbacks.news_event(event_id);
     news_cond_active[event_id] = active;
+    return rising;
 }
 
 void NewsThrottled(int16_t event_id)
@@ -205,20 +204,22 @@ void SendMessages(void)
             }
         }
         break;
-    case 35:
-        NewsCondition(10, PolluteAverage > 60);
+    case 35: {
+        bool polluted = NewsCondition(10, PolluteAverage > 60);
         NewsCondition(NEWS_EVENT_POLLUTION_LOW, TotalPop > 60 && PolluteAverage < 15);
-        if (PolluteAverage > 60) {
+        if (polluted) {
             SendMesTickerAt(-10, 0, 0);
         }
         break;
-    case 42:
-        NewsCondition(11, CrimeAverage > 100);
+    }
+    case 42: {
+        bool criminal = NewsCondition(11, CrimeAverage > 100);
         NewsCondition(NEWS_EVENT_CRIME_LOW, TotalPop > 60 && CrimeAverage < 20);
-        if (CrimeAverage > 100) {
+        if (criminal) {
             SendMesTickerAt(-11, 0, 0);
         }
         break;
+    }
     case 45:
         if ((TotalPop > 60) && (FireStPop == 0)) {
             SendMes(13);
@@ -249,12 +250,13 @@ void SendMessages(void)
             SendMes(19);
         }
         break;
-    case 63:
-        NewsCondition(12, TrafficAverage > 60);
-        if (TrafficAverage > 60) {
+    case 63: {
+        bool congested = NewsCondition(12, TrafficAverage > 60);
+        if (congested) {
             SendMesTickerAt(-12, 0, 0);
         }
         break;
+    }
     default:
         break;
     }
@@ -383,28 +385,17 @@ void ClearMes(void)
     MessagePort = 0;
     MesX = 0;
     MesY = 0;
-    LastPicNum = 0;
 }
 
 int32_t SendMes(int16_t mnum)
 {
-    if (mnum < 0) {
-        if (mnum != LastPicNum) {
-            MessagePort = mnum;
-            MesX = 0;
-            MesY = 0;
-            LastPicNum = mnum;
-            return 1;
-        }
-    } else {
-        if (!MessagePort) {
-            MessagePort = mnum;
-            MesX = 0;
-            MesY = 0;
-            return 1;
-        }
-    }
-    return 0;
+    /* Disasters always post, so a repeat is still reported; advisories wait for a free port. */
+    if (mnum >= 0 && MessagePort) return 0;
+
+    MessagePort = mnum;
+    MesX = 0;
+    MesY = 0;
+    return 1;
 }
 
 static void PlayMessageSound(int16_t mnum)
@@ -470,51 +461,71 @@ void SendMesAt(int16_t mnum, int16_t x, int16_t y)
     SendMesTickerAt(mnum, x, y);
 }
 
-void doMessage(void)
+/* Where the ticker's "go to" click lands for notices that the core sends with no coordinates. */
+static void AlertTarget(int16_t mnum, int16_t *x, int16_t *y)
 {
-    const char *text;
-    bool first_time = false;
-
-    if (MessagePort) {
-        MesNum = MessagePort;
-        MessagePort = 0;
-        first_time = true;
-    } else {
-        if (MesNum == 0) return;
-        if (MesNum < 0) {
-            MesNum = (int16_t)(-MesNum);
-        }
-    }
-
-    if (MesNum == 0) return;
-
-    if (first_time) PlayMessageSound(MesNum);
-    text = GetMessageText(MesNum);
-    SetMessageField(text);
-
-    if (autoGo && (MesX || MesY)) {
-        DoAutoGoto(MesX, MesY, text);
-        MesX = 0;
-        MesY = 0;
+    switch (mnum) {
+    case -10: *x = PolMaxX;   *y = PolMaxY;   break;
+    case -11: *x = CrimeMaxX; *y = CrimeMaxY; break;
+    case -12: *x = TrafMaxX;  *y = TrafMaxY;  break;
+    case -35: case -36: case -37: case -38: case -39: case -40:
+        *x = CCx; *y = CCy;
+        break;
+    default:
+        break;
     }
 }
 
 static void DoAutoGoto(int16_t x, int16_t y, const char *msg)
 {
-    SetMessageField(msg);
     if (EngineCallbacks.auto_goto) {
         EngineCallbacks.auto_goto(x, y, msg);
     }
 }
 
-void SetMessageField(const char *str)
+void doMessage(void)
+{
+    const char *text;
+    int16_t mnum;
+    int16_t sent_x, sent_y;
+    int16_t target_x, target_y;
+
+    if (!MessagePort) return;
+
+    mnum = MessagePort;
+    MessagePort = 0;
+    MesNum = mnum;
+
+    sent_x = MesX;
+    sent_y = MesY;
+    MesX = 0;
+    MesY = 0;
+
+    PlayMessageSound(mnum);
+    text = GetMessageText(mnum);
+
+    target_x = sent_x;
+    target_y = sent_y;
+    if (target_x == 0 && target_y == 0) AlertTarget(mnum, &target_x, &target_y);
+    SetMessageField(text, target_x, target_y, mnum < 0 || sent_x != 0 || sent_y != 0);
+
+    if (autoGo && (sent_x || sent_y)) {
+        DoAutoGoto(sent_x, sent_y, text);
+    }
+}
+
+/* Event notices bump MessageSerial even when their text repeats, so the ticker shows each one. */
+void SetMessageField(const char *str, int16_t x, int16_t y, bool is_event)
 {
     if (!str || !DoMessages) return;
 
-    if (!HaveLastMessage || strcmp(LastMessage, str) != 0) {
+    if (is_event || !HaveLastMessage || strcmp(LastMessage, str) != 0) {
         strncpy(LastMessage, str, sizeof(LastMessage) - 1);
         LastMessage[sizeof(LastMessage) - 1] = '\0';
         HaveLastMessage = 1;
+        MessageTargetX = x;
+        MessageTargetY = y;
+        MessageSerial++;
     }
 }
 
