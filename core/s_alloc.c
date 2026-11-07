@@ -118,6 +118,7 @@ int16_t ComTax = 7;
 int16_t IndTax = 7;
 int32_t ResTaxPop = 0;
 int32_t ResUncoveredPop = 0;
+int32_t ResUnrecPop = 0;
 int16_t TaxFlag = 0;
 int32_t TotalFunds = 20000;
 
@@ -173,6 +174,7 @@ Byte *Qtem[QWX];
 int16_t RateOGMem[SmX][SmY];
 int16_t FireStMap[SmX][SmY];
 int16_t HospStMap[SmX][SmY];
+int16_t RecStMap[SmX][SmY];
 int16_t PoliceMap[SmX][SmY];
 int16_t PoliceMapEffect[SmX][SmY];
 int16_t FireRate[SmX][SmY];

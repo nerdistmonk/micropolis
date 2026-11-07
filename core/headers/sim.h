@@ -70,7 +70,8 @@ typedef int32_t QUAD;
 #define HORIZ 1
 #define VERT 0
 
-#define PROB_ACTIVE 11
+#define PROB_RECREATION 11
+#define PROB_ACTIVE 12
 #define PROB_NONE PROB_ACTIVE
 #define PROBNUM (PROB_ACTIVE + 1)
 #define HISTLEN 480
@@ -449,6 +450,7 @@ extern Byte *Qtem[QWX];
 extern int16_t RateOGMem[SmX][SmY];
 extern int16_t FireStMap[SmX][SmY];
 extern int16_t HospStMap[SmX][SmY];
+extern int16_t RecStMap[SmX][SmY];
 extern int16_t PoliceMap[SmX][SmY];
 extern int16_t PoliceMapEffect[SmX][SmY];
 extern int16_t ComRate[SmX][SmY];
@@ -494,6 +496,7 @@ extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect;
 extern int16_t TaxFlag, ResTax, ComTax, IndTax;
 extern int32_t ResTaxPop;
 extern int32_t ResUncoveredPop;
+extern int32_t ResUnrecPop;
 extern int32_t TotalFunds;
 
 extern int32_t CostOf[];
@@ -683,6 +686,8 @@ void FireAnalysis(void);
 void HealthAnalysis(void);
 void SmoothServiceMap(int16_t map[SmX][SmY]);
 bool HealthIsCovered(int32_t x, int32_t y);
+void RecAnalysis(void);
+bool RecIsCovered(int32_t x, int32_t y);
 int16_t HealthCoverageLevel(int32_t x, int32_t y);
 int32_t HealthAdjustedPop(int32_t pop, int32_t x, int32_t y);
 void PopDenScan(void);

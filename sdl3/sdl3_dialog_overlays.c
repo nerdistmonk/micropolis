@@ -26,6 +26,7 @@ static const struct {
     { OVERLAY_VIEW_FIRE_COVERAGE, "Fire Coverage" },
     { OVERLAY_VIEW_POLICE_COVERAGE, "Police Coverage" },
     { OVERLAY_VIEW_HEALTH_COVERAGE, "Healthcare Coverage" },
+    { OVERLAY_VIEW_RECREATION_COVERAGE, "Recreation Coverage" },
     { OVERLAY_VIEW_WATER_SUPPLY, "Water Supply" },
     { OVERLAY_VIEW_RES_ZONE, "Residential Zone" },
     { OVERLAY_VIEW_COM_ZONE, "Commercial Zone" },

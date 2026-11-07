@@ -333,6 +333,7 @@ void Simulate(int32_t mod16)
         if (!(Scycle % SpdFir[x])) {
             FireAnalysis();
             HealthAnalysis();
+            RecAnalysis();
         }
         DoDisasters();
         break;
@@ -390,6 +391,7 @@ void ClearCensus(void)
     ResPop = 0;
     ResTaxPop = 0;
     ResUncoveredPop = 0;
+    ResUnrecPop = 0;
     ComPop = 0;
     IndPop = 0;
     ResZPop = 0;
@@ -410,6 +412,7 @@ void ClearCensus(void)
         for (int16_t y = 0; y < SmY; y++) {
             FireStMap[x][y] = 0;
             HospStMap[x][y] = 0;
+            RecStMap[x][y] = 0;
             PoliceMap[x][y] = 0;
         }
     }
@@ -1078,6 +1081,7 @@ void DoSPZone(int16_t pwron)
 
     case STADIUM:
         StadiumPop++;
+        RecStMap[SMapX >> 3][SMapY >> 3] += 1;
         if (!(CityTime & 15)) {
             RepairZone(STADIUM, 4);
         }
@@ -1090,6 +1094,7 @@ void DoSPZone(int16_t pwron)
 
     case FULLSTADIUM:
         StadiumPop++;
+        RecStMap[SMapX >> 3][SMapY >> 3] += 1;
         if (!((CityTime + SMapX + SMapY) & 7)) {
             DrawStadium(STADIUM);
         }
@@ -1301,6 +1306,7 @@ void Sim_InitEngine(void)
     PopDenScan();
     FireAnalysis();
     HealthAnalysis();
+    RecAnalysis();
 
     TotalPop = 1;
     DoInitialEval = 1;

@@ -159,6 +159,7 @@ static void DoProblems(void)
     ProblemTable[8] = ShareOfZones(UnwateredZCnt);                 /* Water */
     ProblemTable[9] = GetHealthcareProblem();                      /* Healthcare */
     ProblemTable[10] = (int16_t)(TrashPending / 20 > 255 ? 255 : TrashPending / 20); /* Garbage: saturates at a 5100 pool */
+    ProblemTable[PROB_RECREATION] = ResPop > 0 ? (int16_t)((ResUnrecPop * 255) / ResPop) : 0; /* Recreation */
 
     VoteProblems();
 
@@ -250,7 +251,7 @@ static void GetScore(void)
     int16_t old_city_score = CityScore;
     int32_t x = 0;
 
-    for (int16_t i = 0; i < PROB_ACTIVE; i++) {
+    for (int16_t i = 0; i < PROB_RECREATION; i++) {
         x += ProblemTable[i];
     }
 
@@ -279,6 +280,9 @@ static void GetScore(void)
     if (RValve < -1000) z = (int32_t)(z * 0.85);
     if (CValve < -1000) z = (int32_t)(z * 0.85);
     if (IValve < -1000) z = (int32_t)(z * 0.85);
+
+    /* Recreation: up to 10 points (1% of the 1000 max) when no residents are covered. */
+    z -= (ProblemTable[PROB_RECREATION] * 10) / 255;
 
     float sm = 1.0f;
     if ((CityPop == 0) || (deltaCityPop == 0)) {

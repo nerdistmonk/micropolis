@@ -248,6 +248,9 @@ static void DoResidential(int16_t zone_pwr_flg)
     if (!HealthIsCovered(SMapX, SMapY)) {
         ResUncoveredPop += tpop;
     }
+    if (!RecIsCovered(SMapX, SMapY)) {
+        ResUnrecPop += tpop;
+    }
 
     if (tpop > Rand(35)) {
         trf_good = (int16_t)MakeTraf(0);

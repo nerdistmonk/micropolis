@@ -771,6 +771,13 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
     break;
   }
 
+  case OVERLAY_VIEW_RECREATION_COVERAGE: {
+    if (RecIsCovered(tx, ty)) {
+      return 0x8C5AE6FFu;
+    }
+    break;
+  }
+
   case OVERLAY_VIEW_WATER_SUPPLY: {
     uint16_t tile = Map[tx][ty];
     if (WaterIsSupplied(tx, ty)) {
