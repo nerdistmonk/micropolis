@@ -87,7 +87,7 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
 
     if (low >= WATERTOWER && low < WATERTOWER + WATERTOWER_TILES) {
         snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Source: %s",
-                 WaterTowerHasSource(tile_x, tile_y) ? "River in range" : "No water in range");
+                 WaterTowerHasSource(tile_x, tile_y) ? "Pipe to river" : "No river pipe");
     } else if (WaterIsSupplied(tile_x, tile_y)) {
         snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Supply: Watered");
     } else if (TILE_IS_POWER_PLANT(tile)) {
