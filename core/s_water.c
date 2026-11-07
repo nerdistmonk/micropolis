@@ -74,13 +74,12 @@ static bool TowerHasSource(int32_t tx, int32_t ty)
     return false;
 }
 
-/* Conducts water like a wire conducts power: zone buildings carry CONDBIT, ports do not. */
+/* Conducts water like a wire conducts power: any zone building carrying CONDBIT, including ports and airports. */
 static bool IsWaterConductor(uint16_t tile)
 {
     int32_t t = tile & LOMASK;
     if (!(tile & CONDBIT)) return false;
     if (t < RESBASE || t > LASTZONE) return false;
-    if (t >= PORTBASE && t < COALBASE) return false;
     return true;
 }
 

@@ -171,7 +171,7 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         snprintf(inspect_stat_lvfactors[2], sizeof(inspect_stat_lvfactors[2]),
                  "Nearby water and trees: %+d", (int)lvf.terrain);
         snprintf(inspect_stat_lvfactors[3], sizeof(inspect_stat_lvfactors[3]),
-                 "%s: %+d", TrashPending > 0 ? "Pollution, incl. trash" : "Pollution nearby", (int)lvf.pollution);
+                 "%s: %+d", LandfillTrashPenalty() > 0 ? "Pollution, incl. trash" : "Pollution nearby", (int)lvf.pollution);
         snprintf(inspect_stat_lvfactors[4], sizeof(inspect_stat_lvfactors[4]),
                  "Crime nearby: %+d (-20 when very high)", (int)lvf.crime);
         snprintf(inspect_stat_lvfactors[5], sizeof(inspect_stat_lvfactors[5]),
