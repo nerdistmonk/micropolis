@@ -153,6 +153,20 @@ static bool ParseXpmSheet(const char **xpm, uint32_t **out_pixels, int32_t *out_
     return true;
 }
 
+/* Tree and woods art shares its greens with grass, buildings and the fountain, so only ids TREEBASE..WOODS5 are darkened. */
+static void DarkenWoodsTiles(uint32_t *px, int32_t width)
+{
+    for (int32_t id = TREEBASE; id <= WOODS5; id++) {
+        for (int32_t y = 0; y < TILE_H; y++) {
+            for (int32_t x = 0; x < width && x < TILE_W; x++) {
+                uint32_t *p = &px[((size_t)id * TILE_H + (size_t)y) * (size_t)width + (size_t)x];
+                if (*p == 0xFF00E600u) *p = 0xFF00AF00u;
+                else if (*p == 0xFF007F00u) *p = 0xFF005F00u;
+            }
+        }
+    }
+}
+
 bool Tiles_Init(void)
 {
     uint32_t *tiles_px = NULL;
@@ -162,6 +176,7 @@ bool Tiles_Init(void)
     int32_t tiles_w = 0, tiles_h = 0, tower_w = 0, tower_h = 0, hosp_w = 0, hosp_h = 0, land_w = 0, land_h = 0;
 
     if (!ParseXpmSheet(Micropolis_GetTilesXpmData(), &tiles_px, &tiles_w, &tiles_h)) return false;
+    DarkenWoodsTiles(tiles_px, tiles_w);
 
     if (!ParseXpmSheet(Micropolis_GetWaterTowerXpmData(), &tower_px, &tower_w, &tower_h) || tower_w != tiles_w) {
         SDL_Log("Error: Water tower sheet is missing or does not match the tile width.");
