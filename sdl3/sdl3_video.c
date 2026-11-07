@@ -791,14 +791,15 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
 
 #define WATER_FADE_PERIOD_MS 4000u
 #define WATER_FADE_AMPLITUDE 14
+#define WATER_STRIPE_SHIFT 2
 
 static int32_t ClampByte(int32_t v)
 {
   return v < 0 ? 0 : (v > 255 ? 255 : v);
 }
 
-/* Uniform brightness pulse over time; only blue-dominant water pixels are brightened or dimmed. */
-static uint32_t FadeWaterPixel(uint32_t p, uint32_t phase_ms)
+/* Diagonal stripes stay in place; neighbouring stripes fade in antiphase so one dims as the other brightens. */
+static uint32_t FadeWaterPixel(uint32_t p, int32_t wx, int32_t wy, uint32_t phase_ms)
 {
   int32_t r = p & 0xFF;
   int32_t g = (p >> 8) & 0xFF;
@@ -808,6 +809,9 @@ static uint32_t FadeWaterPixel(uint32_t p, uint32_t phase_ms)
   uint32_t half = WATER_FADE_PERIOD_MS / 2u;
   uint32_t up = (phase_ms < half) ? phase_ms : WATER_FADE_PERIOD_MS - phase_ms;
   int32_t delta = (int32_t)((up * 2u * WATER_FADE_AMPLITUDE) / half) - WATER_FADE_AMPLITUDE;
+
+  uint32_t stripe = ((uint32_t)wx + 2u * (uint32_t)wy) >> WATER_STRIPE_SHIFT;
+  if (stripe & 1u) delta = -delta;
 
   r = ClampByte(r + delta);
   g = ClampByte(g + delta);
@@ -1277,7 +1281,7 @@ void Video_RenderFrame(void)
         if (has_tiles) {
           pixel = Tiles_GetPixel(raw_tile, px, py);
           if (overlay_mode == OVERLAY_VIEW_NORMAL && Tiles_IsWaterArt(raw_tile)) {
-            pixel = FadeWaterPixel(pixel, water_phase_ms);
+            pixel = FadeWaterPixel(pixel, tx * TILE_PIXEL_SIZE + px, ty * TILE_PIXEL_SIZE + py, water_phase_ms);
           }
         } else {
           pixel = 0xFF000000;
