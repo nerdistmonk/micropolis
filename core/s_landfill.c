@@ -14,8 +14,9 @@
  * demand is gone.
  * A block shows four stages as it fills. Its upkeep is tiered: empty costs nothing, then one
  * third, two thirds, and full cost. Filled blocks pollute through LandfillPollution.
- * TrashPending is the total waste: stored in blocks plus UnservicedTrash. The land-value,
- * garbage, and pile effects read it.
+ * TrashPending is the total waste: stored in blocks plus UnservicedTrash. The garbage and pile
+ * effects read it. The land-value penalty reads only UnservicedTrash, so stored waste in a
+ * working landfill does not lower land value.
  *
  * Per-block fill is kept in LandfillFill, indexed by block centre. It is saved as a trailing
  * section of the city file. LandfillRescan keeps each loaded value within its stage's range.
@@ -196,7 +197,7 @@ void LandfillBlockPlaced(int32_t x, int32_t y)
 
 int32_t LandfillTrashPenalty(void)
 {
-    int32_t p = TrashPending / LANDFILL_PENALTY_DIV;
+    int32_t p = UnservicedTrash / LANDFILL_PENALTY_DIV;
     return p > LANDFILL_PENALTY_MAX ? LANDFILL_PENALTY_MAX : p;
 }
 

@@ -109,12 +109,13 @@ New model (capacity-based):
      tick (CityTime % 3 == 0). Net empty rate is one third of the fill rate.
    - Balanced (demand == capacity): nothing changes.
 4. Storage: 2,400 per block (4 stages, unchanged). TrashPending is the total waste across all
-   blocks, recomputed each tick. The land-value penalty, garbage problem, and pile/capacity
-   headlines read it unchanged.
+   blocks, recomputed each tick. The garbage problem and pile/capacity headlines read it.
+   The land-value penalty (LandfillTrashPenalty) reads only UnservicedTrash, so stored waste in
+   a working landfill does not lower land value.
 5. No capacity (no connected block) with demand present: trash piles up unserviced at 40 per
    tick, capped at 5,000 (UnservicedTrash). It drains at 40 per tick once demand is gone.
-   It counts toward TrashPending, so the penalties apply. The "landfill full" headline
-   (LandfillAtCapacity) fires in this state too.
+   It counts toward TrashPending and the land-value penalty applies (max -20 per zone at 5,000,
+   same scale as before). The "landfill full" headline (LandfillAtCapacity) fires in this state too.
 6. Removed: TotalPop-based generation, the 100,000 pool cap, and auto-placement. Blocks are
    placed by the player only.
 7. Unchanged: tiered upkeep, stage pollution. UnservicedTrash is saved in MiscHis[77..78]
