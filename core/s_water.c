@@ -386,6 +386,8 @@ static bool PipeCanLay(uint16_t raw)
 {
     int32_t t = raw & LOMASK;
     if (t >= RESBASE && t <= LASTZONE) return false;
+    /* CoalSmoke() paints these over the plant's upper-right footprint tiles. */
+    if (t >= COALSMOKE1 && t < COALSMOKE4 + 4) return false;
     return !(t >= WATERTOWER && t < WATERTOWER + WATERTOWER_TILES);
 }
 
