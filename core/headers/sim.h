@@ -680,6 +680,7 @@ void PushPowerStack(void);
 void SetSmoke(int32_t zone_power);
 void RepairZone(int16_t zone_id, int16_t size);
 void ZonePlop(int16_t base_tile);
+void PlantPlop(int16_t base_tile);
 bool RoadTest(int32_t tile);
 void DoLandfill(void);
 void LandfillBlockPlaced(int32_t x, int32_t y);

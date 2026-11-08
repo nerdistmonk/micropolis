@@ -585,6 +585,25 @@ void ZonePlop(int16_t base)
     Map[SMapX][SMapY] |= (ZONEBIT | BULLBIT);
 }
 
+/* Plants are 4x4 tiles, row-major from base; the anchor (SMapX,SMapY) is grid cell (1,1). */
+void PlantPlop(int16_t base)
+{
+    for (int32_t dy = 0; dy < 4; dy++) {
+        for (int32_t dx = 0; dx < 4; dx++) {
+            int32_t xx = SMapX - 1 + dx;
+            int32_t yy = SMapY - 1 + dy;
+            if (TestBounds(xx, yy)) {
+                Map[xx][yy] = (uint16_t)(base + dy * 4 + dx + BNCNBIT);
+            }
+        }
+    }
+
+    CChr = (int16_t)Map[SMapX][SMapY];
+    CChr9 = CChr & LOMASK;
+    SetZPower();
+    Map[SMapX][SMapY] |= (ZONEBIT | BULLBIT);
+}
+
 static int16_t EvalRes(int32_t traf)
 {
     if (traf < 0) return -3000;
