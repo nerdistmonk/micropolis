@@ -246,7 +246,7 @@ void DoPowerScan(void)
         if (!Neighbor_FeedSeed(s, NB_GOODS_POWER, &fx, &fy)) continue;
         PlantSeedX[plants] = (int16_t)fx;
         PlantSeedY[plants] = (int16_t)fy;
-        NeighborFeedZones[plants - mapPlants] = Neighbor_FeedUnits(s, NB_GOODS_POWER) * Neighbor_FeedZones(NB_GOODS_POWER);
+        NeighborFeedZones[plants - mapPlants] = Neighbor_FeedZones(s, NB_GOODS_POWER);
         plants++;
     }
 

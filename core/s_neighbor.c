@@ -6,9 +6,10 @@
  *   - power: a power line tile.   - water: a water pipe tile.
  * A link is active only while its gate and conductor both exist, so bulldozing it breaks the link.
  *
- * Deals: units > 0 buys from the neighbor, units < 0 sells to it, in whole zone-sized units. Each
- * month a mid price follows a bounded random walk that reverts to its base. Buying costs the
- * mid price plus NB_SPREAD_PCT, and selling pays the mid price minus NB_SPREAD_PCT.
+ * Deals: zones > 0 buys from the neighbor, zones < 0 sells to it, measured in zones. Each month a
+ * mid price follows a bounded random walk that reverts to its base. Prices are quoted per
+ * NB_PRICE_ZONES zones; buying costs the mid price plus NB_SPREAD_PCT, and selling pays the mid
+ * price minus NB_SPREAD_PCT, each charged per zone.
  *   - Power and water buys feed the grid at the gate as a source (see power and water scans).
  *   - Sales draw load from the network they sell into: power and water at the gate's grid or
  *     network, garbage in the landfill. The load is never capped by spare capacity, so overselling
@@ -17,7 +18,7 @@
  *     A sale that cannot reach a network (no grid or water network at the gate) draws nothing.
  *   - Garbage buys add landfill capacity (see Neighbor_GarbageFeedZones), as power and water buys
  *     add supply.
- *   - Safe to sell: the units that fit in the spare capacity of the network, shown in the deals UI.
+ *   - Safe to sell: the zones that fit in the spare capacity of the network, shown in the deals UI.
  *
  * Land value: each active road or rail link adds NB_LV_PER_LINK percent, up to NB_LV_BONUS_MAX.
  */
@@ -28,10 +29,7 @@
 
 #define NB_LINK_TILE_NONE (-1)
 #define NB_NAME_MAX       15
-#define NB_MAX_UNITS      4
-#define NB_POWER_ZONES    12
-#define NB_WATER_ZONES    12
-#define NB_GARBAGE_ZONES  12
+#define NB_LINK_ZONES     48   /* zones one link can carry */
 #define NB_CONNECT_COST   1000
 #define NB_DRIFT          4
 #define NB_SPREAD_PCT     10
@@ -39,15 +37,18 @@
 #define NB_LV_BONUS_MAX   8
 
 /* Save layout in MiscHis. Only slots 0-119 are written to the city file (see ParseCityBlob), so
- * everything lives there. Slots 0, 46-49 and 116-119 are otherwise unused. */
-#define NB_SAVE_TAG       0x4E43
+ * everything lives there. Slots 0, 46-49 and 118-119 are otherwise unused. */
+#define NB_SAVE_TAG       0x4E44
+#define NB_SAVE_TAG_LEGACY 0x4E43   /* units in 4-bit nibbles, one slot per side */
 #define NB_SAVE_TAG_SLOT  79
 #define NB_SAVE_NAME_BASE 80   /* 4 sides x 8 slots, two chars per slot (80-111) */
 #define NB_SAVE_GATE_BASE 18   /* 4 sides x 4 links, one slot each: (x << 8) | y, or -1 if none (18-33) */
 #define NB_SAVE_MID_BASE  34   /* 4 sides x 3 goods (34-45) */
-#define NB_SAVE_UNIT_BASE 112  /* 4 sides, one slot each: 4-bit (units + NB_UNIT_BIAS) per good (112-115) */
+#define NB_SAVE_UNIT_BASE 112  /* 4 sides x 3 goods of zones, one byte each (zones + NB_ZONE_BIAS), two per slot: 112-117 */
 #define NB_NAME_SLOTS     8
-#define NB_UNIT_BIAS      8
+#define NB_ZONE_BIAS      128
+#define NB_LEGACY_UNIT_BIAS 8
+#define NB_LEGACY_UNIT_ZONES 12
 
 typedef struct {
     char name[NB_NAME_MAX + 1];
@@ -118,9 +119,9 @@ static int32_t ActiveRoadRailLinks(int32_t side)
 static int32_t GoodsCap(int32_t side, int32_t goods)
 {
     switch (goods) {
-    case NB_GOODS_POWER:   return LinkActive(side, NB_LINK_POWER) ? NB_MAX_UNITS : 0;
-    case NB_GOODS_WATER:   return LinkActive(side, NB_LINK_WATER) ? NB_MAX_UNITS : 0;
-    case NB_GOODS_GARBAGE: return ActiveRoadRailLinks(side) * NB_MAX_UNITS;
+    case NB_GOODS_POWER:   return LinkActive(side, NB_LINK_POWER) ? NB_LINK_ZONES : 0;
+    case NB_GOODS_WATER:   return LinkActive(side, NB_LINK_WATER) ? NB_LINK_ZONES : 0;
+    case NB_GOODS_GARBAGE: return ActiveRoadRailLinks(side) * NB_LINK_ZONES;
     default:               return 0;
     }
 }
@@ -298,9 +299,9 @@ bool Neighbor_FeedSeed(int32_t side, int32_t goods, int32_t *x, int32_t *y)
     return true;
 }
 
-int32_t Neighbor_FeedZones(int32_t goods)
+int32_t Neighbor_FeedZones(int32_t side, int32_t goods)
 {
-    return goods == NB_GOODS_POWER ? NB_POWER_ZONES : NB_WATER_ZONES;
+    return sides[side].units[goods] > 0 ? sides[side].units[goods] : 0;
 }
 
 bool Neighbor_RailTile(int32_t side, int32_t *x, int32_t *y)
@@ -309,11 +310,6 @@ bool Neighbor_RailTile(int32_t side, int32_t *x, int32_t *y)
     *x = sides[side].gate_x[NB_LINK_RAIL];
     *y = sides[side].gate_y[NB_LINK_RAIL];
     return true;
-}
-
-int32_t Neighbor_FeedUnits(int32_t side, int32_t goods)
-{
-    return sides[side].units[goods] > 0 ? sides[side].units[goods] : 0;
 }
 
 /* Gate tile of an active power or water link, for scans that settle that good's sales. */
@@ -348,17 +344,28 @@ bool Neighbor_SaleBlackedOut(int32_t side, int32_t goods)
     return SaleBlackedOut[side][goods];
 }
 
-static int32_t SaleZonesPerUnit(int32_t goods)
+/* Money for zones at a per-NB_PRICE_ZONES quote, rounded to the nearest dollar. */
+static int32_t ZoneCharge(int32_t zones, int32_t quote)
 {
-    if (goods == NB_GOODS_POWER) return NB_POWER_ZONES;
-    if (goods == NB_GOODS_WATER) return NB_WATER_ZONES;
-    return NB_GARBAGE_ZONES;
+    return (zones * quote + NB_PRICE_ZONES / 2) / NB_PRICE_ZONES;
+}
+
+int32_t Neighbor_BuyCharge(int32_t side, int32_t goods, int32_t zones)
+{
+    if (side < 0 || side >= NB_SIDES || zones <= 0) return 0;
+    return ZoneCharge(zones, BuyPrice(side, goods));
+}
+
+int32_t Neighbor_SellEarn(int32_t side, int32_t goods, int32_t zones)
+{
+    if (side < 0 || side >= NB_SIDES || zones <= 0) return 0;
+    return ZoneCharge(zones, SellPrice(side, goods));
 }
 
 /* Settles one side's sale into a network with spareZones of capacity left before this sale. The
- * sale draws its full units, never capped by spare capacity. The safe units (spare capacity per
- * unit, capped by the link) are recorded for the deals display. Returns the zones the sale adds
- * to demand, or 0 when the side is not selling this good over an active link. */
+ * sale draws its full zones, never capped by spare capacity. The safe zones (spare capacity, capped
+ * by the link) are recorded for the deals display. Returns the zones the sale adds to demand, or 0
+ * when the side is not selling this good over an active link. */
 int32_t Neighbor_OfferSale(int32_t side, int32_t goods, int32_t spareZones)
 {
     if (side < 0 || side >= NB_SIDES || sides[side].units[goods] >= 0) return 0;
@@ -366,11 +373,10 @@ int32_t Neighbor_OfferSale(int32_t side, int32_t goods, int32_t spareZones)
     if (cap <= 0) return 0;
     int32_t drawn = -sides[side].units[goods];
     if (drawn > cap) drawn = cap;
-    int32_t per = SaleZonesPerUnit(goods);
-    int32_t safe = spareZones > 0 ? spareZones / per : 0;
+    int32_t safe = spareZones > 0 ? spareZones : 0;
     SaleSafeUnits[side][goods] = safe > cap ? cap : safe;
     SaleDrawnUnits[side][goods] = drawn;
-    return drawn * per;
+    return drawn;
 }
 
 int32_t Neighbor_SafeSellUnits(int32_t side, int32_t goods)
@@ -385,8 +391,7 @@ int32_t Neighbor_SoldUnits(int32_t side, int32_t goods)
     return SaleDrawnUnits[side][goods];
 }
 
-/* Landfill capacity bought from neighbors, in zones. Each bought unit adds NB_GARBAGE_ZONES, limited
- * to the units the active road and rail links can carry. */
+/* Landfill capacity bought from neighbors, in zones, limited to what the active links can carry. */
 int32_t Neighbor_GarbageFeedZones(void)
 {
     int32_t zones = 0;
@@ -394,7 +399,7 @@ int32_t Neighbor_GarbageFeedZones(void)
         int32_t units = sides[s].units[NB_GOODS_GARBAGE];
         if (units <= 0) continue;
         int32_t cap = GoodsCap(s, NB_GOODS_GARBAGE);
-        zones += (units > cap ? cap : units) * NB_GARBAGE_ZONES;
+        zones += units > cap ? cap : units;
     }
     return zones;
 }
@@ -440,7 +445,7 @@ void Neighbor_Tick(void)
             if (units < -cap) units = -cap;
 
             if (units > 0) {
-                int32_t cost = units * BuyPrice(s, g);
+            int32_t cost = ZoneCharge(units, BuyPrice(s, g));
                 if (TotalFunds < cost) {
                     sides[s].units[g] = 0;
                     continue;
@@ -451,7 +456,7 @@ void Neighbor_Tick(void)
 
             int32_t sold = SaleDrawnUnits[s][g];
             if (sold <= 0 || SaleBlackedOut[s][g]) continue;
-            TotalFunds += sold * SellPrice(s, g);
+            TotalFunds += ZoneCharge(sold, SellPrice(s, g));
         }
     }
     if (TotalFunds < 0) TotalFunds = 0;
@@ -466,30 +471,42 @@ static int16_t PackGate(int32_t side, int32_t link)
 void Neighbor_SyncMisc(void)
 {
     MiscHis[NB_SAVE_TAG_SLOT] = NB_SAVE_TAG;
+    for (int32_t k = 0; k < NB_SIDES * NB_GOODS_COUNT / 2; k++) {
+        MiscHis[NB_SAVE_UNIT_BASE + k] = 0;
+    }
     for (int32_t s = 0; s < NB_SIDES; s++) {
         for (int32_t i = 0; i < NB_NAME_SLOTS; i++) {
             uint8_t c0 = (uint8_t)sides[s].name[2 * i];
             uint8_t c1 = (uint8_t)sides[s].name[2 * i + 1];
             MiscHis[NB_SAVE_NAME_BASE + s * NB_NAME_SLOTS + i] = (int16_t)((c0 << 8) | c1);
         }
-        uint16_t units_word = 0;
         for (int32_t l = 0; l < NB_LINK_COUNT; l++) {
             MiscHis[NB_SAVE_GATE_BASE + s * NB_LINK_COUNT + l] = PackGate(s, l);
         }
         for (int32_t g = 0; g < NB_GOODS_COUNT; g++) {
             MiscHis[NB_SAVE_MID_BASE + s * NB_GOODS_COUNT + g] = sides[s].mid[g];
-            units_word |= (uint16_t)(((sides[s].units[g] + NB_UNIT_BIAS) & 0xF) << (4 * g));
         }
-        MiscHis[NB_SAVE_UNIT_BASE + s] = (int16_t)units_word;
+    }
+    for (int32_t k = 0; k < NB_SIDES * NB_GOODS_COUNT; k++) {
+        int32_t s = k / NB_GOODS_COUNT;
+        int32_t g = k % NB_GOODS_COUNT;
+        int32_t zones = sides[s].units[g];
+        if (zones > 2 * NB_LINK_ZONES) zones = 2 * NB_LINK_ZONES;
+        if (zones < -2 * NB_LINK_ZONES) zones = -2 * NB_LINK_ZONES;
+        uint16_t byte = (uint16_t)(zones + NB_ZONE_BIAS);
+        int32_t slot = NB_SAVE_UNIT_BASE + k / 2;
+        MiscHis[slot] = (int16_t)(((uint16_t)MiscHis[slot]) | (uint16_t)(byte << ((k % 2) * 8)));
     }
 }
 
 void Neighbor_LoadMisc(void)
 {
-    if (MiscHis[NB_SAVE_TAG_SLOT] != NB_SAVE_TAG) {
+    const int32_t tag = MiscHis[NB_SAVE_TAG_SLOT];
+    if (tag != NB_SAVE_TAG && tag != NB_SAVE_TAG_LEGACY) {
         Neighbor_Reset();
         return;
     }
+    const bool legacy = tag == NB_SAVE_TAG_LEGACY;
     for (int32_t s = 0; s < NB_SIDES; s++) {
         NeighborSide *n = &sides[s];
         for (int32_t i = 0; i < NB_NAME_SLOTS; i++) {
@@ -517,10 +534,18 @@ void Neighbor_LoadMisc(void)
             int32_t mid = MiscHis[NB_SAVE_MID_BASE + s * NB_GOODS_COUNT + g];
             if (mid < NB_BASE_PRICE[g] / 2 || mid > NB_BASE_PRICE[g] * 2) mid = NB_BASE_PRICE[g];
             n->mid[g] = (int16_t)mid;
-            int32_t units = (int32_t)((units_word >> (4 * g)) & 0xFu) - NB_UNIT_BIAS;
-            if (units > NB_MAX_UNITS) units = NB_MAX_UNITS;
-            if (units < -NB_MAX_UNITS) units = -NB_MAX_UNITS;
-            n->units[g] = (int16_t)units;
+            int32_t k = s * NB_GOODS_COUNT + g;
+            int32_t zones;
+            if (legacy) {
+                int32_t units = (int32_t)((units_word >> (4 * g)) & 0xFu) - NB_LEGACY_UNIT_BIAS;
+                zones = units * NB_LEGACY_UNIT_ZONES;
+            } else {
+                uint16_t word = (uint16_t)MiscHis[NB_SAVE_UNIT_BASE + k / 2];
+                zones = (int32_t)((word >> ((k % 2) * 8)) & 0xFFu) - NB_ZONE_BIAS;
+            }
+            if (zones > 2 * NB_LINK_ZONES) zones = 2 * NB_LINK_ZONES;
+            if (zones < -2 * NB_LINK_ZONES) zones = -2 * NB_LINK_ZONES;
+            n->units[g] = (int16_t)zones;
         }
     }
 }

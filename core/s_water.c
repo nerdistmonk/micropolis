@@ -268,7 +268,7 @@ void DoWaterScan(void)
     for (int32_t s = 0; s < NB_SIDES; s++) {
         int32_t fx, fy;
         if (!Neighbor_FeedSeed(s, NB_GOODS_WATER, &fx, &fy)) continue;
-        int32_t zones = Neighbor_FeedUnits(s, NB_GOODS_WATER) * Neighbor_FeedZones(NB_GOODS_WATER);
+        int32_t zones = Neighbor_FeedZones(s, NB_GOODS_WATER);
         SupplyFromTower(fx, fy, zones);
         net_tower_zones[net_towers] = zones;
         net_parent[net_towers] = net_towers;
