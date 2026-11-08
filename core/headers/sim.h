@@ -438,6 +438,7 @@ typedef struct SimCallbacks {
 #define NEWS_EVENT_ADV_UNEMPLOYMENT 125
 #define NEWS_EVENT_ADV_PARKS        126
 #define NEWS_EVENT_ADV_RIOTS        127
+#define NEWS_EVENT_ADV_HOSPITAL     128
 
 /* Engine Global Variables */
 extern uint16_t *Map[WORLD_X];
@@ -742,6 +743,7 @@ bool HealthIsCovered(int32_t x, int32_t y);
 bool HospitalStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned);
 void RecAnalysis(void);
 bool RecIsCovered(int32_t x, int32_t y);
+bool RecSiteStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned);
 int16_t HealthCoverageLevel(int32_t x, int32_t y);
 int32_t HealthAdjustedPop(int32_t pop, int32_t x, int32_t y);
 void PopDenScan(void);

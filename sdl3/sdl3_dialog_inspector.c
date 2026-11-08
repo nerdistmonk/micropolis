@@ -13,7 +13,8 @@ static char inspect_stat_crime[64] = {0};
 static char inspect_stat_landvalue[64] = {0};
 static char inspect_stat_lvfactors[7][72];
 static int inspect_lvfactor_lines = 0;
-static const float kInspectorHeight = 448.0f;
+static char inspect_stat_services[2][80] = {{0}};
+static const float kInspectorHeight = 512.0f;
 static char inspect_stat_growth[64] = {0};
 static char inspect_stat_water[64] = {0};
 static char inspect_stat_supply[64] = {0};
@@ -68,6 +69,8 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         strncpy(inspect_title, "Radioactive Contamination!", sizeof(inspect_title));
     } else if (low >= WATERTOWER && low < WATERTOWER + WATERTOWER_TILES) {
         strncpy(inspect_title, "Water Tower", sizeof(inspect_title));
+    } else if (low >= FOUNTAIN && low < FOUNTAIN + FOUNTAIN_FRAMES) {
+        strncpy(inspect_title, "Municipal Park", sizeof(inspect_title));
     } else if (low >= LANDFILL && low < LANDFILL + LANDFILL_TILES) {
         strncpy(inspect_title, "Landfill", sizeof(inspect_title));
     } else if (low >= RUBBLE && low <= LASTRUBBLE) {
@@ -151,6 +154,15 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         } else {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Hospital Demand: none (station not found)");
         }
+    } else if ((low >= FOUNTAIN && low < FOUNTAIN + FOUNTAIN_FRAMES) || (low >= STADIUMBASE && low <= FULLSTADIUM)) {
+        int32_t rec_cap = 0;
+        int32_t rec_assigned = 0;
+        if (RecSiteStats(tile_x, tile_y, &rec_cap, &rec_assigned)) {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Recreation Demand: %d zones | Capacity: %d zones",
+                     (int)rec_assigned, (int)rec_cap);
+        } else {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Recreation Demand: none (site not found)");
+        }
     } else if (TILE_IS_LANDFILL(tile)) {
         LandfillSystemStats(&capacity, &demand);
         snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Landfill Capacity: %d zones | Demand: %d zones (citywide)",
@@ -196,6 +208,17 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
 
     int16_t rog = RateOGMem[sx][sy];
     snprintf(inspect_stat_growth, sizeof(inspect_stat_growth), "Growth Trend: %s (%+d)", (rog > 10) ? "Booming" : (rog < -10 ? "Declining" : "Stable"), rog);
+
+    inspect_stat_services[0][0] = '\0';
+    inspect_stat_services[1][0] = '\0';
+    if (PoliceZoneState(tile_x, tile_y) != POLICE_ZONE_NONE) {
+        snprintf(inspect_stat_services[0], sizeof(inspect_stat_services[0]), "Police: %s    Fire: %s",
+                 PoliceZoneState(tile_x, tile_y) == POLICE_ZONE_COVERED ? "Covered" : "Uncovered",
+                 FireZoneState(tile_x, tile_y) == FIRE_ZONE_COVERED ? "Covered" : "Uncovered");
+        snprintf(inspect_stat_services[1], sizeof(inspect_stat_services[1]), "Health: %s    Parks: %s",
+                 HealthIsCovered(tile_x, tile_y) ? "Covered" : "Uncovered",
+                 RecIsCovered(tile_x, tile_y) ? "Covered" : "Uncovered");
+    }
 }
 
 static SDL_FRect InspectorOkRect(float dx, float dy, float dw, float dh)
@@ -276,9 +299,14 @@ void Dialog_Inspector_Render(SDL_Renderer *renderer)
     if (inspect_stat_supply[0]) {
         GUI_DrawText(renderer, (int)dx + 24, cy + 168, inspect_stat_supply, col_gold);
     }
+    for (int i = 0; i < 2; i++) {
+        if (inspect_stat_services[i][0]) {
+            GUI_DrawText(renderer, (int)dx + 24, cy + 192 + 20 * i, inspect_stat_services[i], col_white);
+        }
+    }
     for (int i = 0; i < inspect_lvfactor_lines; i++) {
         SDL_Color c = (i == 0 || i == inspect_lvfactor_lines - 1) ? col_gold : col_white;
-        GUI_DrawText(renderer, (int)dx + 40, cy + 192 + 20 * i, inspect_stat_lvfactors[i], c);
+        GUI_DrawText(renderer, (int)dx + 40, cy + 240 + 20 * i, inspect_stat_lvfactors[i], c);
     }
 
     SDL_FRect ok_btn = InspectorOkRect(dx, dy, dw, dh);

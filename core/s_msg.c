@@ -26,7 +26,7 @@ static int32_t LastTreasury = 0;
 #define UNEMPLOYMENT_LEVEL 170
 static bool    trashPiled = false;
 
-#define NEWS_COND_SLOTS 128
+#define NEWS_COND_SLOTS 256
 #define NEWS_THROTTLE_TICKS 48
 static bool    news_cond_active[NEWS_COND_SLOTS];
 static int32_t news_last_tick[NEWS_COND_SLOTS];
@@ -109,7 +109,9 @@ static const char * const SimMessages[] = {
     [41] = "Heavy Traffic reported.",
     [42] = "Flooding reported !!",
     [43] = "A Nuclear Meltdown has occurred !!!",
-    [44] = "They're rioting in the streets !!"
+    [44] = "They're rioting in the streets !!",
+    [45] = "Hospitals need funding.",
+    [46] = "Citizens demand a Hospital."
 };
 
 static const char *GetMessageText(int16_t id)
@@ -150,7 +152,7 @@ void SendMessages(void)
         Advisory(1, NEWS_EVENT_ADV_RESIDENTIAL, (TotalZPop >> 2) >= ResZPop);
         break;
     case 2:
-        NewsCondition(NEWS_EVENT_HEALTH_SHORT, TotalPop > 60 && HealthEffect < 700);
+        Advisory(45, NEWS_EVENT_HEALTH_SHORT, TotalPop > 60 && HealthEffect < 700);
         break;
     case 5:
         Advisory(2, NEWS_EVENT_ADV_COMMERCIAL, (TotalZPop >> 3) >= ComZPop);
@@ -160,6 +162,9 @@ void SendMessages(void)
         break;
     case 14:
         Advisory(4, NEWS_EVENT_ADV_ROADS, (TotalZPop > 10) && ((TotalZPop << 1) > RoadTotal));
+        break;
+    case 16:
+        Advisory(46, NEWS_EVENT_ADV_HOSPITAL, (TotalPop > 60) && (HospPop == 0));
         break;
     case 18:
         Advisory(5, NEWS_EVENT_ADV_RAIL, (TotalZPop > 50) && (TotalZPop > RailTotal));

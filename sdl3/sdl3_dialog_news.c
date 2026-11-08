@@ -172,6 +172,7 @@ static const NewsGameHeadline game_headlines[] = {
     { NEWS_EVENT_ADV_UNEMPLOYMENT, "Jobless workers crowd the streets as employers hold back" },
     { NEWS_EVENT_ADV_PARKS, "Residents complain the city has no parks to relax in" },
     { NEWS_EVENT_ADV_RIOTS, "Angry crowds riot in the streets as crime runs wild" },
+    { NEWS_EVENT_ADV_HOSPITAL, "Citizens demand a hospital, and the sick have nowhere to go" },
 };
 
 typedef struct {

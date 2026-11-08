@@ -94,3 +94,18 @@ bool RecIsCovered(int32_t x, int32_t y)
 {
     return TestBounds(x, y) && rec_cover[x][y];
 }
+
+bool RecSiteStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned)
+{
+    for (int32_t i = 0; i < rec_site_count; i++) {
+        RecSite *s = &rec_sites[i];
+        int32_t ox, oy, size;
+        if (!BuildingAnchorAt(s->x, s->y, &ox, &oy, &size)) continue;
+        if (x >= ox && x < ox + size && y >= oy && y < oy + size) {
+            *capacity = s->capacity;
+            *assigned = s->assigned;
+            return true;
+        }
+    }
+    return false;
+}
