@@ -556,7 +556,7 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         char buf[128];
         GUI_DrawText(renderer, cx, cy, "ANNUAL BUDGET & DEPARTMENT FUNDING", col_gold);
 
-        snprintf(buf, sizeof(buf), "Roads: %3d%% Cost: $%d", (int)(roadPercent * 100.0f), (int)((float)CalcRoadFund(GameLevel) * roadPercent));
+        snprintf(buf, sizeof(buf), "Roads: %3d%% Cost: $%d", (int)(roadPercent * 100.0f), (int)((float)RoadFund * roadPercent));
         GUI_DrawText(renderer, cx, cy + 30, buf, col_white);
         SDL_FRect r_dn = { dx + 400.0f, dy + 115.0f, 30.0f, 22.0f };
         SDL_FRect r_up = { dx + 440.0f, dy + 115.0f, 30.0f, 22.0f };
@@ -566,7 +566,7 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         GUI_DrawText(renderer, (int)r_dn.x + 10, (int)r_dn.y + 3, "-", col_white);
         GUI_DrawText(renderer, (int)r_up.x + 10, (int)r_up.y + 3, "+", col_white);
 
-        snprintf(buf, sizeof(buf), "Police: %3d%% Cost: $%d", (int)(policePercent * 100.0f), (int)(PolicePop * POLICE_STATION_COST * policePercent));
+        snprintf(buf, sizeof(buf), "Police: %3d%% Cost: $%d", (int)(policePercent * 100.0f), (int)((float)PoliceFund * policePercent));
         GUI_DrawText(renderer, cx, cy + 80, buf, col_white);
         SDL_FRect p_dn = { dx + 400.0f, dy + 165.0f, 30.0f, 22.0f };
         SDL_FRect p_up = { dx + 440.0f, dy + 165.0f, 30.0f, 22.0f };
@@ -576,7 +576,7 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         GUI_DrawText(renderer, (int)p_dn.x + 10, (int)p_dn.y + 3, "-", col_white);
         GUI_DrawText(renderer, (int)p_up.x + 10, (int)p_up.y + 3, "+", col_white);
 
-        snprintf(buf, sizeof(buf), "Fire: %3d%% Cost: $%d", (int)(firePercent * 100.0f), (int)(FireStPop * FIRE_STATION_COST * firePercent));
+        snprintf(buf, sizeof(buf), "Fire: %3d%% Cost: $%d", (int)(firePercent * 100.0f), (int)((float)FireFund * firePercent));
         GUI_DrawText(renderer, cx, cy + 130, buf, col_white);
         SDL_FRect f_dn = { dx + 400.0f, dy + 215.0f, 30.0f, 22.0f };
         SDL_FRect f_up = { dx + 440.0f, dy + 215.0f, 30.0f, 22.0f };
@@ -596,7 +596,7 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         GUI_DrawText(renderer, (int)h_dn.x + 10, (int)h_dn.y + 3, "-", col_white);
         GUI_DrawText(renderer, (int)h_up.x + 10, (int)h_up.y + 3, "+", col_white);
 
-        snprintf(buf, sizeof(buf), "Landfill: %3d%% Cost: $%d", (int)(landfillPercent * 100.0f), (int)(LandfillPop * LANDFILL_CENTRE_COST * landfillPercent));
+        snprintf(buf, sizeof(buf), "Landfill: %3d%% Cost: $%d", (int)(landfillPercent * 100.0f), (int)((float)LandfillFund * landfillPercent));
         GUI_DrawText(renderer, cx, cy + 230, buf, col_white);
         SDL_FRect l_dn = { dx + 400.0f, dy + 315.0f, 30.0f, 22.0f };
         SDL_FRect l_up = { dx + 440.0f, dy + 315.0f, 30.0f, 22.0f };
@@ -606,7 +606,7 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         GUI_DrawText(renderer, (int)l_dn.x + 10, (int)l_dn.y + 3, "-", col_white);
         GUI_DrawText(renderer, (int)l_up.x + 10, (int)l_up.y + 3, "+", col_white);
 
-        snprintf(buf, sizeof(buf), "Recreation: %3d%% Cost: $%d", (int)(recreationPercent * 100.0f), (int)((float)(ParkPop * PARK_COST + StadiumPop * STADIUM_COST) * recreationPercent));
+        snprintf(buf, sizeof(buf), "Recreation: %3d%% Cost: $%d", (int)(recreationPercent * 100.0f), (int)((float)RecFund * recreationPercent));
         GUI_DrawText(renderer, cx, cy + 271, buf, col_white);
         SDL_FRect rc_dn = { dx + 400.0f, dy + 365.0f, 30.0f, 22.0f };
         SDL_FRect rc_up = { dx + 440.0f, dy + 365.0f, 30.0f, 22.0f };
@@ -616,7 +616,7 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         GUI_DrawText(renderer, (int)rc_dn.x + 10, (int)rc_dn.y + 3, "-", col_white);
         GUI_DrawText(renderer, (int)rc_up.x + 10, (int)rc_up.y + 3, "+", col_white);
 
-        int32_t expenses = (int32_t)(((float)CalcRoadFund(GameLevel) * roadPercent) + (PolicePop * POLICE_STATION_COST * policePercent) + (FireStPop * FIRE_STATION_COST * firePercent) + (HealthFund * healthPercent) + ((float)(ParkPop * PARK_COST + StadiumPop * STADIUM_COST) * recreationPercent) + (LandfillPop * LANDFILL_CENTRE_COST * landfillPercent));
+        int32_t expenses = (int32_t)((float)RoadFund * roadPercent) + (int32_t)((float)PoliceFund * policePercent) + (int32_t)((float)FireFund * firePercent) + (int32_t)((float)HealthFund * healthPercent) + (int32_t)((float)RecFund * recreationPercent) + (int32_t)((float)LandfillFund * landfillPercent);
         int32_t net = TaxFund + DealsIncome - expenses;
         snprintf(buf, sizeof(buf), "Tax Revenue: $%d  Deals: %+d", TaxFund, DealsIncome);
         GUI_DrawText(renderer, cx, cy + 330, buf, col_white);

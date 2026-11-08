@@ -28,6 +28,10 @@ extern void ClearMes(void);
 #define LANDFILL_SAVE_TAG 0x4C46
 /* Marks that MiscHis[118..119] hold recreation funding (118..119) and a tag (120). */
 #define REC_SAVE_TAG 0x5243
+/* Marks that MiscHis[123..138] hold the budget snapshot as eight int32 hi/lo pairs and a tag (139). */
+#define FUNDS_SAVE_TAG 0x4655
+#define FUNDS_SAVE_BASE 123
+#define FUNDS_SAVE_TAG_SLOT 139
 
 /* Fixed on-disk size of a city image (header streams plus 120x100 map). */
 #define CITY_FILE_BYTES 27120
@@ -65,6 +69,18 @@ static void EncodeU16(uint8_t *p, uint16_t v)
 {
     p[0] = (uint8_t)(v >> 8);
     p[1] = (uint8_t)(v & 0xFFu);
+}
+
+static void PutI32Slots(int32_t slot, int32_t v)
+{
+    uint32_t u = (uint32_t)v;
+    MiscHis[slot] = (int16_t)((u >> 16) & 0xFFFFu);
+    MiscHis[slot + 1] = (int16_t)(u & 0xFFFFu);
+}
+
+static int32_t GetI32Slots(int32_t slot)
+{
+    return (int32_t)(((uint32_t)(uint16_t)MiscHis[slot] << 16) | (uint16_t)MiscHis[slot + 1]);
 }
 
 /* Copies scalar game state into MiscHis so it is included in the next encode. */
@@ -124,6 +140,16 @@ static void SyncMiscHis(void)
     MiscHis[118] = (int16_t)((rc >> 16) & 0xFFFFu);
     MiscHis[119] = (int16_t)(rc & 0xFFFFu);
     MiscHis[120] = REC_SAVE_TAG;
+
+    PutI32Slots(FUNDS_SAVE_BASE + 0, TaxFund);
+    PutI32Slots(FUNDS_SAVE_BASE + 2, DealsIncome);
+    PutI32Slots(FUNDS_SAVE_BASE + 4, PoliceFund);
+    PutI32Slots(FUNDS_SAVE_BASE + 6, FireFund);
+    PutI32Slots(FUNDS_SAVE_BASE + 8, HealthFund);
+    PutI32Slots(FUNDS_SAVE_BASE + 10, RecFund);
+    PutI32Slots(FUNDS_SAVE_BASE + 12, LandfillFund);
+    PutI32Slots(FUNDS_SAVE_BASE + 14, RoadFund);
+    MiscHis[FUNDS_SAVE_TAG_SLOT] = FUNDS_SAVE_TAG;
     Neighbor_SyncMisc();
 }
 
@@ -272,6 +298,43 @@ static int32_t LoadFileInternal(const char *filename)
     LandfillDecodeFill(want == (size_t)fill_total ? blob + pipe_total : NULL);
     free(blob);
     return 1;
+}
+
+/* Zeroes the budget values the load scan cannot see. The next tax period fills them in. */
+static void ResetUncountedFunds(void)
+{
+    TaxFund = 0;
+    DealsIncome = 0;
+    HealthFund = 0;
+    RecFund = 0;
+}
+
+static void RecomputeFundSpends(void)
+{
+    RoadSpend = (int32_t)((float)RoadFund * roadPercent);
+    PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
+    FireSpend = (int32_t)((float)FireFund * firePercent);
+    HealthSpend = (int32_t)((float)HealthFund * healthPercent);
+    RecSpend = (int32_t)((float)RecFund * recreationPercent);
+    LandfillSpend = (int32_t)((float)LandfillFund * landfillPercent);
+}
+
+/* Must run after CityRescan, which recounts the funds the map can show. Saves without the tag keep those counts. */
+static void RestoreFundSnapshot(void)
+{
+    if (MiscHis[FUNDS_SAVE_TAG_SLOT] == FUNDS_SAVE_TAG) {
+        TaxFund = GetI32Slots(FUNDS_SAVE_BASE + 0);
+        DealsIncome = GetI32Slots(FUNDS_SAVE_BASE + 2);
+        PoliceFund = GetI32Slots(FUNDS_SAVE_BASE + 4);
+        FireFund = GetI32Slots(FUNDS_SAVE_BASE + 6);
+        HealthFund = GetI32Slots(FUNDS_SAVE_BASE + 8);
+        RecFund = GetI32Slots(FUNDS_SAVE_BASE + 10);
+        LandfillFund = GetI32Slots(FUNDS_SAVE_BASE + 12);
+        RoadFund = GetI32Slots(FUNDS_SAVE_BASE + 14);
+    } else {
+        ResetUncountedFunds();
+    }
+    RecomputeFundSpends();
 }
 
 static void RestoreSimState(void)
@@ -452,6 +515,7 @@ int32_t LoadCity(const char *filename)
     FireEffect = 1000;
     HealthEffect = 1000;
     CityRescan();
+    RestoreFundSnapshot();
     CityEvaluation();
 
     if (CityFileName) free(CityFileName);
@@ -762,9 +826,9 @@ int32_t Scenario_LoadFile(const char *path)
     HealthEffect = 1000;
     RecEffect = 1000;
     CityRescan();
+    ResetUncountedFunds();
+    RecomputeFundSpends();
     CityEvaluation();
-
-    Scenario_Activate(&def);
     News_ResetSession();
 
     if (EngineCallbacks.update_funds) EngineCallbacks.update_funds(TotalFunds);

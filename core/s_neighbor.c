@@ -44,6 +44,7 @@
 #define NB_SAVE_GATE_BASE 18   /* 4 sides x 4 links, one slot each: (x << 8) | y, or -1 if none (18-33) */
 #define NB_SAVE_MID_BASE  34   /* 4 sides x 3 goods (34-45) */
 #define NB_SAVE_UNIT_BASE 112  /* 4 sides x 3 goods of zones, one byte each (zones + NB_ZONE_BIAS), two per slot: 112-117 */
+#define NB_SAVE_DEALS_BASE 121 /* deals_flow since the last tax period, int32 hi/lo: 121-122 */
 #define NB_NAME_SLOTS     8
 #define NB_ZONE_BIAS      128
 #define NB_LEGACY_UNIT_BIAS 8
@@ -483,6 +484,9 @@ static int16_t PackGate(int32_t side, int32_t link)
 void Neighbor_SyncMisc(void)
 {
     MiscHis[NB_SAVE_TAG_SLOT] = NB_SAVE_TAG;
+    uint32_t df = (uint32_t)deals_flow;
+    MiscHis[NB_SAVE_DEALS_BASE] = (int16_t)((df >> 16) & 0xFFFFu);
+    MiscHis[NB_SAVE_DEALS_BASE + 1] = (int16_t)(df & 0xFFFFu);
     for (int32_t k = 0; k < NB_SIDES * NB_GOODS_COUNT / 2; k++) {
         MiscHis[NB_SAVE_UNIT_BASE + k] = 0;
     }
@@ -519,6 +523,13 @@ void Neighbor_LoadMisc(void)
         return;
     }
     const bool legacy = tag == NB_SAVE_TAG_LEGACY;
+    if (legacy) {
+        deals_flow = 0;
+    } else {
+        uint16_t d0 = (uint16_t)MiscHis[NB_SAVE_DEALS_BASE];
+        uint16_t d1 = (uint16_t)MiscHis[NB_SAVE_DEALS_BASE + 1];
+        deals_flow = (int32_t)(((uint32_t)d0 << 16) | d1);
+    }
     for (int32_t s = 0; s < NB_SIDES; s++) {
         NeighborSide *n = &sides[s];
         for (int32_t i = 0; i < NB_NAME_SLOTS; i++) {
