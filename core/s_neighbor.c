@@ -26,6 +26,7 @@
 #define NB_POWER_ZONES    12
 #define NB_WATER_ZONES    12
 #define NB_TRASH_PER_UNIT 200
+#define NB_CONNECT_COST   1000
 #define NB_DRIFT          4
 #define NB_SPREAD_PCT     10
 #define NB_LV_PER_LINK    1
@@ -199,6 +200,14 @@ bool Neighbor_Connect(int32_t x, int32_t y)
         on_edge = true;
         int32_t link = GateLink(x, y);
         if (link == NB_LINK_TILE_NONE) continue;
+        if (TotalFunds < NB_CONNECT_COST) {
+            char cost_msg[96];
+            snprintf(cost_msg, sizeof(cost_msg), "Not enough funds to connect (costs $%d)", NB_CONNECT_COST);
+            SetMessageField(cost_msg, (int16_t)x, (int16_t)y, true);
+            return false;
+        }
+        TotalFunds -= NB_CONNECT_COST;
+        MustUpdateFunds = 1;
         Neighbor_BuildGate(side, link, x, y);
         char msg[256];
         snprintf(msg, sizeof(msg), "Connected %s to %s", NB_LINK_NAME[link], sides[side].name);

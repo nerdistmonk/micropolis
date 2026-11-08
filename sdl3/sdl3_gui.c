@@ -36,16 +36,16 @@ static GuiToolButton tool_buttons[] = {
   { roadState,        "Roadway",          "icroad", 10, { 56.0f, 184.0f, 46.0f, 46.0f }, NULL, NULL },
   { rrState,          "Railroad",         "icrail", 20, { 6.0f, 234.0f, 46.0f, 46.0f }, NULL, NULL },
   { powerState,       "Coal Power Plant", "iccoal", 3000, { 56.0f, 234.0f, 46.0f, 46.0f }, NULL, NULL },
-  { nuclearState,     "Nuclear Power Plant", "icnuc", 5000, { 6.0f, 284.0f, 46.0f, 46.0f }, NULL, NULL },
-  { stadiumState,     "Sports Stadium",   "icstad", 5000, { 56.0f, 284.0f, 46.0f, 46.0f }, NULL, NULL },
+  { nuclearState,     "Nuclear Power Plant", "icnuc", 6000, { 6.0f, 284.0f, 46.0f, 46.0f }, NULL, NULL },
+  { stadiumState,     "Sports Stadium",   "icstad", 6000, { 56.0f, 284.0f, 46.0f, 46.0f }, NULL, NULL },
   { seaportState,     "Seaport",          "icseap", 3000, { 6.0f, 334.0f, 46.0f, 46.0f }, NULL, NULL },
   { airportState,     "Municipal Airport", "icairp", 10000, { 56.0f, 334.0f, 46.0f, 46.0f }, NULL, NULL },
-  { parkState,        "Park",             "icpark", 20, { 6.0f, 384.0f, 46.0f, 46.0f }, NULL, NULL },
+  { parkState,        "Park",             "icpark", 200, { 6.0f, 384.0f, 46.0f, 46.0f }, NULL, NULL },
   { waterTowerState,  "Water Tower",      "icwtower", 500, { 6.0f, 434.0f, 46.0f, 46.0f }, NULL, NULL },
   { pipeState,        "Water Pipe",       "icpipe", 2, { 56.0f, 434.0f, 46.0f, 46.0f }, NULL, NULL },
   { hospitalState,    "Hospital",         "ichosp", 500, { 56.0f, 384.0f, 46.0f, 46.0f }, NULL, NULL },
   { landfillState,    "Landfill",         "icland", 100, { 6.0f, 484.0f, 46.0f, 46.0f }, NULL, NULL },
-  { connectState,     "Connect Neighbor", "icconn", 0, { 56.0f, 484.0f, 46.0f, 46.0f }, NULL, NULL }
+  { connectState,     "Connect Neighbor", "icconn", 1000, { 56.0f, 484.0f, 46.0f, 46.0f }, NULL, NULL }
 };
 
 #define NUM_TOOL_BUTTONS (sizeof(tool_buttons) / sizeof(tool_buttons[0]))
