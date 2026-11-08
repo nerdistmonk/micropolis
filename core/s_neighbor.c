@@ -243,6 +243,16 @@ void Neighbor_RemoveGate(int32_t side, int32_t link)
     sides[side].gate_y[link] = NB_LINK_TILE_NONE;
 }
 
+void Neighbor_PruneGates(void)
+{
+    for (int32_t s = 0; s < NB_SIDES; s++) {
+        for (int32_t l = 0; l < NB_LINK_COUNT; l++) {
+            if (sides[s].gate_x[l] == NB_LINK_TILE_NONE) continue;
+            if (!ConductorMatches(l, sides[s].gate_x[l], sides[s].gate_y[l])) Neighbor_RemoveGate(s, l);
+        }
+    }
+}
+
 int32_t Neighbor_Units(int32_t side, int32_t goods)
 {
     return sides[side].units[goods];
@@ -412,6 +422,7 @@ static void DriftMid(int32_t side, int32_t goods)
 /* Settles one month of deals. Called from the simulation tick; runs once every 4 ticks. */
 void Neighbor_Tick(void)
 {
+    Neighbor_PruneGates();
     if (CityTime & 3) return;
 
     for (int32_t s = 0; s < NB_SIDES; s++) {

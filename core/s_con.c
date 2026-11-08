@@ -690,6 +690,7 @@ int32_t LayDoze(int32_t x, int32_t y)
                         return 1;
                     }
                     ClearZoneArea(cx, cy, size);
+                    Neighbor_PruneGates();
                     TotalFunds -= 1;
                     MustUpdateFunds = 1;
                     FixZone(cx, cy);
@@ -709,6 +710,7 @@ int32_t LayDoze(int32_t x, int32_t y)
                           (folded >= HBRDG0 && folded <= HBRDG3) || (folded >= VBRDG0 && folded <= VBRDG3) ||
                           folded == HPOWER || folded == VPOWER || folded == HRAIL || folded == VRAIL;
         Map[x][y] = over_water ? RIVER : DIRT;
+        Neighbor_PruneGates();
 
         TotalFunds -= 1;
         MustUpdateFunds = 1;

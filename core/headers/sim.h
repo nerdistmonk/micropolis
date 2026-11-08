@@ -687,6 +687,7 @@ const char *Neighbor_Name(int32_t side);
 bool Neighbor_IsLinked(int32_t side, int32_t link);
 bool Neighbor_BuildGate(int32_t side, int32_t link, int32_t x, int32_t y);
 void Neighbor_RemoveGate(int32_t side, int32_t link);
+void Neighbor_PruneGates(void);
 int32_t Neighbor_Units(int32_t side, int32_t goods);
 int32_t Neighbor_Cap(int32_t side, int32_t goods);
 int32_t Neighbor_MidPrice(int32_t side, int32_t goods);
