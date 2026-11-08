@@ -700,11 +700,15 @@ void Dialog_City_Render(SDL_Renderer *renderer)
                 int32_t drawn = Neighbor_SoldUnits(deals_side, g);
                 int32_t safe = Neighbor_SafeSellUnits(deals_side, g);
                 if (drawn > 0 && Neighbor_SaleBlackedOut(deals_side, g)) {
-                    snprintf(buf, sizeof(buf), "Selling %d: not paid, your grid is in blackout (safe %d)", drawn, safe);
+                    const char *why = g == NB_GOODS_GARBAGE ? "landfill over capacity" : "your grid is in blackout";
+                    snprintf(buf, sizeof(buf), "Selling %d: not paid, %s (safe %d)", drawn, why, safe);
                     GUI_DrawText(renderer, sx, ry + 28, buf, col_red);
                 } else if (drawn > 0) {
                     snprintf(buf, sizeof(buf), "Selling %d: earns $%d/mo (safe %d)", drawn, drawn * sell, safe);
                     GUI_DrawText(renderer, sx, ry + 28, buf, col_green);
+                } else if (g == NB_GOODS_GARBAGE) {
+                    snprintf(buf, sizeof(buf), "Selling %d: settles at next city update (safe %d)", -units, safe);
+                    GUI_DrawText(renderer, sx, ry + 28, buf, col_gray);
                 } else {
                     snprintf(buf, sizeof(buf), "Selling %d: not delivered, no network at gate (safe %d)", -units, safe);
                     GUI_DrawText(renderer, sx, ry + 28, buf, col_red);
