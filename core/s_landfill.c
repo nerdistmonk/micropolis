@@ -2,7 +2,8 @@
  *
  * Each road-connected landfill block services LANDFILL_ZONES_PER_BLOCK developed zones, scaled
  * by landfillPercent (budget funding), as police and fire stations do. Demand is the citywide
- * count of residential, commercial, and industrial zone centres. Each CityTime tick compares
+ * count of placeable buildings (zones, parks, water towers, ports, stations, churches, and
+ * power plants), each counted once. Landfill blocks do not count against themselves. Each CityTime tick compares
  * demand with total capacity:
  *   - Overloaded: each connected block that is not full gains LANDFILL_STEP_TRASH waste.
  *     Demand beyond capacity is uncollected.
@@ -102,17 +103,6 @@ static bool IsConnected(int32_t cx, int32_t cy)
     return false;
 }
 
-static bool IsDemandZone(uint16_t t)
-{
-    int32_t low = t & LOMASK;
-    if (!(t & ZONEBIT)) {
-        return false;
-    }
-    return ((low >= RESBASE) && (low < HOSPITAL)) ||
-           ((low >= COMBASE) && (low < INDBASE)) ||
-           ((low >= INDBASE) && (low < PORTBASE));
-}
-
 void DoLandfill(void)
 {
     int32_t zones = 0;
@@ -120,10 +110,13 @@ void DoLandfill(void)
 
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
-            if (IsDemandZone(Map[x][y])) {
-                zones++;
-            } else if (IsLandfillCentre(Map[x][y] & LOMASK) && IsConnected(x, y)) {
+            int32_t low = Map[x][y] & LOMASK;
+            if (IsLandfillCentre(low) && IsConnected(x, y)) {
                 connectedCount++;
+            }
+            int32_t ox, oy, size;
+            if (BuildingAnchorAt(x, y, &ox, &oy, &size) && !IsLandfillTile(low)) {
+                zones++;
             }
         }
     }

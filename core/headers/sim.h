@@ -457,6 +457,7 @@ typedef struct {
 } LandValueFactors;
 void LandValueFactorsOf(int32_t x, int32_t y, LandValueFactors *f);
 bool ZoneHasRoadAccess(int32_t x, int32_t y);
+bool IsGrowingZone(int32_t low);
 bool BuildingAnchorAt(int32_t x, int32_t y, int32_t *ox, int32_t *oy, int32_t *size);
 int32_t LandValueWithNeighbors(int32_t value);
 extern Byte *CrimeMem[HWLDX];
@@ -466,7 +467,7 @@ extern Byte *TerrainMem[QWX];
 extern Byte *Qtem[QWX];
 
 extern int16_t RateOGMem[SmX][SmY];
-extern int16_t RecStMap[SmX][SmY];
+extern int16_t HospPop, ChurchPop, StadiumPop;
 extern int16_t ComRate[SmX][SmY];
 extern int16_t STem[SmX][SmY];
 
@@ -738,6 +739,7 @@ void FireAnalysis(void);
 void HealthAnalysis(void);
 void SmoothServiceMap(int16_t map[SmX][SmY]);
 bool HealthIsCovered(int32_t x, int32_t y);
+bool HospitalStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned);
 void RecAnalysis(void);
 bool RecIsCovered(int32_t x, int32_t y);
 int16_t HealthCoverageLevel(int32_t x, int32_t y);

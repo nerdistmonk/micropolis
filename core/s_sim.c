@@ -408,12 +408,6 @@ void ClearCensus(void)
     PortPop = 0;
     APortPop = 0;
     PowerStackNum = 0;
-
-    for (int16_t x = 0; x < SmX; x++) {
-        for (int16_t y = 0; y < SmY; y++) {
-            RecStMap[x][y] = 0;
-        }
-    }
 }
 
 static int32_t TaxTableIndex(int16_t rate)
@@ -1072,7 +1066,6 @@ void DoSPZone(int16_t pwron)
 
     case STADIUM:
         StadiumPop++;
-        RecStMap[SMapX >> 3][SMapY >> 3] += 1;
         if (!(CityTime & 15)) {
             RepairZone(STADIUM, 4);
         }
@@ -1085,7 +1078,6 @@ void DoSPZone(int16_t pwron)
 
     case FULLSTADIUM:
         StadiumPop++;
-        RecStMap[SMapX >> 3][SMapY >> 3] += 1;
         if (!((CityTime + SMapX + SMapY) & 7)) {
             DrawStadium(STADIUM);
         }

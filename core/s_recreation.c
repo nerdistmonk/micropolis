@@ -1,28 +1,61 @@
-/* s_recreation.c: Recreation coverage for citizen votes.
+/* s_recreation.c: Recreation coverage for placeable buildings.
  *
- * Each stadium adds to RecStMap from its zone-sim tick, like hospitals used to do for HospStMap.
- * Fountains are read from the map on each analysis. A fountain covers its own cell and the
- * eight around it (about nine zones). A stadium covers every cell within
- * RECREATION_STADIUM_RADIUS, so four stadiums spread across the map cover all of it.
+ * Each park serves up to 9 buildings, and each stadium up to 48. Every placeable building (zones,
+ * parks, water towers, and so on) is assigned to the nearest park or stadium with spare capacity,
+ * citywide, with no radius limit. Buildings with no park or stadium are unrecreated.
  * Residential population outside coverage is tallied in ResUnrecPop.
  */
 
 #include <string.h>
 #include "sim.h"
 
-#define RECREATION_STADIUM_RADIUS 5
+#define REC_CAPACITY_PARK 9
+#define REC_CAPACITY_STADIUM 48
+#define REC_MAX_SITES (WORLD_X * WORLD_Y)
 
-static bool rec_cover[SmX][SmY];
+typedef struct {
+    int32_t x;
+    int32_t y;
+    int32_t capacity;
+    int32_t assigned;
+} RecSite;
 
-static void MarkRecCells(int32_t cx, int32_t cy, int32_t radius)
+static RecSite rec_sites[REC_MAX_SITES];
+static int32_t rec_site_count;
+static bool rec_cover[WORLD_X][WORLD_Y];
+
+static RecSite *NearestOpenSite(int32_t x, int32_t y)
 {
-    for (int32_t dx = -radius; dx <= radius; dx++) {
-        for (int32_t dy = -radius; dy <= radius; dy++) {
-            int32_t nx = cx + dx;
-            int32_t ny = cy + dy;
-            if (nx >= 0 && nx < SmX && ny >= 0 && ny < SmY) {
-                rec_cover[nx][ny] = true;
-            }
+    RecSite *best = NULL;
+    int32_t best_d = 0;
+    for (int32_t i = 0; i < rec_site_count; i++) {
+        RecSite *s = &rec_sites[i];
+        if (s->assigned >= s->capacity) continue;
+        int32_t dx = s->x - x;
+        int32_t dy = s->y - y;
+        int32_t d = dx * dx + dy * dy;
+        if (!best || d < best_d) {
+            best = s;
+            best_d = d;
+        }
+    }
+    return best;
+}
+
+static void AddSite(int32_t x, int32_t y, int32_t capacity)
+{
+    RecSite *s = &rec_sites[rec_site_count++];
+    s->x = x;
+    s->y = y;
+    s->capacity = capacity;
+    s->assigned = 0;
+}
+
+static void MarkRecFootprint(int32_t ox, int32_t oy, int32_t size)
+{
+    for (int32_t tx = ox; tx < ox + size; tx++) {
+        for (int32_t ty = oy; ty < oy + size; ty++) {
+            if (TestBounds(tx, ty)) rec_cover[tx][ty] = true;
         }
     }
 }
@@ -30,20 +63,28 @@ static void MarkRecCells(int32_t cx, int32_t cy, int32_t radius)
 void RecAnalysis(void)
 {
     memset(rec_cover, 0, sizeof(rec_cover));
+    rec_site_count = 0;
 
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
-            uint16_t t = Map[x][y] & LOMASK;
-            if (t >= FOUNTAIN && t < FOUNTAIN + FOUNTAIN_FRAMES) {
-                MarkRecCells(x >> 3, y >> 3, 1);
+            uint16_t t = Map[x][y];
+            uint16_t low = t & LOMASK;
+            if (low >= FOUNTAIN && low < FOUNTAIN + FOUNTAIN_FRAMES) {
+                AddSite(x, y, REC_CAPACITY_PARK);
+            } else if ((t & ZONEBIT) && low >= STADIUMBASE && low <= FULLSTADIUM) {
+                AddSite(x, y, REC_CAPACITY_STADIUM);
             }
         }
     }
 
-    for (int32_t cx = 0; cx < SmX; cx++) {
-        for (int32_t cy = 0; cy < SmY; cy++) {
-            if (RecStMap[cx][cy] > 0) {
-                MarkRecCells(cx, cy, RECREATION_STADIUM_RADIUS);
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            int32_t ox, oy, size;
+            if (!BuildingAnchorAt(x, y, &ox, &oy, &size)) continue;
+            RecSite *s = NearestOpenSite(x, y);
+            if (s) {
+                s->assigned++;
+                MarkRecFootprint(ox, oy, size);
             }
         }
     }
@@ -51,5 +92,5 @@ void RecAnalysis(void)
 
 bool RecIsCovered(int32_t x, int32_t y)
 {
-    return rec_cover[x >> 3][y >> 3];
+    return TestBounds(x, y) && rec_cover[x][y];
 }

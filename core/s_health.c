@@ -1,13 +1,15 @@
 /* s_health.c: Hospital coverage for placeable buildings.
  *
  * Each hospital serves up to 18 buildings when it has power and water, and 9 when either is
- * missing. Every placeable building (zones, parks, water towers) is assigned to the nearest hospital
+ * missing. Funding scales that capacity (HealthEffect / 1000), so an unfunded hospital serves none.
+ * Every placeable building (zones, parks, water towers) is assigned to the nearest hospital
  * with spare capacity, citywide, with no radius limit. Buildings with no hospital are uncovered.
  * Residential zones outside coverage contribute only HEALTH_UNCOVERED_PCT of their population to tax.
  * Covered zones reach full value when healthPercent is 1.0, and fall back to the uncovered rate as
  * funding drops.
  */
 
+#include <stdlib.h>
 #include <string.h>
 #include "sim.h"
 
@@ -67,9 +69,11 @@ void HealthAnalysis(void)
                 (hospital_station_count < HEALTH_MAX_STATIONS)) {
                 HospitalStation *s = &hospital_stations[hospital_station_count++];
                 bool degraded = !(t & PWRBIT) || !WaterIsSupplied(x, y);
+                int32_t base = degraded ? HEALTH_CAPACITY_DEGRADED : HEALTH_CAPACITY_FULL;
+                int32_t cap = base * (int32_t)HealthEffect / 1000;
                 s->x = x;
                 s->y = y;
-                s->capacity = degraded ? HEALTH_CAPACITY_DEGRADED : HEALTH_CAPACITY_FULL;
+                s->capacity = (cap > 0) ? cap : 0;
                 s->assigned = 0;
             }
         }
@@ -92,6 +96,19 @@ bool HealthIsCovered(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return false;
     return health_covered[x][y];
+}
+
+bool HospitalStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned)
+{
+    for (int32_t i = 0; i < hospital_station_count; i++) {
+        HospitalStation *s = &hospital_stations[i];
+        if (abs(s->x - x) <= 1 && abs(s->y - y) <= 1) {
+            *capacity = s->capacity;
+            *assigned = s->assigned;
+            return true;
+        }
+    }
+    return false;
 }
 
 int16_t HealthCoverageLevel(int32_t x, int32_t y)

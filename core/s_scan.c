@@ -195,7 +195,8 @@ static void ZoneScanAccess(void)
             int32_t ox, oy, size;
             if (!BuildingAnchorAt(x, y, &ox, &oy, &size)) continue;
 
-            bool access = BuildingHasRoadAccess(ox, oy, size);
+            /* Buildings that never grow are not penalized for lacking a road, so they count as having access. */
+            bool access = !IsGrowingZone(Map[x][y] & LOMASK) || BuildingHasRoadAccess(ox, oy, size);
             for (int32_t tx = ox; tx < ox + size; tx++) {
                 for (int32_t ty = oy; ty < oy + size; ty++) {
                     if (!TestBounds(tx, ty)) continue;

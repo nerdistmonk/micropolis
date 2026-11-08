@@ -74,6 +74,12 @@ void CountUnzonedUtilities(bool needs_water)
     }
 }
 
+/* Residential, commercial, and industrial zones grow. Hospitals, churches, stations, ports, power plants, and stadiums do not. */
+bool IsGrowingZone(int32_t low)
+{
+    return low < PORTBASE && !(low >= HOSPITAL && low < COMBASE);
+}
+
 void DoZone(void)
 {
     int16_t zone_pwr_flg = SetZPower();
@@ -95,10 +101,8 @@ void DoZone(void)
     }
     zone_pwr_flg = zone_pwr_flg && watered;
 
-    /* Growing zones (residential, commercial, industrial) with no road touching them do not grow.
-       Hospitals and churches (HOSPITAL..COMBASE) do not grow, so they are not gated. */
-    bool growing = CChr9 < PORTBASE && !(CChr9 >= HOSPITAL && CChr9 < COMBASE);
-    if (growing && !ZoneHasRoadAccess(SMapX, SMapY)) {
+    /* Growing zones with no road touching them do not grow. Other buildings are not gated. */
+    if (IsGrowingZone(CChr9) && !ZoneHasRoadAccess(SMapX, SMapY)) {
         zone_pwr_flg = false;
     }
 

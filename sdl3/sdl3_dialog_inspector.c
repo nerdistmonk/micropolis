@@ -144,6 +144,13 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         } else {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Fire Demand: none (station not found)");
         }
+    } else if (low >= HOSPITAL && low < CHURCH) {
+        if (HospitalStationStats(tile_x, tile_y, &capacity, &demand)) {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Hospital Demand: %d zones | Capacity: %d zones",
+                     (int)demand, (int)capacity);
+        } else {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Hospital Demand: none (station not found)");
+        }
     } else if (TILE_IS_LANDFILL(tile)) {
         LandfillSystemStats(&capacity, &demand);
         snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Landfill Capacity: %d zones | Demand: %d zones (citywide)",
