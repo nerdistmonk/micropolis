@@ -697,10 +697,20 @@ void Dialog_City_Render(SDL_Renderer *renderer)
                 snprintf(buf, sizeof(buf), "Buying %d: costs $%d/mo", units, units * buy);
                 GUI_DrawText(renderer, sx, ry + 28, buf, col_red);
             } else if (units < 0) {
-                snprintf(buf, sizeof(buf), "Selling %d: earns $%d/mo", -units, -units * sell);
-                GUI_DrawText(renderer, sx, ry + 28, buf, col_green);
+                int32_t drawn = Neighbor_SoldUnits(deals_side, g);
+                int32_t safe = Neighbor_SafeSellUnits(deals_side, g);
+                if (drawn > 0 && Neighbor_SaleBlackedOut(deals_side, g)) {
+                    snprintf(buf, sizeof(buf), "Selling %d: not paid, your grid is in blackout (safe %d)", drawn, safe);
+                    GUI_DrawText(renderer, sx, ry + 28, buf, col_red);
+                } else if (drawn > 0) {
+                    snprintf(buf, sizeof(buf), "Selling %d: earns $%d/mo (safe %d)", drawn, drawn * sell, safe);
+                    GUI_DrawText(renderer, sx, ry + 28, buf, col_green);
+                } else {
+                    snprintf(buf, sizeof(buf), "Selling %d: not delivered, no network at gate (safe %d)", -units, safe);
+                    GUI_DrawText(renderer, sx, ry + 28, buf, col_red);
+                }
             } else {
-                snprintf(buf, sizeof(buf), "Idle (up to %d units)", cap);
+                snprintf(buf, sizeof(buf), "Idle (up to %d units, safe %d)", cap, Neighbor_SafeSellUnits(deals_side, g));
                 GUI_DrawText(renderer, sx, ry + 28, buf, col_gray);
             }
         }

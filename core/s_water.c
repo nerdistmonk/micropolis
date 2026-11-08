@@ -151,6 +151,7 @@ static void SupplyFromTower(int32_t tx, int32_t ty, int32_t limit)
         for (int32_t dx = -1; dx <= 1; dx++) {
             int32_t x = tx + dx;
             int32_t y = ty + dy;
+            if (!TestBounds(x, y)) continue;
             seen_map[x][y] = 1;
             pipe_queue[tail++] = x * WORLD_Y + y;
         }
@@ -281,6 +282,13 @@ void DoWaterScan(void)
             if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y])) continue;
             net_demand[NetFind(owner - 1)]++;
         }
+    }
+
+    Neighbor_ClearSales(NB_GOODS_WATER);
+    for (int32_t s = 0; s < NB_SIDES; s++) {
+        int32_t gx, gy, dem, cap;
+        if (!Neighbor_GateTile(s, NB_GOODS_WATER, &gx, &gy) || !WaterNetworkStats(gx, gy, &dem, &cap)) continue;
+        net_demand[NetFind(net_owner[gx][gy] - 1)] += Neighbor_OfferSale(s, NB_GOODS_WATER, cap - dem);
     }
 }
 

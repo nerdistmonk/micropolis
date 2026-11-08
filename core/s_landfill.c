@@ -9,11 +9,13 @@
  *   - Under capacity: each block holding waste loses LANDFILL_STEP_TRASH every
  *     LANDFILL_EMPTY_PERIOD ticks, so it empties at one third of its fill rate.
  *   - Balanced: nothing changes.
- * With no capacity at all (no connected block) and demand present, trash piles up unserviced
- * at LANDFILL_STEP_TRASH per tick, up to LANDFILL_UNSERVICED_MAX. It drains the same way once
- * demand is gone.
+ * With no connected block, demand beyond the capacity bought from neighbors (none, unless bought)
+ * piles up unserviced at LANDFILL_STEP_TRASH per tick, up to LANDFILL_UNSERVICED_MAX. It drains the
+ * same way once demand is covered.
  * A block shows four stages as it fills. Its upkeep is tiered: empty costs nothing, then one
  * third, two thirds, and full cost. Filled blocks pollute through LandfillPollution.
+ * Neighbor garbage buys add capacity (see Neighbor_GarbageFeedZones), and neighbor garbage sales
+ * draw landfill demand (see Neighbor_OfferSale).
  * TrashPending is the total waste: stored in blocks plus UnservicedTrash. The garbage and pile
  * effects read it. The land-value penalty reads only UnservicedTrash, so stored waste in a
  * working landfill does not lower land value.
@@ -125,8 +127,14 @@ void DoLandfill(void)
         }
     }
 
-    float capacity = (float)LANDFILL_ZONES_PER_BLOCK * landfillPercent * (float)connectedCount;
+    float capacity = (float)LANDFILL_ZONES_PER_BLOCK * landfillPercent * (float)connectedCount
+                   + (float)Neighbor_GarbageFeedZones();
     LandfillCapacityZones = capacity;
+
+    Neighbor_ClearSales(NB_GOODS_GARBAGE);
+    for (int32_t s = 0; s < NB_SIDES; s++) {
+        zones += Neighbor_OfferSale(s, NB_GOODS_GARBAGE, (int32_t)(capacity - (float)zones));
+    }
     LandfillDemandZones = zones;
     bool overloaded = (float)zones > capacity;
     bool underCapacity = (float)zones < capacity;
@@ -174,7 +182,7 @@ void DoLandfill(void)
     }
 
     if (connectedCount == 0) {
-        if (zones > 0) {
+        if ((float)zones > capacity) {
             UnservicedTrash += LANDFILL_STEP_TRASH;
             if (UnservicedTrash > LANDFILL_UNSERVICED_MAX) UnservicedTrash = LANDFILL_UNSERVICED_MAX;
         } else if (UnservicedTrash > 0) {

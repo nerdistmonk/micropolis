@@ -10,8 +10,14 @@
  * month a mid price follows a bounded random walk that reverts to its base. Buying costs the
  * mid price plus NB_SPREAD_PCT, and selling pays the mid price minus NB_SPREAD_PCT.
  *   - Power and water buys feed the grid at the gate as a source (see power and water scans).
- *   - Power and water sales are paid only from the grid's spare capacity at the gate.
- *   - Garbage buys clear unserviced trash; garbage sales add to it.
+ *   - Sales draw load from the network they sell into: power and water at the gate's grid or
+ *     network, garbage in the landfill. The load is never capped by spare capacity, so overselling
+ *     leaves your own city short. The neighbor pays for the units drawn (see Neighbor_OfferSale),
+ *     except power sold into a grid in blackout: the load still counts, but nothing is paid.
+ *     A sale that cannot reach a network (no grid or water network at the gate) draws nothing.
+ *   - Garbage buys add landfill capacity (see Neighbor_GarbageFeedZones), as power and water buys
+ *     add supply.
+ *   - Safe to sell: the units that fit in the spare capacity of the network, shown in the deals UI.
  *
  * Land value: each active road or rail link adds NB_LV_PER_LINK percent, up to NB_LV_BONUS_MAX.
  */
@@ -25,7 +31,7 @@
 #define NB_MAX_UNITS      4
 #define NB_POWER_ZONES    12
 #define NB_WATER_ZONES    12
-#define NB_TRASH_PER_UNIT 200
+#define NB_GARBAGE_ZONES  12
 #define NB_CONNECT_COST   1000
 #define NB_DRIFT          4
 #define NB_SPREAD_PCT     10
@@ -53,6 +59,9 @@ typedef struct {
 static const int32_t NB_BASE_PRICE[NB_GOODS_COUNT] = { 60, 40, 30 };
 
 static NeighborSide sides[NB_SIDES];
+static int32_t SaleSafeUnits[NB_SIDES][NB_GOODS_COUNT];
+static int32_t SaleDrawnUnits[NB_SIDES][NB_GOODS_COUNT];
+static bool SaleBlackedOut[NB_SIDES][NB_GOODS_COUNT];
 
 static const char *const NB_PREFIX[] = {
     "Bel", "Mar", "Oak", "Silver", "Haver", "Cedar", "Ash", "Lake", "Stone", "Glen", "Crest", "Fair"
@@ -289,6 +298,89 @@ int32_t Neighbor_FeedUnits(int32_t side, int32_t goods)
     return sides[side].units[goods] > 0 ? sides[side].units[goods] : 0;
 }
 
+/* Gate tile of an active power or water link, for scans that settle that good's sales. */
+bool Neighbor_GateTile(int32_t side, int32_t goods, int32_t *x, int32_t *y)
+{
+    if (side < 0 || side >= NB_SIDES) return false;
+    int32_t link = (goods == NB_GOODS_POWER) ? NB_LINK_POWER : (goods == NB_GOODS_WATER) ? NB_LINK_WATER : -1;
+    if (link < 0 || !LinkActive(side, link)) return false;
+    *x = sides[side].gate_x[link];
+    *y = sides[side].gate_y[link];
+    return true;
+}
+
+void Neighbor_ClearSales(int32_t goods)
+{
+    for (int32_t s = 0; s < NB_SIDES; s++) {
+        SaleSafeUnits[s][goods] = 0;
+        SaleDrawnUnits[s][goods] = 0;
+        SaleBlackedOut[s][goods] = false;
+    }
+}
+
+void Neighbor_BlackoutSale(int32_t side, int32_t goods)
+{
+    if (side < 0 || side >= NB_SIDES) return;
+    SaleBlackedOut[side][goods] = true;
+}
+
+bool Neighbor_SaleBlackedOut(int32_t side, int32_t goods)
+{
+    if (side < 0 || side >= NB_SIDES) return false;
+    return SaleBlackedOut[side][goods];
+}
+
+static int32_t SaleZonesPerUnit(int32_t goods)
+{
+    if (goods == NB_GOODS_POWER) return NB_POWER_ZONES;
+    if (goods == NB_GOODS_WATER) return NB_WATER_ZONES;
+    return NB_GARBAGE_ZONES;
+}
+
+/* Settles one side's sale into a network with spareZones of capacity left before this sale. The
+ * sale draws its full units, never capped by spare capacity. The safe units (spare capacity per
+ * unit, capped by the link) are recorded for the deals display. Returns the zones the sale adds
+ * to demand, or 0 when the side is not selling this good over an active link. */
+int32_t Neighbor_OfferSale(int32_t side, int32_t goods, int32_t spareZones)
+{
+    if (side < 0 || side >= NB_SIDES || sides[side].units[goods] >= 0) return 0;
+    int32_t cap = GoodsCap(side, goods);
+    if (cap <= 0) return 0;
+    int32_t drawn = -sides[side].units[goods];
+    if (drawn > cap) drawn = cap;
+    int32_t per = SaleZonesPerUnit(goods);
+    int32_t safe = spareZones > 0 ? spareZones / per : 0;
+    SaleSafeUnits[side][goods] = safe > cap ? cap : safe;
+    SaleDrawnUnits[side][goods] = drawn;
+    return drawn * per;
+}
+
+int32_t Neighbor_SafeSellUnits(int32_t side, int32_t goods)
+{
+    if (side < 0 || side >= NB_SIDES) return 0;
+    return SaleSafeUnits[side][goods];
+}
+
+int32_t Neighbor_SoldUnits(int32_t side, int32_t goods)
+{
+    if (side < 0 || side >= NB_SIDES) return 0;
+    return SaleDrawnUnits[side][goods];
+}
+
+/* Landfill capacity bought from neighbors, in zones. Each bought unit adds NB_GARBAGE_ZONES, limited
+ * to the units the active road and rail links can carry. */
+int32_t Neighbor_GarbageFeedZones(void)
+{
+    int32_t zones = 0;
+    for (int32_t s = 0; s < NB_SIDES; s++) {
+        int32_t units = sides[s].units[NB_GOODS_GARBAGE];
+        if (units <= 0) continue;
+        int32_t cap = GoodsCap(s, NB_GOODS_GARBAGE);
+        zones += (units > cap ? cap : units) * NB_GARBAGE_ZONES;
+    }
+    return zones;
+}
+
 int32_t Neighbor_LandValueBonusPercent(void)
 {
     int32_t total = 0;
@@ -335,35 +427,11 @@ void Neighbor_Tick(void)
                     continue;
                 }
                 TotalFunds -= cost;
-                if (g == NB_GOODS_GARBAGE) {
-                    int32_t clear = units * NB_TRASH_PER_UNIT;
-                    if (clear > UnservicedTrash) clear = UnservicedTrash;
-                    UnservicedTrash -= clear;
-                }
                 continue;
             }
 
-            int32_t sold = -units;
-            if (g == NB_GOODS_GARBAGE) {
-                UnservicedTrash += sold * NB_TRASH_PER_UNIT;
-            } else {
-                int32_t spare = 0;
-                if (g == NB_GOODS_POWER && LinkActive(s, NB_LINK_POWER)) {
-                    int32_t dem = 0, cap_z = 0;
-                    int32_t ix = sides[s].gate_x[NB_LINK_POWER], iy = sides[s].gate_y[NB_LINK_POWER];
-                    if (PowerGridStats(ix, iy, &dem, &cap_z) && cap_z > dem) {
-                        spare = (cap_z - dem) / NB_POWER_ZONES;
-                    }
-                } else if (g == NB_GOODS_WATER && LinkActive(s, NB_LINK_WATER)) {
-                    int32_t dem = 0, cap_z = 0;
-                    int32_t ix = sides[s].gate_x[NB_LINK_WATER], iy = sides[s].gate_y[NB_LINK_WATER];
-                    if (WaterNetworkStats(ix, iy, &dem, &cap_z) && cap_z > dem) {
-                        spare = (cap_z - dem) / NB_WATER_ZONES;
-                    }
-                }
-                if (sold > spare) sold = spare;
-                if (sold <= 0) continue;
-            }
+            int32_t sold = SaleDrawnUnits[s][g];
+            if (sold <= 0 || SaleBlackedOut[s][g]) continue;
             TotalFunds += sold * SellPrice(s, g);
         }
     }

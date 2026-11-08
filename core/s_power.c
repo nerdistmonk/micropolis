@@ -283,6 +283,16 @@ void DoPowerScan(void)
                                            : NeighborFeedZones[i - mapPlants];
     }
 
+    /* Neighbor power purchases draw real load at their gate. Not capped by spare capacity: overselling
+     * leaves the grid short, which the blackout and meltdown rules punish. */
+    Neighbor_ClearSales(NB_GOODS_POWER);
+    for (int32_t s = 0; s < NB_SIDES; s++) {
+        int32_t gx, gy;
+        if (!Neighbor_GateTile(s, NB_GOODS_POWER, &gx, &gy) || !TestBounds(gx, gy) || GridTag[gx][gy] == 0) continue;
+        int32_t r = GridTag[gx][gy] - 1;
+        GridDemand[r] += Neighbor_OfferSale(s, NB_GOODS_POWER, GridCapacity[r] - GridDemand[r]);
+    }
+
     bool blackout = false;
     for (int32_t g = 0; g < plants; g++) {
         if (SeedParent[g] != g) continue;
@@ -294,6 +304,14 @@ void DoPowerScan(void)
             DarkenGridZones(g, shortfall, tiles);
             blackout = true;
         }
+    }
+
+    /* Sold load stays on the grid during a blackout, but the neighbor is not paid for it. */
+    for (int32_t s = 0; s < NB_SIDES; s++) {
+        int32_t gx, gy;
+        if (!Neighbor_GateTile(s, NB_GOODS_POWER, &gx, &gy) || !TestBounds(gx, gy) || GridTag[gx][gy] == 0) continue;
+        int32_t r = GridTag[gx][gy] - 1;
+        if (GridDemand[r] > GridCapacity[r]) Neighbor_BlackoutSale(s, NB_GOODS_POWER);
     }
 
     if (blackout) {
