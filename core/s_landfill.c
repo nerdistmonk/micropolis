@@ -15,7 +15,8 @@
  * A block shows four stages as it fills. Its upkeep is tiered: empty costs nothing, then one
  * third, two thirds, and full cost. Filled blocks pollute through LandfillPollution.
  * Neighbor garbage buys add capacity (see Neighbor_GarbageFeedZones), and neighbor garbage sales
- * draw landfill demand (see Neighbor_OfferSale).
+ * draw landfill demand (see Neighbor_OfferSale). While the landfill is overloaded, garbage sales
+ * are not paid, as power and water sales are not paid during a blackout.
  * TrashPending is the total waste: stored in blocks plus UnservicedTrash. The garbage and pile
  * effects read it. The land-value penalty reads only UnservicedTrash, so stored waste in a
  * working landfill does not lower land value.
@@ -137,6 +138,11 @@ void DoLandfill(void)
     }
     LandfillDemandZones = zones;
     bool overloaded = (float)zones > capacity;
+    if (overloaded) {
+        for (int32_t s = 0; s < NB_SIDES; s++) {
+            if (Neighbor_SoldUnits(s, NB_GOODS_GARBAGE) > 0) Neighbor_BlackoutSale(s, NB_GOODS_GARBAGE);
+        }
+    }
     bool underCapacity = (float)zones < capacity;
     bool emptyTick = (CityTime % LANDFILL_EMPTY_PERIOD) == 0;
 
