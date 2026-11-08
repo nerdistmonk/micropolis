@@ -1251,6 +1251,7 @@ void Sim_InitEngine(void)
     SetCommonInits();
     ResetMilestoneState();
     News_ResetSession();
+    Neighbor_Reset();
 
     for (int16_t x = 0; x < 240; x++) {
         ResHis[x] = 0;
