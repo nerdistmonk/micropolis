@@ -195,8 +195,9 @@ bool Dialog_City_HandleKeyDown(SDL_Keycode key)
 bool Dialog_City_HandleClick(float mx, float my)
 {
     float dw = 580.0f;
+    float dh = 530.0f;
     float dx = DialogCenteredX(dw);
-    float dy = DialogCenteredY(470.0f);
+    float dy = DialogCenteredY(dh);
 
     if (mx >= dx + dw - 32.0f && mx <= dx + dw - 8.0f &&
         my >= dy + 8.0f && my <= dy + 32.0f) {
