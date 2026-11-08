@@ -1,6 +1,6 @@
 /* s_recreation.c: Recreation coverage for citizen votes.
  *
- * Each stadium adds to RecStMap from its zone-sim tick, like hospitals do for HospStMap.
+ * Each stadium adds to RecStMap from its zone-sim tick, like hospitals used to do for HospStMap.
  * Fountains are read from the map on each analysis. A fountain covers its own cell and the
  * eight around it (about nine zones). A stadium covers every cell within
  * RECREATION_STADIUM_RADIUS, so four stadiums spread across the map cover all of it.

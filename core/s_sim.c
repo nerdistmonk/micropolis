@@ -411,7 +411,6 @@ void ClearCensus(void)
 
     for (int16_t x = 0; x < SmX; x++) {
         for (int16_t y = 0; y < SmY; y++) {
-            HospStMap[x][y] = 0;
             RecStMap[x][y] = 0;
         }
     }

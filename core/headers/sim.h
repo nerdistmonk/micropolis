@@ -466,7 +466,6 @@ extern Byte *TerrainMem[QWX];
 extern Byte *Qtem[QWX];
 
 extern int16_t RateOGMem[SmX][SmY];
-extern int16_t HospStMap[SmX][SmY];
 extern int16_t RecStMap[SmX][SmY];
 extern int16_t ComRate[SmX][SmY];
 extern int16_t STem[SmX][SmY];
