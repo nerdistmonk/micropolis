@@ -984,6 +984,7 @@ static const ToolCursorStyle tool_cursor_style[] = {
     [pipeState]        = { 1, 0, COLOR_LIGHTBLUE, COLOR_LIGHTBLUE },
     [hospitalState]    = { 3, 1, COLOR_LIGHTGRAY, COLOR_RED },
     [landfillState]    = { 3, 1, COLOR_LIGHTGRAY, COLOR_LIGHTBROWN },
+    [connectState]     = { 1, 0, COLOR_YELLOW, COLOR_DARKGREEN },
 };
 
 /* Unix w_x.c palette */
