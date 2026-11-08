@@ -149,8 +149,7 @@ static void PickName(int32_t side)
         }
         if (!clash) break;
     }
-    strncpy(sides[side].name, buf, NB_NAME_MAX);
-    sides[side].name[NB_NAME_MAX] = '\0';
+    snprintf(sides[side].name, sizeof(sides[side].name), "%s", buf);
 }
 
 void Neighbor_Reset(void)
