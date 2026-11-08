@@ -38,14 +38,16 @@
 #define NB_LV_PER_LINK    1
 #define NB_LV_BONUS_MAX   8
 
-/* Save layout in MiscHis (slots 79-167) */
-#define NB_SAVE_TAG       0x4E42
+/* Save layout in MiscHis. Only slots 0-119 are written to the city file (see ParseCityBlob), so
+ * everything lives there. Slots 0, 46-49 and 116-119 are otherwise unused. */
+#define NB_SAVE_TAG       0x4E43
 #define NB_SAVE_TAG_SLOT  79
-#define NB_SAVE_NAME_BASE 80   /* 4 sides x 8 slots, two chars per slot */
-#define NB_SAVE_GATE_BASE 112  /* 4 sides x 4 links x (x, y) */
-#define NB_SAVE_MID_BASE  144  /* 4 sides x 3 goods */
-#define NB_SAVE_UNIT_BASE 156  /* 4 sides x 3 goods */
+#define NB_SAVE_NAME_BASE 80   /* 4 sides x 8 slots, two chars per slot (80-111) */
+#define NB_SAVE_GATE_BASE 18   /* 4 sides x 4 links, one slot each: (x << 8) | y, or -1 if none (18-33) */
+#define NB_SAVE_MID_BASE  34   /* 4 sides x 3 goods (34-45) */
+#define NB_SAVE_UNIT_BASE 112  /* 4 sides, one slot each: 4-bit (units + NB_UNIT_BIAS) per good (112-115) */
 #define NB_NAME_SLOTS     8
+#define NB_UNIT_BIAS      8
 
 typedef struct {
     char name[NB_NAME_MAX + 1];
@@ -209,6 +211,12 @@ bool Neighbor_Connect(int32_t x, int32_t y)
         on_edge = true;
         int32_t link = GateLink(x, y);
         if (link == NB_LINK_TILE_NONE) continue;
+        if (LinkActive(side, link)) {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Already connected: %s to %s", NB_LINK_NAME[link], sides[side].name);
+            SetMessageField(msg, (int16_t)x, (int16_t)y, true);
+            return false;
+        }
         if (TotalFunds < NB_CONNECT_COST) {
             char cost_msg[96];
             snprintf(cost_msg, sizeof(cost_msg), "Not enough funds to connect (costs $%d)", NB_CONNECT_COST);
@@ -438,6 +446,12 @@ void Neighbor_Tick(void)
     if (TotalFunds < 0) TotalFunds = 0;
 }
 
+static int16_t PackGate(int32_t side, int32_t link)
+{
+    if (sides[side].gate_x[link] == NB_LINK_TILE_NONE) return -1;
+    return (int16_t)((sides[side].gate_x[link] << 8) | sides[side].gate_y[link]);
+}
+
 void Neighbor_SyncMisc(void)
 {
     MiscHis[NB_SAVE_TAG_SLOT] = NB_SAVE_TAG;
@@ -447,15 +461,15 @@ void Neighbor_SyncMisc(void)
             uint8_t c1 = (uint8_t)sides[s].name[2 * i + 1];
             MiscHis[NB_SAVE_NAME_BASE + s * NB_NAME_SLOTS + i] = (int16_t)((c0 << 8) | c1);
         }
+        uint16_t units_word = 0;
         for (int32_t l = 0; l < NB_LINK_COUNT; l++) {
-            int32_t base = NB_SAVE_GATE_BASE + (s * NB_LINK_COUNT + l) * 2;
-            MiscHis[base] = sides[s].gate_x[l];
-            MiscHis[base + 1] = sides[s].gate_y[l];
+            MiscHis[NB_SAVE_GATE_BASE + s * NB_LINK_COUNT + l] = PackGate(s, l);
         }
         for (int32_t g = 0; g < NB_GOODS_COUNT; g++) {
             MiscHis[NB_SAVE_MID_BASE + s * NB_GOODS_COUNT + g] = sides[s].mid[g];
-            MiscHis[NB_SAVE_UNIT_BASE + s * NB_GOODS_COUNT + g] = sides[s].units[g];
+            units_word |= (uint16_t)(((sides[s].units[g] + NB_UNIT_BIAS) & 0xF) << (4 * g));
         }
+        MiscHis[NB_SAVE_UNIT_BASE + s] = (int16_t)units_word;
     }
 }
 
@@ -476,10 +490,10 @@ void Neighbor_LoadMisc(void)
         if (n->name[0] == '\0') PickName(s);
 
         for (int32_t l = 0; l < NB_LINK_COUNT; l++) {
-            int32_t base = NB_SAVE_GATE_BASE + (s * NB_LINK_COUNT + l) * 2;
-            int32_t gx = MiscHis[base];
-            int32_t gy = MiscHis[base + 1];
-            if (TestBounds(gx, gy) && OnSideEdge(s, gx, gy)) {
+            int32_t packed = MiscHis[NB_SAVE_GATE_BASE + s * NB_LINK_COUNT + l];
+            int32_t gx = packed >> 8;
+            int32_t gy = packed & 0xFF;
+            if (packed >= 0 && TestBounds(gx, gy) && OnSideEdge(s, gx, gy)) {
                 n->gate_x[l] = (int16_t)gx;
                 n->gate_y[l] = (int16_t)gy;
             } else {
@@ -487,11 +501,16 @@ void Neighbor_LoadMisc(void)
                 n->gate_y[l] = NB_LINK_TILE_NONE;
             }
         }
+        uint16_t units_word = (uint16_t)MiscHis[NB_SAVE_UNIT_BASE + s];
         for (int32_t g = 0; g < NB_GOODS_COUNT; g++) {
             int32_t mid = MiscHis[NB_SAVE_MID_BASE + s * NB_GOODS_COUNT + g];
             if (mid < NB_BASE_PRICE[g] / 2 || mid > NB_BASE_PRICE[g] * 2) mid = NB_BASE_PRICE[g];
             n->mid[g] = (int16_t)mid;
-            n->units[g] = MiscHis[NB_SAVE_UNIT_BASE + s * NB_GOODS_COUNT + g];
+            int32_t units = (int32_t)((units_word >> (4 * g)) & 0xFu) - NB_UNIT_BIAS;
+            if (units > NB_MAX_UNITS) units = NB_MAX_UNITS;
+            if (units < -NB_MAX_UNITS) units = -NB_MAX_UNITS;
+            n->units[g] = (int16_t)units;
         }
     }
 }
+
