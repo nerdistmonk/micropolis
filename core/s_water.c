@@ -190,6 +190,8 @@ static int32_t net_parent[WORLD_X * WORLD_Y];
 static int32_t net_demand[WORLD_X * WORLD_Y];
 static int32_t net_sold[WORLD_X * WORLD_Y];
 static int32_t net_drop[WORLD_X * WORLD_Y];
+static int32_t net_zones[WORLD_X * WORLD_Y];
+static uint32_t WaterRotor = 0;
 static int32_t net_capacity[WORLD_X * WORLD_Y];
 static int32_t net_towers = 0;
 static int32_t net_tower_zones[WORLD_X * WORLD_Y];
@@ -243,6 +245,25 @@ static void FloodWaterNetwork(int32_t tx, int32_t ty, int32_t tower)
     }
 }
 
+/* Drops `count` of a network's `zones` covered zones, starting at the rotating cursor so the
+ * shortage moves across the whole network over successive scans. */
+static void DropWaterZones(int32_t root, int32_t count, int32_t zones)
+{
+    int32_t first = (int32_t)(WaterRotor % (uint32_t)zones);
+    int32_t index = 0;
+
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            if (!water_map[x][y] || !net_owner[x][y]) continue;
+            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y])) continue;
+            if (NetFind(net_owner[x][y] - 1) != root) continue;
+            if (((index - first + zones) % zones) < count) water_map[x][y] = 0;
+            index++;
+        }
+    }
+    WaterRotor += (uint32_t)count;
+}
+
 void DoWaterScan(void)
 {
     memset(water_map, 0, sizeof(water_map));
@@ -250,6 +271,7 @@ void DoWaterScan(void)
     memset(net_demand, 0, sizeof(net_demand));
     memset(net_sold, 0, sizeof(net_sold));
     memset(net_drop, 0, sizeof(net_drop));
+    memset(net_zones, 0, sizeof(net_zones));
     memset(net_capacity, 0, sizeof(net_capacity));
     net_towers = 0;
 
@@ -299,35 +321,29 @@ void DoWaterScan(void)
     }
 
     /* Sold water loads the towers the same way power sales load a grid: whatever the sale
-     * leaves no room for loses water. Those zones are dropped from coverage and the sale is
-     * not paid while the network is short. */
+     * leaves no room for loses water. Those zones are dropped from coverage, rotating across the
+     * network like power blackouts, and the sale is not paid while the network is short. */
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
             if (!water_map[x][y] || !net_owner[x][y]) continue;
             if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y])) continue;
-            net_drop[NetFind(net_owner[x][y] - 1)]++;
+            net_zones[NetFind(net_owner[x][y] - 1)]++;
         }
     }
     for (int32_t t = 0; t < net_towers; t++) {
         if (NetFind(t) != t) continue;
         int32_t allowed = net_capacity[t] - net_sold[t];
         if (allowed < 0) allowed = 0;
-        net_drop[t] = net_drop[t] > allowed ? net_drop[t] - allowed : 0;
+        net_drop[t] = net_zones[t] > allowed ? net_zones[t] - allowed : 0;
     }
     for (int32_t s = 0; s < NB_SIDES; s++) {
         int32_t gx, gy;
         if (!Neighbor_GateTile(s, NB_GOODS_WATER, &gx, &gy) || !TestBounds(gx, gy) || !net_owner[gx][gy]) continue;
         if (net_drop[NetFind(net_owner[gx][gy] - 1)] > 0) Neighbor_BlackoutSale(s, NB_GOODS_WATER);
     }
-    for (int32_t x = 0; x < WORLD_X; x++) {
-        for (int32_t y = 0; y < WORLD_Y; y++) {
-            if (!water_map[x][y] || !net_owner[x][y]) continue;
-            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y])) continue;
-            int32_t root = NetFind(net_owner[x][y] - 1);
-            if (net_drop[root] <= 0) continue;
-            water_map[x][y] = 0;
-            net_drop[root]--;
-        }
+    for (int32_t t = 0; t < net_towers; t++) {
+        if (NetFind(t) != t || net_drop[t] <= 0) continue;
+        DropWaterZones(t, net_drop[t], net_zones[t]);
     }
 }
 
