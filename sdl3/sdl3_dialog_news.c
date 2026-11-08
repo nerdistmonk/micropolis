@@ -170,7 +170,8 @@ static const NewsGameHeadline game_headlines[] = {
     { NEWS_EVENT_ADV_FIRE_FUNDING, "Fire departments go short of funding" },
     { NEWS_EVENT_ADV_POLICE_FUNDING, "Police departments go short of funding" },
     { NEWS_EVENT_ADV_UNEMPLOYMENT, "Jobless workers crowd the streets as employers hold back" },
-    { NEWS_EVENT_ADV_PARKS, "Residents complain the city has no parks to relax in" },
+    { NEWS_EVENT_ADV_PARKS, "Residents complain they have no parks to relax in" },
+    { NEWS_EVENT_ADV_PARKS_FUNDING, "Parks go short of funding as the city cuts recreation" },
     { NEWS_EVENT_ADV_RIOTS, "Angry crowds riot in the streets as crime runs wild" },
     { NEWS_EVENT_ADV_HOSPITAL, "Citizens demand a hospital, and the sick have nowhere to go" },
 };

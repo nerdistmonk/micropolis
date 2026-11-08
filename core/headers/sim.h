@@ -439,6 +439,7 @@ typedef struct SimCallbacks {
 #define NEWS_EVENT_ADV_PARKS        126
 #define NEWS_EVENT_ADV_RIOTS        127
 #define NEWS_EVENT_ADV_HOSPITAL     128
+#define NEWS_EVENT_ADV_PARKS_FUNDING 129
 
 /* Engine Global Variables */
 extern uint16_t *Map[WORLD_X];
@@ -501,13 +502,19 @@ extern int16_t *IndHis;
 extern int16_t *MoneyHis, *CrimeHis, *PollutionHis, *MiscHis;
 extern uint16_t *PowerMap;
 
-extern float roadPercent, policePercent, firePercent, healthPercent, landfillPercent;
+extern float roadPercent, policePercent, firePercent, healthPercent, landfillPercent, recreationPercent;
 extern int32_t LandfillFund, LandfillSpend, TrashPending, UnservicedTrash;
 extern int16_t LandfillPop;
 extern bool LandfillAtCapacity;
-extern int32_t RoadSpend, PoliceSpend, FireSpend, HealthSpend;
-extern int32_t TaxFund, RoadFund, PoliceFund, FireFund, HealthFund;
-extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect;
+extern int32_t RoadSpend, PoliceSpend, FireSpend, HealthSpend, RecSpend;
+extern int32_t TaxFund, RoadFund, PoliceFund, FireFund, HealthFund, RecFund;
+extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect, RecEffect;
+#define POLICE_STATION_COST 60
+#define FIRE_STATION_COST   60
+#define HOSPITAL_COST       80
+#define PARK_COST           25
+#define STADIUM_COST        150
+#define LANDFILL_CENTRE_COST 20
 extern int16_t TaxFlag, ResTax, ComTax, IndTax;
 extern int32_t ResTaxPop;
 extern int32_t ResUncoveredPop;
@@ -672,7 +679,6 @@ void DoLandfill(void);
 void LandfillBlockPlaced(int32_t x, int32_t y);
 void LandfillResetCity(void);
 void LandfillRescan(void);
-int32_t LandfillTieredCost(void);
 #define LANDFILL_FILL_BYTES (WORLD_X * WORLD_Y * 2)
 void LandfillEncodeFill(uint8_t *dst);
 void LandfillDecodeFill(const uint8_t *src);

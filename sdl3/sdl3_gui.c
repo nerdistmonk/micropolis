@@ -43,7 +43,7 @@ static GuiToolButton tool_buttons[] = {
   { parkState,        "Park",             "icpark", 200, { 6.0f, 384.0f, 46.0f, 46.0f }, NULL, NULL },
   { waterTowerState,  "Water Tower",      "icwtower", 500, { 6.0f, 434.0f, 46.0f, 46.0f }, NULL, NULL },
   { pipeState,        "Water Pipe",       "icpipe", 2, { 56.0f, 434.0f, 46.0f, 46.0f }, NULL, NULL },
-  { hospitalState,    "Hospital",         "ichosp", 500, { 56.0f, 384.0f, 46.0f, 46.0f }, NULL, NULL },
+  { hospitalState,    "Hospital",         "ichosp", 1000, { 56.0f, 384.0f, 46.0f, 46.0f }, NULL, NULL },
   { landfillState,    "Landfill",         "icland", 100, { 6.0f, 484.0f, 46.0f, 46.0f }, NULL, NULL },
   { connectState,     "Connect Neighbor", "icconn", 1000, { 56.0f, 484.0f, 46.0f, 46.0f }, NULL, NULL }
 };

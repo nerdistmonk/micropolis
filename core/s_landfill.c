@@ -257,31 +257,8 @@ void LandfillRescan(void)
             LandfillFill[x][y] = (uint16_t)fill;
         }
     }
-    LandfillFund = LandfillPop * 100;
+    LandfillFund = LandfillPop * LANDFILL_CENTRE_COST;
     LandfillSpend = (int32_t)((float)LandfillFund * landfillPercent);
-}
-
-int32_t LandfillTieredCost(void)
-{
-    int32_t cost = 0;
-    for (int32_t x = 0; x < WORLD_X; x++) {
-        for (int32_t y = 0; y < WORLD_Y; y++) {
-            int32_t low = Map[x][y] & LOMASK;
-            if (!IsLandfillCentre(low)) {
-                continue;
-            }
-            int32_t fill = LandfillFill[x][y];
-            if (fill <= 0) {
-                continue;
-            }
-            int32_t tier = (3 * fill + LANDFILL_BLOCK_CAP - 1) / LANDFILL_BLOCK_CAP;
-            if (tier > 3) {
-                tier = 3;
-            }
-            cost += 100 * tier / 3;
-        }
-    }
-    return cost;
 }
 
 static void PutU16(uint8_t *p, uint16_t v)

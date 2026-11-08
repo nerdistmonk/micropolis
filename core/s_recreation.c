@@ -3,6 +3,7 @@
  * Each park serves up to 9 buildings, and each stadium up to 48. Every placeable building (zones,
  * parks, water towers, and so on) is assigned to the nearest park or stadium with spare capacity,
  * citywide, with no radius limit. Buildings with no park or stadium are unrecreated.
+ * Funding scales those capacities (RecEffect / 1000), so an unfunded park serves none.
  * Residential population outside coverage is tallied in ResUnrecPop.
  */
 
@@ -65,14 +66,17 @@ void RecAnalysis(void)
     memset(rec_cover, 0, sizeof(rec_cover));
     rec_site_count = 0;
 
+    int32_t park_cap = REC_CAPACITY_PARK * (int32_t)RecEffect / 1000;
+    int32_t stadium_cap = REC_CAPACITY_STADIUM * (int32_t)RecEffect / 1000;
+
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
             uint16_t t = Map[x][y];
             uint16_t low = t & LOMASK;
             if (low >= FOUNTAIN && low < FOUNTAIN + FOUNTAIN_FRAMES) {
-                AddSite(x, y, REC_CAPACITY_PARK);
+                AddSite(x, y, park_cap);
             } else if ((t & ZONEBIT) && low >= STADIUMBASE && low <= FULLSTADIUM) {
-                AddSite(x, y, REC_CAPACITY_STADIUM);
+                AddSite(x, y, stadium_cap);
             }
         }
     }

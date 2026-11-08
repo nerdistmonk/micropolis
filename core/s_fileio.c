@@ -26,6 +26,8 @@ extern void ClearMes(void);
 #define HEALTH_SAVE_TAG 0x4854
 /* Marks that MiscHis[72..76] hold landfill funding (72..73), a tag (74), and the stored trash total (75..76). */
 #define LANDFILL_SAVE_TAG 0x4C46
+/* Marks that MiscHis[118..119] hold recreation funding (118..119) and a tag (120). */
+#define REC_SAVE_TAG 0x5243
 
 /* Fixed on-disk size of a city image (header streams plus 120x100 map). */
 #define CITY_FILE_BYTES 27120
@@ -117,6 +119,11 @@ static void SyncMiscHis(void)
     uint32_t ut = (uint32_t)UnservicedTrash;
     MiscHis[77] = (int16_t)((ut >> 16) & 0xFFFFu);
     MiscHis[78] = (int16_t)(ut & 0xFFFFu);
+
+    uint32_t rc = (uint32_t)(int32_t)(recreationPercent * 65536.0f);
+    MiscHis[118] = (int16_t)((rc >> 16) & 0xFFFFu);
+    MiscHis[119] = (int16_t)(rc & 0xFFFFu);
+    MiscHis[120] = REC_SAVE_TAG;
     Neighbor_SyncMisc();
 }
 
@@ -320,9 +327,9 @@ void CityRescan(void)
 
     RoadFund = CalcRoadFund(GameLevel);
     RoadSpend = (int32_t)((float)RoadFund * roadPercent);
-    PoliceFund = PolicePop * 100;
+    PoliceFund = PolicePop * POLICE_STATION_COST;
     PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
-    FireFund = FireStPop * 100;
+    FireFund = FireStPop * FIRE_STATION_COST;
     FireSpend = (int32_t)((float)FireFund * firePercent);
     LandfillRescan();
 
@@ -389,6 +396,15 @@ int32_t LoadCity(const char *filename)
         healthPercent = 1.0f;
     }
     HealthEffect = (int16_t)(healthPercent * 1000.0f);
+
+    if (MiscHis[120] == REC_SAVE_TAG) {
+        uint16_t c0 = (uint16_t)MiscHis[118];
+        uint16_t c1 = (uint16_t)MiscHis[119];
+        recreationPercent = ClampPercent((float)((int32_t)(((uint32_t)c0 << 16) | c1)) / 65536.0f);
+    } else {
+        recreationPercent = 1.0f;
+    }
+    RecEffect = (int16_t)(recreationPercent * 1000.0f);
 
     if (MiscHis[74] == LANDFILL_SAVE_TAG) {
         uint16_t l0 = (uint16_t)MiscHis[72];
@@ -730,6 +746,7 @@ int32_t Scenario_LoadFile(const char *path)
     policePercent = 1.0f;
     firePercent = 1.0f;
     healthPercent = 1.0f;
+    recreationPercent = 1.0f;
     LandfillResetCity();
     /* Must follow LandfillResetCity, which clears the fill. */
     LandfillDecodeFill(has_infrastructure ? blob + SCN_CITY_END + Water_PipeBlockBytes() : NULL);
@@ -743,6 +760,7 @@ int32_t Scenario_LoadFile(const char *path)
     PoliceEffect = 1000;
     FireEffect = 1000;
     HealthEffect = 1000;
+    RecEffect = 1000;
     CityRescan();
     CityEvaluation();
 

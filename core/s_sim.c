@@ -594,16 +594,18 @@ void ApplyBudgetCommit(void)
     PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
     FireSpend = (int32_t)((float)FireFund * firePercent);
     HealthSpend = (int32_t)((float)HealthFund * healthPercent);
+    RecSpend = (int32_t)((float)RecFund * recreationPercent);
     LandfillSpend = (int32_t)((float)LandfillFund * landfillPercent);
 
     if (TotalPop) {
-        CashFlow = (int16_t)(TaxFund - (PoliceSpend + FireSpend + RoadSpend + HealthSpend + LandfillSpend));
+        CashFlow = (int16_t)(TaxFund - (PoliceSpend + FireSpend + RoadSpend + HealthSpend + RecSpend + LandfillSpend));
         DoBudget();
     } else {
         RoadEffect = 32;
         PoliceEffect = 1000;
         FireEffect = 1000;
         HealthEffect = 1000;
+        RecEffect = 1000;
     }
 }
 
@@ -633,10 +635,11 @@ void CollectTax(void)
 {
     if (!TaxFlag) {
         AvCityTax = 0;
-        PoliceFund = PolicePop * 100;
-        FireFund = FireStPop * 100;
-        HealthFund = HospPop * 100;
-        LandfillFund = LandfillTieredCost();
+        PoliceFund = PolicePop * POLICE_STATION_COST;
+        FireFund = FireStPop * FIRE_STATION_COST;
+        HealthFund = HospPop * HOSPITAL_COST;
+        RecFund = ParkPop * PARK_COST + StadiumPop * STADIUM_COST;
+        LandfillFund = LandfillPop * LANDFILL_CENTRE_COST;
         RoadFund = CalcRoadFund(GameLevel);
         TaxFund = CalcTaxFund();
 
@@ -644,6 +647,7 @@ void CollectTax(void)
         PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
         FireSpend = (int32_t)((float)FireFund * firePercent);
         HealthSpend = (int32_t)((float)HealthFund * healthPercent);
+        RecSpend = (int32_t)((float)RecFund * recreationPercent);
         LandfillSpend = (int32_t)((float)LandfillFund * landfillPercent);
 
         if (!autoBudget) {
@@ -685,6 +689,9 @@ static void UpdateFundEffects(void)
         : 1000;
     HealthEffect = HealthFund > 0
         ? (int16_t)(((float)HealthSpend / (float)HealthFund) * 1000.0f)
+        : 1000;
+    RecEffect = RecFund > 0
+        ? (int16_t)(((float)RecSpend / (float)RecFund) * 1000.0f)
         : 1000;
 }
 
@@ -1199,10 +1206,12 @@ static void SetCommonInits(void)
     PoliceEffect = 1000;
     FireEffect = 1000;
     HealthEffect = 1000;
+    RecEffect = 1000;
     roadPercent = 1.0f;
     policePercent = 1.0f;
     firePercent = 1.0f;
     healthPercent = 1.0f;
+    recreationPercent = 1.0f;
     LandfillResetCity();
     TaxFlag = 0;
     TaxFund = 0;

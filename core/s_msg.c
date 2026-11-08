@@ -24,6 +24,8 @@ static int32_t LastTreasury = 0;
 #define TRASH_PILE_LEVEL 5000
 #define TRASH_REARM_LEVEL 1000
 #define UNEMPLOYMENT_LEVEL 170
+/* ProblemTable[PROB_RECREATION] runs 0-255 (share of residents with no park coverage). */
+#define RECREATION_LEVEL 64
 static bool    trashPiled = false;
 
 #define NEWS_COND_SLOTS 256
@@ -111,7 +113,8 @@ static const char * const SimMessages[] = {
     [43] = "A Nuclear Meltdown has occurred !!!",
     [44] = "They're rioting in the streets !!",
     [45] = "Hospitals need funding.",
-    [46] = "Citizens demand a Hospital."
+    [46] = "Citizens demand a Hospital.",
+    [47] = "Parks go short of funding."
 };
 
 static const char *GetMessageText(int16_t id)
@@ -206,8 +209,11 @@ void SendMessages(void)
     case 38:
         Advisory(28, NEWS_EVENT_ADV_UNEMPLOYMENT, ProblemTable[5] > UNEMPLOYMENT_LEVEL);
         break;
+    case 21:
+        Advisory(47, NEWS_EVENT_ADV_PARKS_FUNDING, (RecEffect < 700) && (TotalPop > 20));
+        break;
     case 40:
-        Advisory(31, NEWS_EVENT_ADV_PARKS, (ResPop > 500) && (ParkPop == 0));
+        Advisory(31, NEWS_EVENT_ADV_PARKS, (ResPop > 500) && (ProblemTable[PROB_RECREATION] > RECREATION_LEVEL));
         break;
     case 42: {
         bool criminal = NewsCondition(11, CrimeAverage > 100);

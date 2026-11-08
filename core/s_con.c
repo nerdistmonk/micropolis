@@ -298,7 +298,7 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
         size = 6;
         break;
     case hospitalState:
-        base_cost = 500;
+        base_cost = 1000;
         base_tile = HOSPITAL - 4;
         size = 3;
         break;
