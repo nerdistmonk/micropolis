@@ -733,20 +733,29 @@ void Dialog_City_Render(SDL_Renderer *renderer)
             } else if (units < 0) {
                 int32_t drawn = Neighbor_SoldUnits(deals_side, g);
                 int32_t safe = Neighbor_SafeSellUnits(deals_side, g);
-                if (drawn > 0 && Neighbor_SaleBlackedOut(deals_side, g)) {
-                    const char *why = g == NB_GOODS_GARBAGE ? "landfill over capacity" : "your grid is in blackout";
-                    snprintf(buf, sizeof(buf), "Selling %d zones: not paid, %s (safe %d zones)", drawn, why, safe);
-                    GUI_DrawText(renderer, sx, ry + 28, buf, col_red);
+                /* Two short lines: the one-line form runs past the dialog's right edge. */
+                if (!Neighbor_SaleSettled(deals_side, g)) {
+                    snprintf(buf, sizeof(buf), "Selling %d zones: settles next month", -units);
+                    GUI_DrawText(renderer, sx, ry + 24, buf, col_gray);
+                    snprintf(buf, sizeof(buf), "safe %d zones", safe);
+                    GUI_DrawText(renderer, sx, ry + 40, buf, col_gray);
+                } else if (drawn > 0 && Neighbor_SaleBlackedOut(deals_side, g)) {
+                    const char *why = g == NB_GOODS_GARBAGE ? "landfill full" : "grid in blackout";
+                    snprintf(buf, sizeof(buf), "Selling %d zones: not paid", drawn);
+                    GUI_DrawText(renderer, sx, ry + 24, buf, col_red);
+                    snprintf(buf, sizeof(buf), "%s; safe %d zones", why, safe);
+                    GUI_DrawText(renderer, sx, ry + 40, buf, col_red);
                 } else if (drawn > 0) {
-                    snprintf(buf, sizeof(buf), "Selling %d zones: earns $%d/mo (safe %d zones)", drawn,
-                             Neighbor_SellEarn(deals_side, g, drawn), safe);
-                    GUI_DrawText(renderer, sx, ry + 28, buf, col_green);
-                } else if (g == NB_GOODS_GARBAGE) {
-                    snprintf(buf, sizeof(buf), "Selling %d zones: settles at next city update (safe %d zones)", -units, safe);
-                    GUI_DrawText(renderer, sx, ry + 28, buf, col_gray);
+                    snprintf(buf, sizeof(buf), "Selling %d zones: earns $%d/mo", drawn,
+                             Neighbor_SellEarn(deals_side, g, drawn));
+                    GUI_DrawText(renderer, sx, ry + 24, buf, col_green);
+                    snprintf(buf, sizeof(buf), "safe %d zones", safe);
+                    GUI_DrawText(renderer, sx, ry + 40, buf, col_green);
                 } else {
-                    snprintf(buf, sizeof(buf), "Selling %d zones: not delivered, no network at gate (safe %d zones)", -units, safe);
-                    GUI_DrawText(renderer, sx, ry + 28, buf, col_red);
+                    snprintf(buf, sizeof(buf), "Selling %d zones: not delivered", -units);
+                    GUI_DrawText(renderer, sx, ry + 24, buf, col_red);
+                    snprintf(buf, sizeof(buf), "no network at gate; safe %d zones", safe);
+                    GUI_DrawText(renderer, sx, ry + 40, buf, col_red);
                 }
             } else {
                 snprintf(buf, sizeof(buf), "Idle (up to %d zones, safe %d zones)", cap, Neighbor_SafeSellUnits(deals_side, g));

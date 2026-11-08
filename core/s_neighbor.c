@@ -65,6 +65,8 @@ static NeighborSide sides[NB_SIDES];
 static int32_t SaleSafeUnits[NB_SIDES][NB_GOODS_COUNT];
 static int32_t SaleDrawnUnits[NB_SIDES][NB_GOODS_COUNT];
 static bool SaleBlackedOut[NB_SIDES][NB_GOODS_COUNT];
+/* False from a units change until the next monthly sale pass records the sale. */
+static bool SaleSettled[NB_SIDES][NB_GOODS_COUNT];
 
 static const char *const NB_PREFIX[] = {
     "Bel", "Mar", "Oak", "Silver", "Haver", "Cedar", "Ash", "Lake", "Stone", "Glen", "Crest", "Fair"
@@ -288,6 +290,7 @@ void Neighbor_SetUnits(int32_t side, int32_t goods, int32_t units)
     if (units > cap) units = cap;
     if (units < -cap) units = -cap;
     sides[side].units[goods] = (int16_t)units;
+    SaleSettled[side][goods] = false;
 }
 
 /* Returns the grid seed for a power or water feed: the gate tile of an active link that is
@@ -332,7 +335,14 @@ void Neighbor_ClearSales(int32_t goods)
         SaleSafeUnits[s][goods] = 0;
         SaleDrawnUnits[s][goods] = 0;
         SaleBlackedOut[s][goods] = false;
+        SaleSettled[s][goods] = true;
     }
+}
+
+bool Neighbor_SaleSettled(int32_t side, int32_t goods)
+{
+    if (side < 0 || side >= NB_SIDES) return false;
+    return SaleSettled[side][goods];
 }
 
 void Neighbor_BlackoutSale(int32_t side, int32_t goods)

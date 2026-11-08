@@ -721,6 +721,7 @@ void Neighbor_ClearSales(int32_t goods);
 int32_t Neighbor_OfferSale(int32_t side, int32_t goods, int32_t spareZones);
 int32_t Neighbor_SafeSellUnits(int32_t side, int32_t goods);
 int32_t Neighbor_SoldUnits(int32_t side, int32_t goods);
+bool Neighbor_SaleSettled(int32_t side, int32_t goods);
 void Neighbor_BlackoutSale(int32_t side, int32_t goods);
 bool Neighbor_SaleBlackedOut(int32_t side, int32_t goods);
 int32_t Neighbor_GarbageFeedZones(void);
