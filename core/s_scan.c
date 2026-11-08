@@ -125,17 +125,23 @@ static void LandValueFactorsAt(int32_t x, int32_t y, LandValueFactors *f)
     int32_t zy = y << 1;
 
     f->road = false;
+    bool industrial = false;
     for (int32_t mx = zx; mx <= zx + 1; mx++) {
         for (int32_t my = zy; my <= zy + 1; my++) {
-            if ((Map[mx][my] & LOMASK) >= ROADBASE) {
+            uint16_t loc = Map[mx][my] & LOMASK;
+            if (loc >= ROADBASE) {
                 f->road = true;
+            }
+            if (loc >= INDBASE && loc < PORTBASE) {
+                industrial = true;
             }
         }
     }
 
     f->centre = (34 - GetDisCC(x, y)) * 4;
     f->terrain = TerrainMem[x >> 1][y >> 1];
-    f->pollution = -(int32_t)PollutionMem[x][y];
+    /* Industrial cells ignore their own pollution; neighbors still lose value to it. */
+    f->pollution = industrial ? 0 : -(int32_t)PollutionMem[x][y];
     f->crime = (CrimeMem[x][y] > 190) ? -20 : 0;
 
     int32_t value = f->centre + f->terrain + f->pollution + f->crime;
