@@ -62,10 +62,6 @@ static const char *const NB_SUFFIX[] = {
 #define NB_PREFIX_COUNT ((int)(sizeof(NB_PREFIX) / sizeof(NB_PREFIX[0])))
 #define NB_SUFFIX_COUNT ((int)(sizeof(NB_SUFFIX) / sizeof(NB_SUFFIX[0])))
 
-/* Inward step from the edge tile for each side: N, E, S, W. */
-static const int32_t NB_INWARD_DX[NB_SIDES] = { 0, -1, 0, 1 };
-static const int32_t NB_INWARD_DY[NB_SIDES] = { 1, 0, -1, 0 };
-
 static bool OnSideEdge(int32_t side, int32_t x, int32_t y)
 {
     switch (side) {
@@ -75,13 +71,6 @@ static bool OnSideEdge(int32_t side, int32_t x, int32_t y)
     case NB_WEST:  return x == 0;
     default:       return false;
     }
-}
-
-static bool InsideTile(int32_t side, int32_t gx, int32_t gy, int32_t *ix, int32_t *iy)
-{
-    *ix = gx + NB_INWARD_DX[side];
-    *iy = gy + NB_INWARD_DY[side];
-    return TestBounds(*ix, *iy);
 }
 
 static bool ConductorMatches(int32_t link, int32_t x, int32_t y)
@@ -106,9 +95,7 @@ static bool LinkActive(int32_t side, int32_t link)
 {
     NeighborSide *s = &sides[side];
     if (s->gate_x[link] == NB_LINK_TILE_NONE) return false;
-    int32_t ix, iy;
-    if (!InsideTile(side, s->gate_x[link], s->gate_y[link], &ix, &iy)) return false;
-    return ConductorMatches(link, ix, iy);
+    return ConductorMatches(link, s->gate_x[link], s->gate_y[link]);
 }
 
 static int32_t ActiveRoadRailLinks(int32_t side)
@@ -185,9 +172,7 @@ bool Neighbor_BuildGate(int32_t side, int32_t link, int32_t x, int32_t y)
 {
     if (side < 0 || side >= NB_SIDES || link < 0 || link >= NB_LINK_COUNT) return false;
     if (!TestBounds(x, y) || !OnSideEdge(side, x, y)) return false;
-    int32_t ix, iy;
-    if (!InsideTile(side, x, y, &ix, &iy)) return false;
-    if (!ConductorMatches(link, ix, iy)) return false;
+    if (!ConductorMatches(link, x, y)) return false;
     sides[side].gate_x[link] = (int16_t)x;
     sides[side].gate_y[link] = (int16_t)y;
     return true;
@@ -195,9 +180,9 @@ bool Neighbor_BuildGate(int32_t side, int32_t link, int32_t x, int32_t y)
 
 static const char *const NB_LINK_NAME[NB_LINK_COUNT] = { "road", "rail", "power", "water" };
 
-/* The link a Connect gate makes is whichever conductor lies inward. Rail is checked before road so
+/* The link a Connect gate makes is the conductor on the edge tile. Rail is checked before road so
  * a rail-over-power tile links as rail, and road before power so a road-over-power tile links as road. */
-static int32_t InwardLink(int32_t x, int32_t y)
+static int32_t GateLink(int32_t x, int32_t y)
 {
     if (ConductorMatches(NB_LINK_RAIL, x, y)) return NB_LINK_RAIL;
     if (ConductorMatches(NB_LINK_ROAD, x, y)) return NB_LINK_ROAD;
@@ -212,9 +197,7 @@ bool Neighbor_Connect(int32_t x, int32_t y)
     for (int32_t side = 0; side < NB_SIDES; side++) {
         if (!OnSideEdge(side, x, y)) continue;
         on_edge = true;
-        int32_t ix, iy;
-        if (!InsideTile(side, x, y, &ix, &iy)) continue;
-        int32_t link = InwardLink(ix, iy);
+        int32_t link = GateLink(x, y);
         if (link == NB_LINK_TILE_NONE) continue;
         Neighbor_BuildGate(side, link, x, y);
         char msg[256];
@@ -222,7 +205,7 @@ bool Neighbor_Connect(int32_t x, int32_t y)
         SetMessageField(msg, (int16_t)x, (int16_t)y, true);
         return true;
     }
-    SetMessageField(on_edge ? "Nothing to connect: put road, rail, power, or pipe just inside the edge"
+    SetMessageField(on_edge ? "Nothing to connect: put road, rail, power, or pipe on this edge tile"
                             : "Connect works on the map edge", (int16_t)x, (int16_t)y, true);
     return false;
 }
@@ -267,14 +250,16 @@ void Neighbor_SetUnits(int32_t side, int32_t goods, int32_t units)
     sides[side].units[goods] = (int16_t)units;
 }
 
-/* Returns the grid seed for a power or water feed: the inside tile of an active link that is
+/* Returns the grid seed for a power or water feed: the gate tile of an active link that is
  * buying. Only buys supply the grid. */
 bool Neighbor_FeedSeed(int32_t side, int32_t goods, int32_t *x, int32_t *y)
 {
     if (side < 0 || side >= NB_SIDES) return false;
     int32_t link = (goods == NB_GOODS_POWER) ? NB_LINK_POWER : (goods == NB_GOODS_WATER) ? NB_LINK_WATER : -1;
     if (link < 0 || sides[side].units[goods] <= 0 || !LinkActive(side, link)) return false;
-    return InsideTile(side, sides[side].gate_x[link], sides[side].gate_y[link], x, y);
+    *x = sides[side].gate_x[link];
+    *y = sides[side].gate_y[link];
+    return true;
 }
 
 int32_t Neighbor_FeedZones(int32_t goods)
@@ -285,7 +270,9 @@ int32_t Neighbor_FeedZones(int32_t goods)
 bool Neighbor_RailTile(int32_t side, int32_t *x, int32_t *y)
 {
     if (side < 0 || side >= NB_SIDES || !LinkActive(side, NB_LINK_RAIL)) return false;
-    return InsideTile(side, sides[side].gate_x[NB_LINK_RAIL], sides[side].gate_y[NB_LINK_RAIL], x, y);
+    *x = sides[side].gate_x[NB_LINK_RAIL];
+    *y = sides[side].gate_y[NB_LINK_RAIL];
+    return true;
 }
 
 int32_t Neighbor_FeedUnits(int32_t side, int32_t goods)
@@ -353,20 +340,16 @@ void Neighbor_Tick(void)
             } else {
                 int32_t spare = 0;
                 if (g == NB_GOODS_POWER && LinkActive(s, NB_LINK_POWER)) {
-                    int32_t ix, iy;
-                    if (InsideTile(s, sides[s].gate_x[NB_LINK_POWER], sides[s].gate_y[NB_LINK_POWER], &ix, &iy)) {
-                        int32_t dem = 0, cap_z = 0;
-                        if (PowerGridStats(ix, iy, &dem, &cap_z) && cap_z > dem) {
-                            spare = (cap_z - dem) / NB_POWER_ZONES;
-                        }
+                    int32_t dem = 0, cap_z = 0;
+                    int32_t ix = sides[s].gate_x[NB_LINK_POWER], iy = sides[s].gate_y[NB_LINK_POWER];
+                    if (PowerGridStats(ix, iy, &dem, &cap_z) && cap_z > dem) {
+                        spare = (cap_z - dem) / NB_POWER_ZONES;
                     }
                 } else if (g == NB_GOODS_WATER && LinkActive(s, NB_LINK_WATER)) {
-                    int32_t ix, iy;
-                    if (InsideTile(s, sides[s].gate_x[NB_LINK_WATER], sides[s].gate_y[NB_LINK_WATER], &ix, &iy)) {
-                        int32_t dem = 0, cap_z = 0;
-                        if (WaterNetworkStats(ix, iy, &dem, &cap_z) && cap_z > dem) {
-                            spare = (cap_z - dem) / NB_WATER_ZONES;
-                        }
+                    int32_t dem = 0, cap_z = 0;
+                    int32_t ix = sides[s].gate_x[NB_LINK_WATER], iy = sides[s].gate_y[NB_LINK_WATER];
+                    if (WaterNetworkStats(ix, iy, &dem, &cap_z) && cap_z > dem) {
+                        spare = (cap_z - dem) / NB_WATER_ZONES;
                     }
                 }
                 if (sold > spare) sold = spare;

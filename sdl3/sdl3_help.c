@@ -50,7 +50,7 @@ static const HelpEntry help_entries[HELP_TOPIC_COUNT] = {
     [HELP_TOOL_PIPE] = { "Water Pipe", "Lay underground pipe beneath roads, rail, and open ground. Pipe attaches to zone and plant edges like power lines. Zones placed over pipe bulldoze it." },
     [HELP_TOOL_HOSPITAL] = { "Hospital", "Covers nearby homes with healthcare. Homes without coverage pay less tax." },
     [HELP_TOOL_LANDFILL] = { "Landfill", "Places a 3x3 landfill that absorbs the trash of the zones it serves. It must touch a road. Each connected landfill serves 9 zones, and budget funding scales that. Overloaded landfills fill up; under-capacity landfills slowly empty. Place more landfills as the city grows." },
-    [HELP_TOOL_CONNECT] = { "Connect Neighbor", "Click an edge tile with a road, rail, power line, or pipe just inside it to link that neighbor. One link of each kind per side. Bulldozing the link breaks it." }
+    [HELP_TOOL_CONNECT] = { "Connect Neighbor", "Click a map edge tile that has a road, rail, power line, or pipe on it. Each neighbor takes one link of each kind. If you bulldoze the link, it breaks." }
 };
 
 static const SDL_Color help_title_color = { 255, 215, 90, 255 };
