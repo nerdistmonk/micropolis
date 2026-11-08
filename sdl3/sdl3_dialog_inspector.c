@@ -15,9 +15,31 @@ static char inspect_stat_lvfactors[7][72];
 static int inspect_lvfactor_lines = 0;
 static char inspect_stat_services[2][80] = {{0}};
 static const float kInspectorHeight = 512.0f;
+static float inspect_dw = 404.0f;
 static char inspect_stat_growth[64] = {0};
 static char inspect_stat_water[64] = {0};
-static char inspect_stat_supply[64] = {0};
+static char inspect_stat_supply[96] = {0};
+
+/* Widens the window to fit the longest line. Stat lines start at +24 and breakdown lines at +40. */
+static void InspectorFitWidth(void)
+{
+    const char *lines[] = {
+        inspect_stat_density, inspect_stat_power, inspect_stat_pollution, inspect_stat_crime,
+        inspect_stat_landvalue, inspect_stat_growth, inspect_stat_water, inspect_stat_supply,
+        inspect_stat_services[0], inspect_stat_services[1],
+    };
+    int widest = 0;
+    for (size_t i = 0; i < sizeof(lines) / sizeof(lines[0]); i++) {
+        int w = GUI_GetTextWidth(lines[i]);
+        if (w > widest) widest = w;
+    }
+    for (int i = 0; i < inspect_lvfactor_lines; i++) {
+        int w = GUI_GetTextWidth(inspect_stat_lvfactors[i]) + 16;
+        if (w > widest) widest = w;
+    }
+    float need = (float)widest + 24.0f + 24.0f;
+    inspect_dw = need > 404.0f ? need : 404.0f;
+}
 
 void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
 {
@@ -163,6 +185,16 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         } else {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Recreation Demand: none (site not found)");
         }
+    } else if ((low >= PORT && low < (PORT + 16)) || (low >= AIRPORT && low < (AIRPORT + 36))) {
+        int32_t port_cap = 0;
+        int32_t port_demand = 0;
+        PortSystemStats(&port_cap, &port_demand);
+        int32_t served = port_demand < port_cap ? port_demand : port_cap;
+        snprintf(inspect_stat_supply, sizeof(inspect_stat_supply),
+                 "%s Service: %d zones each | Citywide: %d of %d zones served",
+                 (low >= AIRPORT) ? "Airport" : "Port",
+                 (low >= AIRPORT) ? AIRPORT_SERVICE_ZONES : PORT_SERVICE_ZONES,
+                 (int)served, (int)port_demand);
     } else if (TILE_IS_LANDFILL(tile)) {
         LandfillSystemStats(&capacity, &demand);
         snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Landfill Capacity: %d zones | Demand: %d zones (citywide)",
@@ -219,6 +251,8 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
                  HealthIsCovered(tile_x, tile_y) ? "Covered" : "Uncovered",
                  RecIsCovered(tile_x, tile_y) ? "Covered" : "Uncovered");
     }
+
+    InspectorFitWidth();
 }
 
 static SDL_FRect InspectorOkRect(float dx, float dy, float dw, float dh)
@@ -230,7 +264,7 @@ static SDL_FRect InspectorOkRect(float dx, float dy, float dw, float dh)
 
 bool Dialog_Inspector_HandleClick(float mx, float my)
 {
-    float dw = 404.0f;
+    float dw = inspect_dw;
     float dh = kInspectorHeight;
     float dx = DialogCenteredX(dw);
     float dy = DialogCenteredY(dh);
@@ -258,7 +292,7 @@ bool Dialog_Inspector_HandleClick(float mx, float my)
 
 void Dialog_Inspector_Render(SDL_Renderer *renderer)
 {
-    float dw = 404.0f;
+    float dw = inspect_dw;
     float dh = kInspectorHeight;
     float dx = DialogCenteredX(dw);
     float dy = DialogCenteredY(dh);

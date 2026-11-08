@@ -174,6 +174,7 @@ static const NewsGameHeadline game_headlines[] = {
     { NEWS_EVENT_ADV_PARKS_FUNDING, "Parks go short of funding as the city cuts recreation" },
     { NEWS_EVENT_ADV_RIOTS, "Angry crowds riot in the streets as crime runs wild" },
     { NEWS_EVENT_ADV_HOSPITAL, "Citizens demand a hospital, and the sick have nowhere to go" },
+    { NEWS_EVENT_ADV_PORT_CAPACITY, "Ports and airports overwhelmed as the city outgrows their capacity" },
 };
 
 typedef struct {

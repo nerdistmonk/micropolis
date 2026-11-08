@@ -440,6 +440,7 @@ typedef struct SimCallbacks {
 #define NEWS_EVENT_ADV_RIOTS        127
 #define NEWS_EVENT_ADV_HOSPITAL     128
 #define NEWS_EVENT_ADV_PARKS_FUNDING 129
+#define NEWS_EVENT_ADV_PORT_CAPACITY 130
 
 /* Engine Global Variables */
 extern uint16_t *Map[WORLD_X];
@@ -519,6 +520,7 @@ extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect, RecEffect;
 #define AIRPORT_COST         45
 #define PORT_SERVICE_ZONES   128
 #define AIRPORT_SERVICE_ZONES 256
+void PortSystemStats(int32_t *capacity, int32_t *demand);
 extern int16_t TaxFlag, ResTax, ComTax, IndTax;
 extern int32_t ResTaxPop;
 extern int32_t ResUncoveredPop;

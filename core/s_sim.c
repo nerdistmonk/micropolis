@@ -617,6 +617,12 @@ int32_t CalcRoadFund(int16_t level)
          + PortPop * PORT_COST + APortPop * AIRPORT_COST;
 }
 
+void PortSystemStats(int32_t *capacity, int32_t *demand)
+{
+    *capacity = PortPop * PORT_SERVICE_ZONES + APortPop * AIRPORT_SERVICE_ZONES;
+    *demand = (int32_t)ComZPop + (int32_t)IndZPop;
+}
+
 int16_t GetAverageTaxRate(void)
 {
     return (int16_t)((ResTax + ComTax + IndTax) / 3);

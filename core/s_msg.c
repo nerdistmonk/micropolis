@@ -53,7 +53,10 @@ void NewsThrottled(int16_t event_id)
 /* Ports and airports share one pool of zone capacity; commercial and industrial zones beyond it are unserviced. */
 static bool ZonesOverPortCapacity(void)
 {
-    return (ComZPop + IndZPop) > (PortPop * PORT_SERVICE_ZONES + APortPop * AIRPORT_SERVICE_ZONES);
+    int32_t capacity;
+    int32_t demand;
+    PortSystemStats(&capacity, &demand);
+    return demand > capacity;
 }
 
 /* Ticker advisory that repeats while `need` holds. The newspaper gets one story per rising edge. */
@@ -120,7 +123,8 @@ static const char * const SimMessages[] = {
     [44] = "They're rioting in the streets !!",
     [45] = "Hospitals need funding.",
     [46] = "Citizens demand a Hospital.",
-    [47] = "Parks go short of funding."
+    [47] = "Parks go short of funding.",
+    [48] = "Ports and airports are over capacity."
 };
 
 static const char *GetMessageText(int16_t id)
@@ -193,6 +197,9 @@ void SendMessages(void)
         IndCap = ((IndPop > 70) && (PortPop == 0 || ZonesOverPortCapacity())) ? 1 : 0;
         break;
     }
+    case 29:
+        Advisory(48, NEWS_EVENT_ADV_PORT_CAPACITY, (PortPop + APortPop > 0) && ZonesOverPortCapacity());
+        break;
     case 30: {
         bool need = (ComPop > 100) && (APortPop == 0);
         Advisory(9, NEWS_EVENT_ADV_AIRPORT, need);
