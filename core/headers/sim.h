@@ -507,7 +507,7 @@ extern int32_t LandfillFund, LandfillSpend, TrashPending, UnservicedTrash;
 extern int16_t LandfillPop;
 extern bool LandfillAtCapacity;
 extern int32_t RoadSpend, PoliceSpend, FireSpend, HealthSpend, RecSpend;
-extern int32_t TaxFund, RoadFund, PoliceFund, FireFund, HealthFund, RecFund;
+extern int32_t TaxFund, DealsIncome, RoadFund, PoliceFund, FireFund, HealthFund, RecFund;
 extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect, RecEffect;
 #define POLICE_STATION_COST 60
 #define FIRE_STATION_COST   60
@@ -692,6 +692,7 @@ enum { NB_LINK_ROAD, NB_LINK_RAIL, NB_LINK_POWER, NB_LINK_WATER, NB_LINK_COUNT }
 enum { NB_GOODS_POWER, NB_GOODS_WATER, NB_GOODS_GARBAGE, NB_GOODS_COUNT };
 void Neighbor_Reset(void);
 void Neighbor_Tick(void);
+int32_t Neighbor_TakeDealsFlow(void);
 void Neighbor_SyncMisc(void);
 void Neighbor_LoadMisc(void);
 const char *Neighbor_Name(int32_t side);

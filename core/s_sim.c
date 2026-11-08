@@ -642,6 +642,7 @@ void CollectTax(void)
         LandfillFund = LandfillPop * LANDFILL_CENTRE_COST;
         RoadFund = CalcRoadFund(GameLevel);
         TaxFund = CalcTaxFund();
+        DealsIncome = Neighbor_TakeDealsFlow();
 
         RoadSpend = (int32_t)((float)RoadFund * roadPercent);
         PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
@@ -1215,6 +1216,7 @@ static void SetCommonInits(void)
     LandfillResetCity();
     TaxFlag = 0;
     TaxFund = 0;
+    DealsIncome = 0;
 }
 
 static void ClearCityMemory(void)

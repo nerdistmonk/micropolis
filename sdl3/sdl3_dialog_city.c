@@ -47,12 +47,12 @@ static SDL_FRect CenteredButtonRect(float cx, float y, const char *label, float 
 
 static SDL_FRect BudgetCancelRect(float dx, float dy)
 {
-    return CenteredButtonRect(dx + 205.0f, dy + 450.0f, "Cancel", 24.0f, 32.0f);
+    return CenteredButtonRect(dx + 205.0f, dy + 470.0f, "Cancel", 24.0f, 32.0f);
 }
 
 static SDL_FRect BudgetApplyRect(float dx, float dy)
 {
-    return CenteredButtonRect(dx + 375.0f, dy + 450.0f, "Apply & Close", 24.0f, 32.0f);
+    return CenteredButtonRect(dx + 375.0f, dy + 470.0f, "Apply & Close", 24.0f, 32.0f);
 }
 
 static SDL_FRect TaxButtonRect(float dx, float dy, int row, bool up)
@@ -504,7 +504,7 @@ static void RenderGraphsTab(SDL_Renderer *renderer, float dx, float dy, float dw
 void Dialog_City_Render(SDL_Renderer *renderer)
 {
     float dw = 580.0f;
-    float dh = 510.0f;
+    float dh = 530.0f;
     float dx = DialogCenteredX(dw);
     float dy = DialogCenteredY(dh);
 
@@ -617,9 +617,11 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         GUI_DrawText(renderer, (int)rc_up.x + 10, (int)rc_up.y + 3, "+", col_white);
 
         int32_t expenses = (int32_t)(((float)CalcRoadFund(GameLevel) * roadPercent) + (PolicePop * POLICE_STATION_COST * policePercent) + (FireStPop * FIRE_STATION_COST * firePercent) + (HealthFund * healthPercent) + ((float)(ParkPop * PARK_COST + StadiumPop * STADIUM_COST) * recreationPercent) + (LandfillPop * LANDFILL_CENTRE_COST * landfillPercent));
-        int32_t net = TaxFund - expenses;
-        snprintf(buf, sizeof(buf), "Tax Revenue: $%d Expenses: $%d Net: $%d", TaxFund, expenses, net);
-        GUI_DrawText(renderer, cx, cy + 330, buf, (net >= 0) ? col_green : col_red);
+        int32_t net = TaxFund + DealsIncome - expenses;
+        snprintf(buf, sizeof(buf), "Tax Revenue: $%d  Deals: %+d", TaxFund, DealsIncome);
+        GUI_DrawText(renderer, cx, cy + 330, buf, col_white);
+        snprintf(buf, sizeof(buf), "Expenses: $%d  Net: $%d", expenses, net);
+        GUI_DrawText(renderer, cx, cy + 350, buf, (net >= 0) ? col_green : col_red);
 
         SDL_FRect cancel_btn = BudgetCancelRect(dx, dy);
         SDL_SetRenderDrawColor(renderer, 60, 40, 40, 255);

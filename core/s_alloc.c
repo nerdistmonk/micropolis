@@ -117,6 +117,7 @@ int16_t FireEffect = 1000;
 int16_t HealthEffect = 1000;
 int16_t RecEffect = 1000;
 int32_t TaxFund = 0;
+int32_t DealsIncome = 0;
 int16_t ResTax = 7;
 int16_t ComTax = 7;
 int16_t IndTax = 7;

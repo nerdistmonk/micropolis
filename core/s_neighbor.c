@@ -151,8 +151,11 @@ static void PickName(int32_t side)
     snprintf(sides[side].name, sizeof(sides[side].name), "%s", buf);
 }
 
+static int32_t deals_flow;
+
 void Neighbor_Reset(void)
 {
+    deals_flow = 0;
     for (int32_t s = 0; s < NB_SIDES; s++) {
         NeighborSide *n = &sides[s];
         memset(n->name, 0, sizeof(n->name));
@@ -450,15 +453,25 @@ void Neighbor_Tick(void)
                     continue;
                 }
                 TotalFunds -= cost;
+                deals_flow -= cost;
                 continue;
             }
 
             int32_t sold = SaleDrawnUnits[s][g];
             if (sold <= 0 || SaleBlackedOut[s][g]) continue;
-            TotalFunds += ZoneCharge(sold, SellPrice(s, g));
+            int32_t gain = ZoneCharge(sold, SellPrice(s, g));
+            TotalFunds += gain;
+            deals_flow += gain;
         }
     }
     if (TotalFunds < 0) TotalFunds = 0;
+}
+
+int32_t Neighbor_TakeDealsFlow(void)
+{
+    int32_t f = deals_flow;
+    deals_flow = 0;
+    return f;
 }
 
 static int16_t PackGate(int32_t side, int32_t link)
