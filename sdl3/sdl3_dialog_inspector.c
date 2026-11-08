@@ -165,7 +165,7 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
     LandValueFactors lvf;
     LandValueFactorsOf(hx, hy, &lvf);
     snprintf(inspect_stat_lvfactors[0], sizeof(inspect_stat_lvfactors[0]), "Land value breakdown:");
-    if (lvf.road) {
+    if (lvf.access) {
         snprintf(inspect_stat_lvfactors[1], sizeof(inspect_stat_lvfactors[1]),
                  "Near city centre: %+d (max +136)", (int)lvf.centre);
         snprintf(inspect_stat_lvfactors[2], sizeof(inspect_stat_lvfactors[2]),
@@ -181,8 +181,9 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
                  (int)LandValueWithNeighbors(lvf.value) * 50);
         inspect_lvfactor_lines = 7;
     } else {
-        snprintf(inspect_stat_lvfactors[1], sizeof(inspect_stat_lvfactors[1]),
-                 "No road nearby, so land value is 0");
+        snprintf(inspect_stat_lvfactors[1], sizeof(inspect_stat_lvfactors[1]), "%s",
+                 lvf.zoned ? "No road touching this zone, so land value is 0"
+                           : "Not a zone, so land value is 0");
         inspect_lvfactor_lines = 2;
     }
 

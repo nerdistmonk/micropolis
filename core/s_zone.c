@@ -57,14 +57,35 @@ int16_t SetZPower(void)
     }
 }
 
+/* Parks and water towers have no zone bit, so they are counted here instead of in DoZone */
+void CountUnzonedUtilities(bool needs_water)
+{
+    QUAD power_wrd = POWERWORD(SMapX, SMapY);
+    bool powered = (power_wrd < PWRMAPSIZE) &&
+                   (PowerMap[power_wrd] & (uint16_t)(1u << (SMapX & 15)));
+
+    if (powered) {
+        PwrdZCnt++;
+    } else {
+        unPwrdZCnt++;
+    }
+    if (needs_water && powered && !WaterIsSupplied(SMapX, SMapY)) {
+        UnwateredZCnt++;
+    }
+}
+
 void DoZone(void)
 {
     int16_t zone_pwr_flg = SetZPower();
 
-    if (zone_pwr_flg) {
-        PwrdZCnt++;
-    } else {
-        unPwrdZCnt++;
+    /* Power plants supply power, so they are not counted against power demand */
+    bool is_power_source = (CChr9 == POWERPLANT) || (CChr9 == NUCLEAR);
+    if (!is_power_source) {
+        if (zone_pwr_flg) {
+            PwrdZCnt++;
+        } else {
+            unPwrdZCnt++;
+        }
     }
 
     /* Unwatered zones are treated like unpowered ones: no growth */
@@ -73,6 +94,13 @@ void DoZone(void)
         UnwateredZCnt++;
     }
     zone_pwr_flg = zone_pwr_flg && watered;
+
+    /* Growing zones (residential, commercial, industrial) with no road touching them do not grow.
+       Hospitals and churches (HOSPITAL..COMBASE) do not grow, so they are not gated. */
+    bool growing = CChr9 < PORTBASE && !(CChr9 >= HOSPITAL && CChr9 < COMBASE);
+    if (growing && !ZoneHasRoadAccess(SMapX, SMapY)) {
+        zone_pwr_flg = false;
+    }
 
     if (CChr9 > PORTBASE) {
         DoSPZone(zone_pwr_flg);

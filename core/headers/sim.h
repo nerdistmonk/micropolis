@@ -452,9 +452,11 @@ typedef struct {
     int32_t pollution;
     int32_t crime;
     int32_t value;
-    bool road;
+    bool zoned;
+    bool access;
 } LandValueFactors;
 void LandValueFactorsOf(int32_t x, int32_t y, LandValueFactors *f);
+bool ZoneHasRoadAccess(int32_t x, int32_t y);
 int32_t LandValueWithNeighbors(int32_t value);
 extern Byte *CrimeMem[HWLDX];
 extern Byte *tem[HWLDX];
@@ -636,6 +638,7 @@ void SmoothWater(void);
 
 /* Zones, Power, and Automata */
 void DoZone(void);
+void CountUnzonedUtilities(bool needs_water);
 int16_t SetZPower(void);
 void DoSPZone(int16_t pwron);
 void DoNilPower(void);

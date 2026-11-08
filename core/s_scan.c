@@ -118,19 +118,117 @@ static int16_t GetPDen(int32_t ch9)
 
 static LandValueFactors lvFactorsMem[HWLDX][HWLDY];
 
+static bool zone_footprint[WORLD_X][WORLD_Y];
+static bool zone_access[WORLD_X][WORLD_Y];
+
+/* Rail crossings count as roads; plain rail and power lines do not. */
+static bool IsAccessRoad(uint16_t loc)
+{
+    return (loc >= ROADBASE && loc <= LASTROAD) ||
+           loc == HRAILROAD || loc == VRAILROAD || loc == ROADVPOWERH;
+}
+
+/* Returns the footprint of the placeable building anchored at (x, y), if one starts there. */
+static bool BuildingAnchorAt(int32_t x, int32_t y, int32_t *ox, int32_t *oy, int32_t *size)
+{
+    uint16_t raw = Map[x][y];
+    uint16_t low = raw & LOMASK;
+
+    if (raw & ZONEBIT) {
+        int32_t s = 3;
+        if ((low >= PORTBASE && low <= LASTPORT) ||
+            (low >= COALBASE && low <= LASTPOWERPLANT) ||
+            (low >= STADIUMBASE && low <= FULLSTADIUM) ||
+            (low >= NUCLEARBASE && low <= NUCLEAR)) {
+            s = 4;
+        } else if (low >= AIRPORTBASE && low <= AIRPORT) {
+            s = 6;
+        }
+        *ox = x - 1;
+        *oy = y - 1;
+        *size = s;
+        return true;
+    }
+    if (low == WATERTOWER) {
+        *ox = x;
+        *oy = y;
+        *size = 3;
+        return true;
+    }
+    if (low >= FOUNTAIN && low < FOUNTAIN + FOUNTAIN_FRAMES) {
+        *ox = x;
+        *oy = y;
+        *size = 1;
+        return true;
+    }
+    return false;
+}
+
+static bool BuildingHasRoadAccess(int32_t ox, int32_t oy, int32_t size)
+{
+    static const int32_t dirs[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    for (int32_t x = ox; x < ox + size; x++) {
+        for (int32_t y = oy; y < oy + size; y++) {
+            for (int32_t d = 0; d < 4; d++) {
+                int32_t nx = x + dirs[d][0];
+                int32_t ny = y + dirs[d][1];
+                if (nx >= ox && nx < ox + size && ny >= oy && ny < oy + size) continue;
+                if (TestBounds(nx, ny) && IsAccessRoad(Map[nx][ny] & LOMASK)) return true;
+            }
+        }
+    }
+    return false;
+}
+
+/* Marks every placeable building's tiles, and whether a road touches its edge. */
+static void ZoneScanAccess(void)
+{
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            zone_footprint[x][y] = false;
+            zone_access[x][y] = false;
+        }
+    }
+
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            int32_t ox, oy, size;
+            if (!BuildingAnchorAt(x, y, &ox, &oy, &size)) continue;
+
+            bool access = BuildingHasRoadAccess(ox, oy, size);
+            for (int32_t tx = ox; tx < ox + size; tx++) {
+                for (int32_t ty = oy; ty < oy + size; ty++) {
+                    if (!TestBounds(tx, ty)) continue;
+                    zone_footprint[tx][ty] = true;
+                    zone_access[tx][ty] = access;
+                }
+            }
+        }
+    }
+}
+
+bool ZoneHasRoadAccess(int32_t x, int32_t y)
+{
+    return TestBounds(x, y) && zone_access[x][y];
+}
+
 /* Land value at half-resolution cell (x, y), split into the factors that make it up. */
 static void LandValueFactorsAt(int32_t x, int32_t y, LandValueFactors *f)
 {
     int32_t zx = x << 1;
     int32_t zy = y << 1;
 
-    f->road = false;
+    f->zoned = false;
+    f->access = false;
     bool industrial = false;
     for (int32_t mx = zx; mx <= zx + 1; mx++) {
         for (int32_t my = zy; my <= zy + 1; my++) {
             uint16_t loc = Map[mx][my] & LOMASK;
-            if (loc >= ROADBASE) {
-                f->road = true;
+            if (zone_footprint[mx][my]) {
+                f->zoned = true;
+            }
+            if (zone_access[mx][my]) {
+                f->access = true;
             }
             if (loc >= INDBASE && loc < PORTBASE) {
                 industrial = true;
@@ -171,6 +269,8 @@ void PTLScan(void)
     int32_t pmax  = 0;
     int32_t trashPenalty = LandfillTrashPenalty();
 
+    ZoneScanAccess();
+
     for (int16_t x = 0; x < QWX; x++) {
         for (int16_t y = 0; y < QWY; y++) {
             Qtem[x][y] = 0;
@@ -204,7 +304,7 @@ void PTLScan(void)
 
             LandValueFactorsAt(x, y, &lvFactorsMem[x][y]);
             const LandValueFactors *lvf = &lvFactorsMem[x][y];
-            if (lvf->road) {
+            if (lvf->access) {
                 int32_t lv = LandValueWithNeighbors(lvf->value);
                 LandValueMem[x][y] = (Byte)lv;
                 lvtot += lv;
@@ -290,7 +390,7 @@ void CrimeScan(void)
     for (int16_t x = 0; x < HWLDX; x++) {
         for (int16_t y = 0; y < HWLDY; y++) {
             uint8_t lv = LandValueMem[x][y];
-            if (lv) {
+            if (lvFactorsMem[x][y].zoned) {
                 numz++;
                 int32_t z = 128 - lv;
                 z += PopDensity[x][y];

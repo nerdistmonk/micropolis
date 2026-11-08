@@ -683,11 +683,11 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
   case OVERLAY_VIEW_CRIME: {
     if (hx < HWLDX && hy < HWLDY) {
       uint8_t c = CrimeMem[hx][hy];
-      if (c > 15) {
+      if (c >= 30) {
         uint8_t r = (uint8_t)(160 + (c / 3));
         uint8_t g = (uint8_t)(30);
         uint8_t b = (uint8_t)(40 + (c / 4));
-        uint8_t a = (uint8_t)(120 + (c / 2));
+        uint8_t a = (c >= 90) ? (uint8_t)200 : (uint8_t)90;
         return ((uint32_t)a << 24) | ((uint32_t)b << 16) | ((uint32_t)g << 8) | (uint32_t)r;
       }
     }
