@@ -24,6 +24,7 @@ typedef enum {
 typedef enum {
     CITY_TAB_BUDGET = 0,
     CITY_TAB_TAXES,
+    CITY_TAB_DEALS,
     CITY_TAB_EVALUATION,
     CITY_TAB_GRAPHS,
     CITY_TAB_CITY_INFO,

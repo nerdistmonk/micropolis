@@ -342,9 +342,10 @@ typedef int32_t QUAD;
 #define pipeState 20
 #define hospitalState 21
 #define landfillState 22
+#define connectState 23
 
 #define firstState residentialState
-#define lastState landfillState
+#define lastState connectState
 
 /* Global Bounds and Validity Macros */
 #define ABS(x) (((x) < 0) ? (-(x)) : (x))
@@ -454,6 +455,7 @@ typedef struct {
     bool road;
 } LandValueFactors;
 void LandValueFactorsOf(int32_t x, int32_t y, LandValueFactors *f);
+int32_t LandValueWithNeighbors(int32_t value);
 extern Byte *CrimeMem[HWLDX];
 extern Byte *tem[HWLDX];
 extern Byte *tem2[HWLDX];
@@ -672,6 +674,32 @@ void LandfillDecodeFill(const uint8_t *src);
 int32_t LandfillTrashPenalty(void);
 void LandfillSystemStats(int32_t *capacity, int32_t *demand);
 int32_t LandfillPollution(int32_t loc);
+
+/* Neighbor cities (s_neighbor.c): one per map side, linked by Connect gates */
+enum { NB_NORTH, NB_EAST, NB_SOUTH, NB_WEST, NB_SIDES };
+enum { NB_LINK_ROAD, NB_LINK_RAIL, NB_LINK_POWER, NB_LINK_WATER, NB_LINK_COUNT };
+enum { NB_GOODS_POWER, NB_GOODS_WATER, NB_GOODS_GARBAGE, NB_GOODS_COUNT };
+void Neighbor_Reset(void);
+void Neighbor_Tick(void);
+void Neighbor_SyncMisc(void);
+void Neighbor_LoadMisc(void);
+const char *Neighbor_Name(int32_t side);
+bool Neighbor_IsLinked(int32_t side, int32_t link);
+bool Neighbor_BuildGate(int32_t side, int32_t link, int32_t x, int32_t y);
+void Neighbor_RemoveGate(int32_t side, int32_t link);
+int32_t Neighbor_Units(int32_t side, int32_t goods);
+int32_t Neighbor_Cap(int32_t side, int32_t goods);
+int32_t Neighbor_MidPrice(int32_t side, int32_t goods);
+int32_t Neighbor_BuyCost(int32_t side, int32_t goods);
+int32_t Neighbor_SellPrice(int32_t side, int32_t goods);
+void Neighbor_SetUnits(int32_t side, int32_t goods, int32_t units);
+bool Neighbor_FeedSeed(int32_t side, int32_t goods, int32_t *x, int32_t *y);
+int32_t Neighbor_FeedZones(int32_t goods);
+int32_t Neighbor_FeedUnits(int32_t side, int32_t goods);
+bool Neighbor_RailTile(int32_t side, int32_t *x, int32_t *y);
+SimSprite *GetNeighborTrain(int32_t side);
+int32_t Neighbor_LandValueBonusPercent(void);
+bool Neighbor_Connect(int32_t x, int32_t y);
 void FireZone(int32_t xloc, int32_t yloc, int32_t ch);
 void DoMeltdown(int32_t sx, int32_t sy);
 

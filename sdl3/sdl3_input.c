@@ -183,6 +183,14 @@ static void ApplyTool(int16_t tool, int32_t tx, int32_t ty, bool first)
         return;
     }
 
+    if (tool == connectState) {
+        if (first) {
+            Neighbor_Connect(tx, ty);
+            Audio_MakeSound("edit", "e -speed 200");
+        }
+        return;
+    }
+
     /* The scenario editor builds for free: TotalFunds is restored after every action */
     bool editing = Scenario_EditorIsActive();
     int32_t saved_funds = TotalFunds;

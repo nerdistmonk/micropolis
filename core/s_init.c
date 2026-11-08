@@ -34,6 +34,7 @@ void InitWillStuff(void)
 void ResetCityWorkingState(void)
 {
     Scenario_Deactivate();
+    Neighbor_Reset();
 
     CityScore    = 500;
     CityPop      = -1;

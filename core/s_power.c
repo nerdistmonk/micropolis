@@ -34,6 +34,7 @@ static int32_t SeedParent[PWRSTKSIZE];
 static int32_t GridDemand[PWRSTKSIZE];
 static int32_t GridCapacity[PWRSTKSIZE];
 static bool GridExplodes[PWRSTKSIZE];
+static int32_t NeighborFeedZones[NB_SIDES];
 static uint32_t BlackoutRotor = 0;
 #define SEED_SEEN ((int16_t)-1)
 
@@ -239,6 +240,16 @@ void DoPowerScan(void)
         plants++;
     }
 
+    const int32_t mapPlants = plants;
+    for (int32_t s = 0; s < NB_SIDES && plants < PWRSTKSIZE; s++) {
+        int32_t fx, fy;
+        if (!Neighbor_FeedSeed(s, NB_GOODS_POWER, &fx, &fy)) continue;
+        PlantSeedX[plants] = (int16_t)fx;
+        PlantSeedY[plants] = (int16_t)fy;
+        NeighborFeedZones[plants - mapPlants] = Neighbor_FeedUnits(s, NB_GOODS_POWER) * Neighbor_FeedZones(NB_GOODS_POWER);
+        plants++;
+    }
+
     for (int32_t i = 0; i < plants; i++) {
         int32_t sx = PlantSeedX[i];
         int32_t sy = PlantSeedY[i];
@@ -268,7 +279,8 @@ void DoPowerScan(void)
         int32_t sy = PlantSeedY[i];
         int32_t r = SeedFind(i);
         GridTag[sx][sy] = (int16_t)(r + 1);
-        GridCapacity[r] += TILE_IS_NUCLEAR(Map[sx][sy]) ? NUCLEAR_ZONES_SUPPLIED : COAL_ZONES_SUPPLIED;
+        GridCapacity[r] += (i < mapPlants) ? (TILE_IS_NUCLEAR(Map[sx][sy]) ? NUCLEAR_ZONES_SUPPLIED : COAL_ZONES_SUPPLIED)
+                                           : NeighborFeedZones[i - mapPlants];
     }
 
     bool blackout = false;
@@ -290,7 +302,7 @@ void DoPowerScan(void)
     }
 
     for (int32_t i = 0; i < plants; i++) {
-        if (SeedParent[i] < 0) continue;
+        if (SeedParent[i] < 0 || i >= mapPlants) continue;
         if (GridExplodes[SeedFind(i)]) {
             ExplodePlant(PlantSeedX[i], PlantSeedY[i]);
         }

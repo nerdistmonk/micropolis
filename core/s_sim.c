@@ -242,6 +242,7 @@ void Simulate(int32_t mod16)
         }
         CityTime++;
         DoLandfill();
+        Neighbor_Tick();
         AvCityTax += GetAverageTaxRate();
 
         if (!(Scycle & 1)) {

@@ -10,6 +10,7 @@ extern void ClearMes(void);
 extern void SendMesAt(int16_t msg, int16_t x, int16_t y);
 
 static SimSprite active_sprites[OBJN];
+static SimSprite neighbor_trains[NB_SIDES];
 static SimSprite explosions[EXP_SLOTS];
 
 /* Turn sprite smoothly towards target direction (1..8) */
@@ -57,11 +58,13 @@ static int16_t GetDir(int32_t orgX, int32_t orgY, int32_t desX, int32_t desY)
 void InitSprites(void)
 {
     memset(active_sprites, 0, sizeof(active_sprites));
+    memset(neighbor_trains, 0, sizeof(neighbor_trains));
     memset(explosions, 0, sizeof(explosions));
     for (int i = 0; i < OBJN; i++) {
         active_sprites[i].type = i;
         GlobalSprites[i] = &active_sprites[i];
     }
+    for (int i = 0; i < NB_SIDES; i++) neighbor_trains[i].type = TRA;
 }
 
 static int16_t GetChar(int32_t px, int32_t py)
@@ -72,11 +75,8 @@ static int16_t GetChar(int32_t px, int32_t py)
     return (int16_t)(Map[tx][ty] & LOMASK);
 }
 
-void GenerateTrain(int16_t x, int16_t y)
+static void PlaceTrain(SimSprite *s, int16_t x, int16_t y)
 {
-    SimSprite *s = &active_sprites[TRA];
-    if (TotalPop <= 20 || s->frame != 0 || Rand(25) != 0) return;
-
     /* Unix TRA_GROOVE (-39, +6) converted to core logical space with the TRA shift (40, -8). */
     s->type = TRA;
     s->frame = 1;
@@ -90,6 +90,13 @@ void GenerateTrain(int16_t x, int16_t y)
     s->y_hot = 0;
     s->dir = 4;
     s->count = 0;
+}
+
+void GenerateTrain(int16_t x, int16_t y)
+{
+    SimSprite *s = &active_sprites[TRA];
+    if (TotalPop <= 20 || s->frame != 0 || Rand(25) != 0) return;
+    PlaceTrain(s, x, y);
 }
 
 void GenerateCopter(int16_t x, int16_t y)
@@ -707,12 +714,31 @@ static void StepTornado(SimSprite *s)
     DestroyAt(s->x + 8, s->y + 24);
 }
 
+static void StepNeighborTrains(void)
+{
+    for (int32_t side = 0; side < NB_SIDES; side++) {
+        SimSprite *s = &neighbor_trains[side];
+        int32_t tx, ty;
+        if (!Neighbor_RailTile(side, &tx, &ty)) {
+            s->frame = 0;
+            continue;
+        }
+        if (s->frame == 0) {
+            if (TotalPop > 20 && !Rand(25)) PlaceTrain(s, (int16_t)tx, (int16_t)ty);
+            continue;
+        }
+        StepTrain(s);
+        if (SpriteNotInBounds(s)) s->frame = 0;
+    }
+}
+
 void MoveObjects(void)
 {
     if (SimSpeed == 0) return;
     Cycle++;
 
     if (active_sprites[TRA].frame) StepTrain(&active_sprites[TRA]);
+    StepNeighborTrains();
     if (active_sprites[COP].frame) StepCopter(&active_sprites[COP]);
     if (active_sprites[AIR].frame) StepPlane(&active_sprites[AIR]);
     if (active_sprites[SHI].frame) StepShip(&active_sprites[SHI]);
@@ -729,6 +755,12 @@ SimSprite *GetSprite(int32_t type)
         return &active_sprites[type];
     }
     return NULL;
+}
+
+SimSprite *GetNeighborTrain(int32_t side)
+{
+    if (side < 0 || side >= NB_SIDES) return NULL;
+    return &neighbor_trains[side];
 }
 
 SimSprite *GetSpriteSlot(int32_t type, int32_t index)

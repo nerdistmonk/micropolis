@@ -11,7 +11,7 @@ static char inspect_stat_power[64] = {0};
 static char inspect_stat_pollution[64] = {0};
 static char inspect_stat_crime[64] = {0};
 static char inspect_stat_landvalue[64] = {0};
-static char inspect_stat_lvfactors[6][72];
+static char inspect_stat_lvfactors[7][72];
 static int inspect_lvfactor_lines = 0;
 static const float kInspectorHeight = 448.0f;
 static char inspect_stat_growth[64] = {0};
@@ -175,8 +175,11 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         snprintf(inspect_stat_lvfactors[4], sizeof(inspect_stat_lvfactors[4]),
                  "Crime nearby: %+d (-20 when very high)", (int)lvf.crime);
         snprintf(inspect_stat_lvfactors[5], sizeof(inspect_stat_lvfactors[5]),
-                 "Total: %d, shown as $%d", (int)lvf.value, (int)lvf.value * 50);
-        inspect_lvfactor_lines = 6;
+                 "Neighbor links: +%d%%", Neighbor_LandValueBonusPercent());
+        snprintf(inspect_stat_lvfactors[6], sizeof(inspect_stat_lvfactors[6]),
+                 "Total: %d, shown as $%d", (int)LandValueWithNeighbors(lvf.value),
+                 (int)LandValueWithNeighbors(lvf.value) * 50);
+        inspect_lvfactor_lines = 7;
     } else {
         snprintf(inspect_stat_lvfactors[1], sizeof(inspect_stat_lvfactors[1]),
                  "No road nearby, so land value is 0");

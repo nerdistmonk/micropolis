@@ -149,6 +149,13 @@ void LandValueFactorsOf(int32_t x, int32_t y, LandValueFactors *f)
     *f = lvFactorsMem[x][y];
 }
 
+/* Citywide neighbor-link bonus applied on top of a tile's base land value. */
+int32_t LandValueWithNeighbors(int32_t value)
+{
+    int32_t v = value * (100 + Neighbor_LandValueBonusPercent()) / 100;
+    return v > 250 ? 250 : v;
+}
+
 void PTLScan(void)
 {
     int32_t lvtot = 0;
@@ -192,8 +199,9 @@ void PTLScan(void)
             LandValueFactorsAt(x, y, &lvFactorsMem[x][y]);
             const LandValueFactors *lvf = &lvFactorsMem[x][y];
             if (lvf->road) {
-                LandValueMem[x][y] = (Byte)lvf->value;
-                lvtot += lvf->value;
+                int32_t lv = LandValueWithNeighbors(lvf->value);
+                LandValueMem[x][y] = (Byte)lv;
+                lvtot += lv;
                 lvnum++;
             } else {
                 LandValueMem[x][y] = 0;

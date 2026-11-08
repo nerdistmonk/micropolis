@@ -1,4 +1,4 @@
-/* sdl3_dialog_city.c: City Hall Desk modal (Budget, Taxes, Evaluation, Graphs, City Info).
+/* sdl3_dialog_city.c: City Hall Desk modal (Budget, Taxes, Deals, Evaluation, Graphs, City Info).
  */
 
 #include "sdl3_dialog_common.h"
@@ -10,6 +10,14 @@ static bool is_editing_city_name = false;
 static char city_name_input_buffer[64] = {0};
 
 #define GRAPH_POINTS 120
+#define CITY_TAB_W   87.0f
+#define CITY_TAB_GAP 6.0f
+
+static const char *const city_tab_labels[CITY_TAB_COUNT] = {
+    "Budget", "Taxes", "Deals", "Evaluation", "Graphs", "City Info"
+};
+
+static int32_t deals_side = NB_NORTH;
 
 static float budget_snap_road_percent;
 static float budget_snap_police_percent;
@@ -75,6 +83,29 @@ static SDL_FRect CityNameRect(float dx, float dy)
 {
     SDL_FRect r = { dx + 130.0f, dy + 115.0f, 260.0f, 28.0f };
     return r;
+}
+
+static SDL_FRect CityTabRect(float dx, float dy, int i)
+{
+    SDL_FRect r = { dx + 14.0f + (float)i * (CITY_TAB_W + CITY_TAB_GAP), dy + 42.0f, CITY_TAB_W, 28.0f };
+    return r;
+}
+
+static SDL_FRect DealsSideRect(float dx, float dy, int32_t s)
+{
+    SDL_FRect r = { dx + 30.0f + (float)s * 118.0f, dy + 112.0f, 110.0f, 26.0f };
+    return r;
+}
+
+static SDL_FRect DealsAdjustRect(float dx, float dy, int32_t g, bool up)
+{
+    SDL_FRect r = { dx + (up ? 266.0f : 230.0f), dy + 204.0f + (float)g * 54.0f + 24.0f, 28.0f, 22.0f };
+    return r;
+}
+
+static const char *DealsYesNo(bool v)
+{
+    return v ? "yes" : "no";
 }
 
 static void SnapshotBudgetState(void)
@@ -166,13 +197,9 @@ bool Dialog_City_HandleClick(float mx, float my)
         return true;
     }
 
-    float tab_x = dx + 14.0f;
-    float tab_y = dy + 42.0f;
-    float tab_w = 104.0f;
-    float tab_h = 28.0f;
-
     for (int i = 0; i < CITY_TAB_COUNT; i++) {
-        if (mx >= tab_x && mx <= tab_x + tab_w && my >= tab_y && my <= tab_y + tab_h) {
+        SDL_FRect tr = CityTabRect(dx, dy, i);
+        if (CityRectHit(&tr, mx, my)) {
             active_city_tab = (CityMgmtTab)i;
             if (active_city_tab != CITY_TAB_CITY_INFO && is_editing_city_name) {
                 SDL_StopTextInput(Video_GetWindow());
@@ -180,7 +207,6 @@ bool Dialog_City_HandleClick(float mx, float my)
             }
             return true;
         }
-        tab_x += tab_w + 6.0f;
     }
 
     if (active_city_tab == CITY_TAB_BUDGET) {
@@ -272,6 +298,28 @@ bool Dialog_City_HandleClick(float mx, float my)
             }
             if (CityRectHit(&tax_up, mx, my)) {
                 if (*rate < 20) (*rate)++;
+                return true;
+            }
+        }
+    }
+
+    if (active_city_tab == CITY_TAB_DEALS) {
+        for (int32_t s = 0; s < NB_SIDES; s++) {
+            SDL_FRect side_btn = DealsSideRect(dx, dy, s);
+            if (CityRectHit(&side_btn, mx, my)) {
+                deals_side = s;
+                return true;
+            }
+        }
+        for (int32_t g = 0; g < NB_GOODS_COUNT; g++) {
+            SDL_FRect dn = DealsAdjustRect(dx, dy, g, false);
+            SDL_FRect up = DealsAdjustRect(dx, dy, g, true);
+            if (CityRectHit(&dn, mx, my)) {
+                Neighbor_SetUnits(deals_side, g, Neighbor_Units(deals_side, g) - 1);
+                return true;
+            }
+            if (CityRectHit(&up, mx, my)) {
+                Neighbor_SetUnits(deals_side, g, Neighbor_Units(deals_side, g) + 1);
                 return true;
             }
         }
@@ -458,28 +506,21 @@ void Dialog_City_Render(SDL_Renderer *renderer)
     SDL_RenderFillRect(renderer, &close_rect);
     GUI_DrawText(renderer, (int)close_rect.x + 6, (int)close_rect.y + 4, "X", col_white);
 
-    const char *tabs[] = { "Budget", "Taxes", "Evaluation", "Graphs", "City Info" };
-    float tab_x = dx + 14.0f;
-    float tab_y = dy + 42.0f;
-    float tab_w = 104.0f;
-    float tab_h = 28.0f;
-
     for (int i = 0; i < CITY_TAB_COUNT; i++) {
-        SDL_FRect tr = { tab_x, tab_y, tab_w, tab_h };
+        SDL_FRect tr = CityTabRect(dx, dy, i);
         if (active_city_tab == (CityMgmtTab)i) {
             SDL_SetRenderDrawColor(renderer, 50, 85, 140, 255);
             SDL_RenderFillRect(renderer, &tr);
             SDL_SetRenderDrawColor(renderer, 255, 215, 0, 255);
             SDL_RenderRect(renderer, &tr);
-            GUI_DrawText(renderer, (int)tr.x + 10, (int)tr.y + 6, tabs[i], col_white);
+            GUI_DrawTextCentered(renderer, tr, city_tab_labels[i], col_white);
         } else {
             SDL_SetRenderDrawColor(renderer, 32, 38, 52, 255);
             SDL_RenderFillRect(renderer, &tr);
             SDL_SetRenderDrawColor(renderer, 60, 72, 92, 255);
             SDL_RenderRect(renderer, &tr);
-            GUI_DrawText(renderer, (int)tr.x + 10, (int)tr.y + 6, tabs[i], col_gray);
+            GUI_DrawTextCentered(renderer, tr, city_tab_labels[i], col_gray);
         }
-        tab_x += tab_w + 6.0f;
     }
 
     SDL_FRect content_box = { dx + 14.0f, dy + 78.0f, dw - 28.0f, dh - 92.0f };
@@ -594,6 +635,80 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         } else {
             GUI_DrawText(renderer, cx, cy + 180, "Status: Balanced tax rate.", col_gray);
         }
+
+    } else if (active_city_tab == CITY_TAB_DEALS) {
+        char buf[160];
+        static const char *const side_names[NB_SIDES] = { "North", "East", "South", "West" };
+        static const char *const goods_names[NB_GOODS_COUNT] = { "Power", "Water", "Garbage" };
+        static const char *const no_link_text[NB_GOODS_COUNT] = {
+            "No power link", "No water link", "No road or rail link"
+        };
+
+        GUI_DrawText(renderer, cx, cy, "NEIGHBOR DEALS", col_gold);
+
+        for (int32_t s = 0; s < NB_SIDES; s++) {
+            SDL_FRect sr = DealsSideRect(dx, dy, s);
+            bool sel = (s == deals_side);
+            SDL_SetRenderDrawColor(renderer, sel ? 50 : 32, sel ? 85 : 38, sel ? 140 : 52, 255);
+            SDL_RenderFillRect(renderer, &sr);
+            SDL_SetRenderDrawColor(renderer, sel ? 255 : 60, sel ? 215 : 72, sel ? 0 : 92, 255);
+            SDL_RenderRect(renderer, &sr);
+            GUI_DrawTextCentered(renderer, sr, side_names[s], sel ? col_white : col_gray);
+        }
+
+        snprintf(buf, sizeof(buf), "Neighbor: %s", Neighbor_Name(deals_side));
+        GUI_DrawText(renderer, cx, (int)(dy + 150.0f), buf, col_white);
+
+        snprintf(buf, sizeof(buf), "Links: Road %s   Rail %s   Power %s   Water %s",
+                 DealsYesNo(Neighbor_IsLinked(deals_side, NB_LINK_ROAD)),
+                 DealsYesNo(Neighbor_IsLinked(deals_side, NB_LINK_RAIL)),
+                 DealsYesNo(Neighbor_IsLinked(deals_side, NB_LINK_POWER)),
+                 DealsYesNo(Neighbor_IsLinked(deals_side, NB_LINK_WATER)));
+        GUI_DrawText(renderer, cx, (int)(dy + 172.0f), buf, col_cyan);
+
+        for (int32_t g = 0; g < NB_GOODS_COUNT; g++) {
+            int ry = (int)(dy + 204.0f) + g * 54;
+            int32_t units = Neighbor_Units(deals_side, g);
+            int32_t cap = Neighbor_Cap(deals_side, g);
+            int32_t buy = Neighbor_BuyCost(deals_side, g);
+            int32_t sell = Neighbor_SellPrice(deals_side, g);
+
+            GUI_DrawText(renderer, cx, ry, goods_names[g], col_white);
+            snprintf(buf, sizeof(buf), "Market $%d   Buy $%d   Sell $%d per unit/mo",
+                     Neighbor_MidPrice(deals_side, g), buy, sell);
+            GUI_DrawText(renderer, cx + 110, ry, buf, col_gray);
+
+            SDL_FRect dn = DealsAdjustRect(dx, dy, g, false);
+            SDL_FRect up = DealsAdjustRect(dx, dy, g, true);
+            SDL_SetRenderDrawColor(renderer, 40, 50, 70, 255);
+            SDL_RenderFillRect(renderer, &dn);
+            SDL_RenderFillRect(renderer, &up);
+            GUI_DrawTextCentered(renderer, dn, "-", col_white);
+            GUI_DrawTextCentered(renderer, up, "+", col_white);
+
+            int sx = (int)dx + 304;
+            if (cap == 0) {
+                if (units == 0) {
+                    GUI_DrawText(renderer, sx, ry + 28, no_link_text[g], col_gray);
+                } else {
+                    GUI_DrawText(renderer, sx, ry + 28, "Link lost: trade stopped", col_red);
+                }
+            } else if (units > 0) {
+                snprintf(buf, sizeof(buf), "Buying %d: costs $%d/mo", units, units * buy);
+                GUI_DrawText(renderer, sx, ry + 28, buf, col_red);
+            } else if (units < 0) {
+                snprintf(buf, sizeof(buf), "Selling %d: earns $%d/mo", -units, -units * sell);
+                GUI_DrawText(renderer, sx, ry + 28, buf, col_green);
+            } else {
+                snprintf(buf, sizeof(buf), "Idle (up to %d units)", cap);
+                GUI_DrawText(renderer, sx, ry + 28, buf, col_gray);
+            }
+        }
+
+        snprintf(buf, sizeof(buf), "City funds: $%d", TotalFunds);
+        GUI_DrawText(renderer, cx, (int)(dy + 380.0f), buf, col_gold);
+        GUI_DrawText(renderer, cx, (int)(dy + 402.0f),
+                     "Buy imports to your city. Sell exports your surplus. Settles monthly.", col_gray);
 
     } else if (active_city_tab == CITY_TAB_EVALUATION) {
         char buf[128];

@@ -117,6 +117,7 @@ static void SyncMiscHis(void)
     uint32_t ut = (uint32_t)UnservicedTrash;
     MiscHis[77] = (int16_t)((ut >> 16) & 0xFFFFu);
     MiscHis[78] = (int16_t)(ut & 0xFFFFu);
+    Neighbor_SyncMisc();
 }
 
 static void ParseCityBlob(const uint8_t *blob)
@@ -419,6 +420,7 @@ int32_t LoadCity(const char *filename)
     SetGameLevel(level);
 
     ResetCityWorkingState();
+    Neighbor_LoadMisc();
     RestoreSimState();
 
     ScenarioID = 0;
@@ -707,6 +709,7 @@ int32_t Scenario_LoadFile(const char *path)
 
     SetGameLevel(0);
     ResetCityWorkingState();
+    Neighbor_LoadMisc();
     CityTime = Scenario_StartTicks(def.start_year);
     TotalFunds = def.funds;
     NoDisasters = def.disasters ? 0 : 1;

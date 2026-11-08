@@ -137,14 +137,13 @@ static int32_t TowerZones(int32_t tx, int32_t ty)
     return TowerIsPowered(tx, ty) ? WATER_TOWER_ZONES : WATER_TOWER_ZONES / 2;
 }
 
-static void SupplyFromTower(int32_t tx, int32_t ty)
+static void SupplyFromTower(int32_t tx, int32_t ty, int32_t limit)
 {
     static const int32_t step_x[4] = { 1, -1, 0, 0 };
     static const int32_t step_y[4] = { 0, 0, 1, -1 };
     int32_t head = 0;
     int32_t tail = 0;
     int32_t zones = 0;
-    int32_t limit = TowerZones(tx, ty);
 
     memset(seen_map, 0, sizeof(seen_map));
 
@@ -253,12 +252,23 @@ void DoWaterScan(void)
         for (int32_t y = 0; y < WORLD_Y; y++) {
             if ((Map[x][y] & LOMASK) != WATER_TOWER_CENTER) continue;
             if (!TowerHasSource(x, y)) continue;
-            SupplyFromTower(x, y);
+            SupplyFromTower(x, y, TowerZones(x, y));
             net_tower_zones[net_towers] = TowerZones(x, y);
             net_parent[net_towers] = net_towers;
             FloodWaterNetwork(x, y, net_towers);
             net_towers++;
         }
+    }
+
+    for (int32_t s = 0; s < NB_SIDES; s++) {
+        int32_t fx, fy;
+        if (!Neighbor_FeedSeed(s, NB_GOODS_WATER, &fx, &fy)) continue;
+        int32_t zones = Neighbor_FeedUnits(s, NB_GOODS_WATER) * Neighbor_FeedZones(NB_GOODS_WATER);
+        SupplyFromTower(fx, fy, zones);
+        net_tower_zones[net_towers] = zones;
+        net_parent[net_towers] = net_towers;
+        FloodWaterNetwork(fx, fy, net_towers);
+        net_towers++;
     }
 
     for (int32_t t = 0; t < net_towers; t++) {
