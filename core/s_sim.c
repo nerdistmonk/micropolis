@@ -613,7 +613,8 @@ static const float RLevels[3] = { 0.7f, 0.9f, 1.2f };
 
 int32_t CalcRoadFund(int16_t level)
 {
-    return (int32_t)((float)(RoadTotal + (RailTotal * 2)) * RLevels[level]);
+    return (int32_t)((float)(RoadTotal + (RailTotal * 2)) * RLevels[level])
+         + PortPop * PORT_COST + APortPop * AIRPORT_COST;
 }
 
 int16_t GetAverageTaxRate(void)

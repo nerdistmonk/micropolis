@@ -50,6 +50,12 @@ void NewsThrottled(int16_t event_id)
     }
 }
 
+/* Ports and airports share one pool of zone capacity; commercial and industrial zones beyond it are unserviced. */
+static bool ZonesOverPortCapacity(void)
+{
+    return (ComZPop + IndZPop) > (PortPop * PORT_SERVICE_ZONES + APortPop * AIRPORT_SERVICE_ZONES);
+}
+
 /* Ticker advisory that repeats while `need` holds. The newspaper gets one story per rising edge. */
 static void Advisory(int16_t mnum, int16_t news_id, bool need)
 {
@@ -184,13 +190,13 @@ void SendMessages(void)
     case 28: {
         bool need = (IndPop > 70) && (PortPop == 0);
         Advisory(8, NEWS_EVENT_ADV_SEAPORT, need);
-        IndCap = need ? 1 : 0;
+        IndCap = ((IndPop > 70) && (PortPop == 0 || ZonesOverPortCapacity())) ? 1 : 0;
         break;
     }
     case 30: {
         bool need = (ComPop > 100) && (APortPop == 0);
         Advisory(9, NEWS_EVENT_ADV_AIRPORT, need);
-        ComCap = need ? 1 : 0;
+        ComCap = ((ComPop > 100) && (APortPop == 0 || ZonesOverPortCapacity())) ? 1 : 0;
         break;
     }
     case 32:

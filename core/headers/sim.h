@@ -515,6 +515,10 @@ extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect, RecEffect;
 #define PARK_COST           25
 #define STADIUM_COST        150
 #define LANDFILL_CENTRE_COST 20
+#define PORT_COST            25
+#define AIRPORT_COST         45
+#define PORT_SERVICE_ZONES   128
+#define AIRPORT_SERVICE_ZONES 256
 extern int16_t TaxFlag, ResTax, ComTax, IndTax;
 extern int32_t ResTaxPop;
 extern int32_t ResUncoveredPop;
