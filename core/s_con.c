@@ -279,12 +279,12 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
         break;
     case stadiumState:
         base_cost = 5000;
-        base_tile = STADIUM - 4;
+        base_tile = STADIUMBASE;
         size = 4;
         break;
     case seaportState:
         base_cost = 3000;
-        base_tile = PORT - 4;
+        base_tile = PORTBASE;
         size = 4;
         break;
     case nuclearState:
@@ -294,7 +294,7 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
         break;
     case airportState:
         base_cost = 10000;
-        base_tile = AIRPORT - 4;
+        base_tile = AIRPORTBASE;
         size = 6;
         break;
     case hospitalState:
@@ -359,10 +359,10 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
     SMapX = (int16_t)x;
     SMapY = (int16_t)y;
 
-    if (base_tile == COALBASE || base_tile == NUCLEARBASE) {
-        PlantPlop(base_tile);
-    } else {
+    if (size == 3) {
         ZonePlop(base_tile);
+    } else {
+        PlantPlop(base_tile, size);
     }
     if (base_tile == LANDFILL) {
         LandfillBlockPlaced(x, y);

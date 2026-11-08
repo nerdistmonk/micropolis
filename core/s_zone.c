@@ -585,15 +585,15 @@ void ZonePlop(int16_t base)
     Map[SMapX][SMapY] |= (ZONEBIT | BULLBIT);
 }
 
-/* Plants are 4x4 tiles, row-major from base; the anchor (SMapX,SMapY) is grid cell (1,1). */
-void PlantPlop(int16_t base)
+/* Multi-tile buildings (size 4 or 6) are row-major from base; the anchor (SMapX,SMapY) is grid cell (1,1). */
+void PlantPlop(int16_t base, int32_t size)
 {
-    for (int32_t dy = 0; dy < 4; dy++) {
-        for (int32_t dx = 0; dx < 4; dx++) {
+    for (int32_t dy = 0; dy < size; dy++) {
+        for (int32_t dx = 0; dx < size; dx++) {
             int32_t xx = SMapX - 1 + dx;
             int32_t yy = SMapY - 1 + dy;
             if (TestBounds(xx, yy)) {
-                Map[xx][yy] = (uint16_t)(base + dy * 4 + dx + BNCNBIT);
+                Map[xx][yy] = (uint16_t)(base + dy * size + dx + BNCNBIT);
             }
         }
     }

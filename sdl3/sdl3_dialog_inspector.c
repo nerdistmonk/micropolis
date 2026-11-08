@@ -71,15 +71,15 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         strncpy(inspect_title, "Commercial Zone", sizeof(inspect_title));
     } else if (low >= INDBASE && low < PORTBASE) {
         strncpy(inspect_title, "Industrial Zone", sizeof(inspect_title));
-    } else if (low >= PORT && low < (PORT + 16)) {
+    } else if (low >= PORTBASE && low <= LASTPORT) {
         strncpy(inspect_title, "Commercial Seaport", sizeof(inspect_title));
-    } else if (low >= AIRPORT && low < (AIRPORT + 36)) {
+    } else if (low >= AIRPORTBASE && low < (AIRPORTBASE + 36)) {
         strncpy(inspect_title, "Municipal Airport", sizeof(inspect_title));
     } else if (low >= COALBASE && low <= LASTPOWERPLANT) {
         strncpy(inspect_title, "Coal Power Plant", sizeof(inspect_title));
-    } else if (low >= NUCLEAR && low < (NUCLEAR + 16)) {
+    } else if (low >= NUCLEARBASE && low < (NUCLEARBASE + 16)) {
         strncpy(inspect_title, "Nuclear Power Plant", sizeof(inspect_title));
-    } else if (low >= STADIUM && low < (STADIUM + 16)) {
+    } else if (low >= STADIUMBASE && low < (STADIUMBASE + 32)) {
         strncpy(inspect_title, "Sports Stadium", sizeof(inspect_title));
     } else if (low >= FIRESTBASE && low < (FIRESTBASE + 9)) {
         strncpy(inspect_title, "Fire Department", sizeof(inspect_title));
@@ -176,7 +176,7 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         } else {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Hospital Demand: none (station not found)");
         }
-    } else if ((low >= FOUNTAIN && low < FOUNTAIN + FOUNTAIN_FRAMES) || (low >= STADIUMBASE && low <= FULLSTADIUM)) {
+    } else if ((low >= FOUNTAIN && low < FOUNTAIN + FOUNTAIN_FRAMES) || (low >= STADIUMBASE && low < STADIUMBASE + 32)) {
         int32_t rec_cap = 0;
         int32_t rec_assigned = 0;
         if (RecSiteStats(tile_x, tile_y, &rec_cap, &rec_assigned)) {
@@ -185,15 +185,15 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         } else {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Recreation Demand: none (site not found)");
         }
-    } else if ((low >= PORT && low < (PORT + 16)) || (low >= AIRPORT && low < (AIRPORT + 36))) {
+    } else if ((low >= PORTBASE && low <= LASTPORT) || (low >= AIRPORTBASE && low < (AIRPORTBASE + 36))) {
         int32_t port_cap = 0;
         int32_t port_demand = 0;
         PortSystemStats(&port_cap, &port_demand);
         int32_t served = port_demand < port_cap ? port_demand : port_cap;
         snprintf(inspect_stat_supply, sizeof(inspect_stat_supply),
                  "%s Service: %d zones each | Citywide: %d of %d zones served",
-                 (low >= AIRPORT) ? "Airport" : "Port",
-                 (low >= AIRPORT) ? AIRPORT_SERVICE_ZONES : PORT_SERVICE_ZONES,
+                 (low >= AIRPORTBASE) ? "Airport" : "Port",
+                 (low >= AIRPORTBASE) ? AIRPORT_SERVICE_ZONES : PORT_SERVICE_ZONES,
                  (int)served, (int)port_demand);
     } else if (TILE_IS_LANDFILL(tile)) {
         LandfillSystemStats(&capacity, &demand);
