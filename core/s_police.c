@@ -1,9 +1,9 @@
-/* s_police.c: Police coverage for zones.
+/* s_police.c: Police coverage for placeable buildings.
  *
- * Each police station serves up to 24 zones when it has power and water, and 12 when either is
+ * Each police station serves up to 24 buildings when it has power and water, and 12 when either is
  * missing. Funding scales that capacity (PoliceEffect / 1000), so an unfunded station serves none.
- * Each residential, commercial, or industrial zone is assigned to the nearest station with spare
- * capacity, citywide, with no radius limit. Zones that get no station are uncovered.
+ * Every placeable building (zones, parks, water towers) is assigned to the nearest station with spare
+ * capacity, citywide, with no radius limit. Buildings that get no station are uncovered.
  * Covered zones have near-zero crime. Uncovered zones get no police benefit.
  */
 
@@ -27,15 +27,6 @@ static int32_t police_station_count;
 static uint8_t police_zone_state[WORLD_X][WORLD_Y];
 static bool police_cover[HWLDX][HWLDY];
 
-static bool IsPoliceZoneTile(uint16_t t)
-{
-    int32_t low = t & LOMASK;
-    if (!(t & ZONEBIT)) return false;
-    return ((low >= RESBASE) && (low < HOSPITAL)) ||
-           ((low >= COMBASE) && (low < INDBASE)) ||
-           ((low >= INDBASE) && (low < PORTBASE));
-}
-
 static PoliceStation *NearestOpenStation(int32_t x, int32_t y)
 {
     PoliceStation *best = NULL;
@@ -54,18 +45,16 @@ static PoliceStation *NearestOpenStation(int32_t x, int32_t y)
     return best;
 }
 
-static void MarkZoneFootprint(int32_t cx, int32_t cy, bool covered)
+static void MarkZoneFootprint(int32_t ox, int32_t oy, int32_t size, bool covered)
 {
-    for (int32_t dx = -1; dx <= 1; dx++) {
-        for (int32_t dy = -1; dy <= 1; dy++) {
-            int32_t nx = cx + dx;
-            int32_t ny = cy + dy;
-            if (!TestBounds(nx, ny)) continue;
+    for (int32_t tx = ox; tx < ox + size; tx++) {
+        for (int32_t ty = oy; ty < oy + size; ty++) {
+            if (!TestBounds(tx, ty)) continue;
             if (covered) {
-                police_zone_state[nx][ny] = POLICE_ZONE_COVERED;
-                police_cover[nx >> 1][ny >> 1] = true;
-            } else if (police_zone_state[nx][ny] == POLICE_ZONE_NONE) {
-                police_zone_state[nx][ny] = POLICE_ZONE_UNCOVERED;
+                police_zone_state[tx][ty] = POLICE_ZONE_COVERED;
+                police_cover[tx >> 1][ty >> 1] = true;
+            } else if (police_zone_state[tx][ty] == POLICE_ZONE_NONE) {
+                police_zone_state[tx][ty] = POLICE_ZONE_UNCOVERED;
             }
         }
     }
@@ -96,13 +85,14 @@ void PoliceAnalysis(void)
 
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
-            if (!IsPoliceZoneTile(Map[x][y])) continue;
+            int32_t ox, oy, size;
+            if (!BuildingAnchorAt(x, y, &ox, &oy, &size)) continue;
             PoliceStation *s = NearestOpenStation(x, y);
             if (s) {
                 s->assigned++;
-                MarkZoneFootprint(x, y, true);
+                MarkZoneFootprint(ox, oy, size, true);
             } else {
-                MarkZoneFootprint(x, y, false);
+                MarkZoneFootprint(ox, oy, size, false);
             }
         }
     }

@@ -129,7 +129,7 @@ static bool IsAccessRoad(uint16_t loc)
 }
 
 /* Returns the footprint of the placeable building anchored at (x, y), if one starts there. */
-static bool BuildingAnchorAt(int32_t x, int32_t y, int32_t *ox, int32_t *oy, int32_t *size)
+bool BuildingAnchorAt(int32_t x, int32_t y, int32_t *ox, int32_t *oy, int32_t *size)
 {
     uint16_t raw = Map[x][y];
     uint16_t low = raw & LOMASK;

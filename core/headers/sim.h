@@ -457,6 +457,7 @@ typedef struct {
 } LandValueFactors;
 void LandValueFactorsOf(int32_t x, int32_t y, LandValueFactors *f);
 bool ZoneHasRoadAccess(int32_t x, int32_t y);
+bool BuildingAnchorAt(int32_t x, int32_t y, int32_t *ox, int32_t *oy, int32_t *size);
 int32_t LandValueWithNeighbors(int32_t value);
 extern Byte *CrimeMem[HWLDX];
 extern Byte *tem[HWLDX];

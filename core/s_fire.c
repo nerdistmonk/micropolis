@@ -1,9 +1,9 @@
-/* s_fire.c: Fire station coverage for zones.
+/* s_fire.c: Fire station coverage for placeable buildings.
  *
- * Each fire station serves up to 24 zones when it has power and water, and 12 when either is
+ * Each fire station serves up to 24 buildings when it has power and water, and 12 when either is
  * missing. Funding scales that capacity (FireEffect / 1000), so an unfunded station serves none.
- * Each residential, commercial, or industrial zone is assigned to the nearest station with spare
- * capacity, citywide, with no radius limit. Zones that get no station are uncovered.
+ * Every placeable building (zones, parks, water towers) is assigned to the nearest station with spare
+ * capacity, citywide, with no radius limit. Buildings that get no station are uncovered.
  * Covered tiles burn out fast when water is supplied. Uncovered tiles burn at the stock rate.
  */
 
@@ -28,15 +28,6 @@ static FireStation fire_stations[FIRE_MAX_STATIONS];
 static int32_t fire_station_count;
 static uint8_t fire_zone_state[WORLD_X][WORLD_Y];
 
-static bool IsFireZoneTile(uint16_t t)
-{
-    int32_t low = t & LOMASK;
-    if (!(t & ZONEBIT)) return false;
-    return ((low >= RESBASE) && (low < HOSPITAL)) ||
-           ((low >= COMBASE) && (low < INDBASE)) ||
-           ((low >= INDBASE) && (low < PORTBASE));
-}
-
 static FireStation *NearestOpenFireStation(int32_t x, int32_t y)
 {
     FireStation *best = NULL;
@@ -55,17 +46,15 @@ static FireStation *NearestOpenFireStation(int32_t x, int32_t y)
     return best;
 }
 
-static void MarkFireZoneFootprint(int32_t cx, int32_t cy, bool covered)
+static void MarkFireZoneFootprint(int32_t ox, int32_t oy, int32_t size, bool covered)
 {
-    for (int32_t dx = -1; dx <= 1; dx++) {
-        for (int32_t dy = -1; dy <= 1; dy++) {
-            int32_t nx = cx + dx;
-            int32_t ny = cy + dy;
-            if (!TestBounds(nx, ny)) continue;
+    for (int32_t tx = ox; tx < ox + size; tx++) {
+        for (int32_t ty = oy; ty < oy + size; ty++) {
+            if (!TestBounds(tx, ty)) continue;
             if (covered) {
-                fire_zone_state[nx][ny] = FIRE_ZONE_COVERED;
-            } else if (fire_zone_state[nx][ny] == FIRE_ZONE_NONE) {
-                fire_zone_state[nx][ny] = FIRE_ZONE_UNCOVERED;
+                fire_zone_state[tx][ty] = FIRE_ZONE_COVERED;
+            } else if (fire_zone_state[tx][ty] == FIRE_ZONE_NONE) {
+                fire_zone_state[tx][ty] = FIRE_ZONE_UNCOVERED;
             }
         }
     }
@@ -95,13 +84,14 @@ void FireCoverageAnalysis(void)
 
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
-            if (!IsFireZoneTile(Map[x][y])) continue;
+            int32_t ox, oy, size;
+            if (!BuildingAnchorAt(x, y, &ox, &oy, &size)) continue;
             FireStation *s = NearestOpenFireStation(x, y);
             if (s) {
                 s->assigned++;
-                MarkFireZoneFootprint(x, y, true);
+                MarkFireZoneFootprint(ox, oy, size, true);
             } else {
-                MarkFireZoneFootprint(x, y, false);
+                MarkFireZoneFootprint(ox, oy, size, false);
             }
         }
     }
