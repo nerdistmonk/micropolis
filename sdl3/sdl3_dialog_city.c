@@ -675,9 +675,8 @@ void Dialog_City_Render(SDL_Renderer *renderer)
             int32_t sell = Neighbor_SellPrice(deals_side, g);
 
             GUI_DrawText(renderer, cx, ry, goods_names[g], col_white);
-            snprintf(buf, sizeof(buf), "Market $%.2f   Buy $%.2f   Sell $%.2f per zone/mo",
-                     Neighbor_MidPrice(deals_side, g) / (double)NB_PRICE_ZONES,
-                     buy / (double)NB_PRICE_ZONES, sell / (double)NB_PRICE_ZONES);
+            snprintf(buf, sizeof(buf), "Market $%d   Buy $%d   Sell $%d per zone/mo",
+                     Neighbor_MidPrice(deals_side, g), buy, sell);
             GUI_DrawText(renderer, cx + 110, ry, buf, col_gray);
 
             SDL_FRect dn = DealsAdjustRect(dx, dy, g, false);

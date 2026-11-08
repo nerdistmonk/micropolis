@@ -7,9 +7,8 @@
  * A link is active only while its gate and conductor both exist, so bulldozing it breaks the link.
  *
  * Deals: zones > 0 buys from the neighbor, zones < 0 sells to it, measured in zones. Each month a
- * mid price follows a bounded random walk that reverts to its base. Prices are quoted per
- * NB_PRICE_ZONES zones; buying costs the mid price plus NB_SPREAD_PCT, and selling pays the mid
- * price minus NB_SPREAD_PCT, each charged per zone.
+ * mid price follows a bounded random walk that reverts to its base. Prices are per zone; buying
+ * costs the mid price plus NB_SPREAD_PCT, and selling pays the mid price minus NB_SPREAD_PCT.
  *   - Power and water buys feed the grid at the gate as a source (see power and water scans).
  *   - Sales draw load from the network they sell into: power and water at the gate's grid or
  *     network, garbage in the landfill. The load is never capped by spare capacity, so overselling
@@ -59,7 +58,7 @@ typedef struct {
 } NeighborSide;
 
 /* Base mid prices per unit per month. Provisional: tune with the user before release. */
-static const int32_t NB_BASE_PRICE[NB_GOODS_COUNT] = { 60, 40, 30 };
+static const int32_t NB_BASE_PRICE[NB_GOODS_COUNT] = { 120, 27, 11 };
 
 static NeighborSide sides[NB_SIDES];
 static int32_t SaleSafeUnits[NB_SIDES][NB_GOODS_COUNT];
@@ -344,10 +343,10 @@ bool Neighbor_SaleBlackedOut(int32_t side, int32_t goods)
     return SaleBlackedOut[side][goods];
 }
 
-/* Money for zones at a per-NB_PRICE_ZONES quote, rounded to the nearest dollar. */
+/* Money for zones at a per-zone quote. */
 static int32_t ZoneCharge(int32_t zones, int32_t quote)
 {
-    return (zones * quote + NB_PRICE_ZONES / 2) / NB_PRICE_ZONES;
+    return zones * quote;
 }
 
 int32_t Neighbor_BuyCharge(int32_t side, int32_t goods, int32_t zones)

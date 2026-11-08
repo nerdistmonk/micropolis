@@ -679,7 +679,6 @@ int32_t LandfillPollution(int32_t loc);
 enum { NB_NORTH, NB_EAST, NB_SOUTH, NB_WEST, NB_SIDES };
 enum { NB_LINK_ROAD, NB_LINK_RAIL, NB_LINK_POWER, NB_LINK_WATER, NB_LINK_COUNT };
 enum { NB_GOODS_POWER, NB_GOODS_WATER, NB_GOODS_GARBAGE, NB_GOODS_COUNT };
-#define NB_PRICE_ZONES 12 /* neighbor mid prices are quoted per this many zones */
 void Neighbor_Reset(void);
 void Neighbor_Tick(void);
 void Neighbor_SyncMisc(void);
