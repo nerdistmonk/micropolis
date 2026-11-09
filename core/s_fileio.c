@@ -37,8 +37,12 @@ extern void ClearMes(void);
 #define RESPOP_SAVE_BASE 140
 #define RESPOP_SAVE_TAG_SLOT 142
 
-/* Fixed on-disk size of a city image (header streams plus 120x100 map). */
-#define CITY_FILE_BYTES 27120
+/* A city image is the header streams, then the misc block, then the 120x100 map. Legacy images stored 120 misc slots. */
+#define CITY_IMAGE_BYTES(misc) (6 * (HISTLEN / 2) * sizeof(int16_t) + (misc) * sizeof(int16_t) + WORLD_X * WORLD_Y * sizeof(uint16_t))
+#define CITY_MISC_SLOTS_LEGACY (MISCHISTLEN / 2)
+#define CITY_MISC_SLOTS MISCHISTLEN
+#define CITY_FILE_BYTES_LEGACY CITY_IMAGE_BYTES(CITY_MISC_SLOTS_LEGACY)
+#define CITY_FILE_BYTES CITY_IMAGE_BYTES(CITY_MISC_SLOTS)
 
 static float ClampPercent(float v)
 {
@@ -159,12 +163,11 @@ static void SyncMiscHis(void)
     Neighbor_SyncMisc();
 }
 
-static void ParseCityBlob(const uint8_t *blob)
+static void ParseCityBlob(const uint8_t *blob, size_t misc_count)
 {
     Water_ClearPipes();
     const size_t hist_count = HISTLEN / 2;
     const size_t hist_bytes = hist_count * sizeof(int16_t);
-    const size_t misc_count = MISCHISTLEN / 2;
     const size_t misc_bytes = misc_count * sizeof(int16_t);
 
     DecodeShortStream(ResHis, blob + 0 * hist_bytes, hist_count);
@@ -174,6 +177,8 @@ static void ParseCityBlob(const uint8_t *blob)
     DecodeShortStream(PollutionHis, blob + 4 * hist_bytes, hist_count);
     DecodeShortStream(MoneyHis, blob + 5 * hist_bytes, hist_count);
     DecodeShortStream(MiscHis, blob + 6 * hist_bytes, misc_count);
+    /* Legacy images stop at slot 119. Clear the rest so values from an earlier load cannot leak in. */
+    memset(MiscHis + misc_count, 0, (MISCHISTLEN - misc_count) * sizeof(int16_t));
 
     /* Column-by-column layout: 120 columns of 100 tiles each */
     const uint8_t *map_src = blob + 6 * hist_bytes + misc_bytes;
@@ -190,7 +195,7 @@ static void EncodeCityBlob(uint8_t *blob)
 
     const size_t hist_count = HISTLEN / 2;
     const size_t hist_bytes = hist_count * sizeof(int16_t);
-    const size_t misc_count = MISCHISTLEN / 2;
+    const size_t misc_count = CITY_MISC_SLOTS;
     const size_t misc_bytes = misc_count * sizeof(int16_t);
 
     EncodeShortStream(blob + 0 * hist_bytes, ResHis, hist_count);
@@ -243,6 +248,20 @@ void SetDataRoot(const char *root)
     snprintf(data_root, sizeof(data_root), "%s", root ? root : "");
 }
 
+/* Returns the misc slot count of a .cot or .cty file of this size, or 0 if no known layout matches. */
+static size_t CityMiscSlotsForSize(long size)
+{
+    const long pipes = (long)Water_PipeBlockBytes();
+    const long fill = (long)LANDFILL_FILL_BYTES;
+    const long current = (long)CITY_FILE_BYTES;
+    const long legacy = (long)CITY_FILE_BYTES_LEGACY;
+    if (size == current || size == current + pipes || size == current + pipes + fill) return CITY_MISC_SLOTS;
+    if (size == legacy || size == 99120 || size == 219120 || size == legacy + pipes || size == legacy + pipes + fill) {
+        return CITY_MISC_SLOTS_LEGACY;
+    }
+    return 0;
+}
+
 static int32_t LoadFileInternal(const char *filename)
 {
     FILE *f = NULL;
@@ -278,15 +297,17 @@ static int32_t LoadFileInternal(const char *filename)
     long size = ftell(f);
     fseek(f, 0L, SEEK_SET);
 
-    const long pipe_total = (long)(CITY_FILE_BYTES + Water_PipeBlockBytes());
-    const long fill_total = pipe_total + (long)LANDFILL_FILL_BYTES;
-    if (size != 27120 && size != 99120 && size != 219120 && size != pipe_total && size != fill_total) {
+    const size_t misc_slots = CityMiscSlotsForSize(size);
+    if (misc_slots == 0) {
         fclose(f);
         return 0;
     }
+    const size_t image = CITY_IMAGE_BYTES(misc_slots);
+    const size_t pipe_end = image + Water_PipeBlockBytes();
+    const size_t fill_end = pipe_end + LANDFILL_FILL_BYTES;
 
     /* Read the whole image before touching any globals, so a short read leaves the current city intact. */
-    size_t want = (size == fill_total) ? (size_t)fill_total : (size == pipe_total) ? (size_t)pipe_total : CITY_FILE_BYTES;
+    size_t want = (size == (long)fill_end) ? fill_end : (size == (long)pipe_end) ? pipe_end : image;
     uint8_t *blob = (uint8_t *)malloc(want);
     if (!blob) {
         fclose(f);
@@ -299,9 +320,9 @@ static int32_t LoadFileInternal(const char *filename)
         return 0;
     }
 
-    ParseCityBlob(blob);
-    if (want > CITY_FILE_BYTES) Water_LoadPipes(blob + CITY_FILE_BYTES);
-    LandfillDecodeFill(want == (size_t)fill_total ? blob + pipe_total : NULL);
+    ParseCityBlob(blob, misc_slots);
+    if (want > image) Water_LoadPipes(blob + image);
+    LandfillDecodeFill(want == fill_end ? blob + pipe_end : NULL);
     free(blob);
     return 1;
 }
@@ -565,13 +586,13 @@ int32_t SaveCity(const char *filename)
     return 1;
 }
 
-/* .scn layout: a 376-byte little-endian header, then the 27120-byte city image used by .cty files.
- * Version 2 appends the water pipe block and the landfill fill block, as .cty files do.
- * Version 1 is the city image only and still loads, with no pipes or fill. */
+/* .scn layout: a 376-byte little-endian header, then a city image as in .cot files.
+ * Version 3 uses the current image. Versions 1 and 2 use the legacy image, which stores 120 misc slots.
+ * Versions 2 and 3 append the water pipe block and the landfill fill block. Version 1 has neither and still loads. */
 #define SCN_HEADER_BYTES   376
-#define SCN_CITY_END       (SCN_HEADER_BYTES + CITY_FILE_BYTES)
 #define SCN_VERSION_CITY   1
-#define SCN_VERSION        2
+#define SCN_VERSION_LEGACY 2
+#define SCN_VERSION        3
 #define SCN_OFF_VERSION    4
 #define SCN_OFF_FLAGS      6
 #define SCN_OFF_NAME       8
@@ -694,12 +715,12 @@ static void EncodeScenarioHeader(const ScenarioDef *def, uint8_t *h)
     }
 }
 
-/* Returns 0 for anything that is not a version-1 .scn header. Text and conditions are copied raw; Scenario_Validate checks them. */
+/* Returns 0 for anything that is not a known .scn header. Text and conditions are copied raw; Scenario_Validate checks them. */
 static int32_t DecodeScenarioHeader(const uint8_t *h, ScenarioDef *def)
 {
     if (memcmp(h, "MCSN", 4) != 0) return 0;
     uint16_t ver = GetU16LE(h + SCN_OFF_VERSION);
-    if (ver != SCN_VERSION_CITY && ver != SCN_VERSION) return 0;
+    if (ver != SCN_VERSION_CITY && ver != SCN_VERSION_LEGACY && ver != SCN_VERSION) return 0;
 
     uint16_t flags = GetU16LE(h + SCN_OFF_FLAGS);
     if (flags & (uint16_t)~SCN_FLAG_KNOWN) return 0;
@@ -728,17 +749,30 @@ static int32_t DecodeScenarioHeader(const uint8_t *h, ScenarioDef *def)
     return 1;
 }
 
-/* Total file size for each version, including the pipe and fill blocks for version 2. */
+/* Misc slots carried by a scenario version's city image. */
+static size_t ScnMiscSlots(uint16_t version)
+{
+    return version == SCN_VERSION ? CITY_MISC_SLOTS : CITY_MISC_SLOTS_LEGACY;
+}
+
+/* Offset just past the header and city image. Pipe and fill blocks follow it. */
+static size_t ScnCityEnd(uint16_t version)
+{
+    return SCN_HEADER_BYTES + CITY_IMAGE_BYTES(ScnMiscSlots(version));
+}
+
+/* Total file size for each version, including the pipe and fill blocks for versions 2 and 3. */
 static size_t ScnTotalBytes(uint16_t version)
 {
-    if (version == SCN_VERSION_CITY) return SCN_CITY_END;
-    return SCN_CITY_END + Water_PipeBlockBytes() + LANDFILL_FILL_BYTES;
+    if (version == SCN_VERSION_CITY) return ScnCityEnd(version);
+    return ScnCityEnd(version) + Water_PipeBlockBytes() + LANDFILL_FILL_BYTES;
 }
 
 /* Returns the version whose layout matches the file size, or 0 if none does. */
 static uint16_t ScnVersionForSize(long size)
 {
     if (size == (long)ScnTotalBytes(SCN_VERSION_CITY)) return SCN_VERSION_CITY;
+    if (size == (long)ScnTotalBytes(SCN_VERSION_LEGACY)) return SCN_VERSION_LEGACY;
     if (size == (long)ScnTotalBytes(SCN_VERSION)) return SCN_VERSION;
     return 0;
 }
@@ -792,10 +826,11 @@ int32_t Scenario_LoadFile(const char *path)
     }
 
     /* Version 1 has no pipe or fill blocks, so they stay empty. */
-    const int32_t has_infrastructure = GetU16LE(blob + SCN_OFF_VERSION) == SCN_VERSION;
+    const uint16_t version = GetU16LE(blob + SCN_OFF_VERSION);
+    const int32_t has_infrastructure = version != SCN_VERSION_CITY;
     Scenario_EditorEnd();
-    ParseCityBlob(blob + SCN_HEADER_BYTES);
-    if (has_infrastructure) Water_LoadPipes(blob + SCN_CITY_END);
+    ParseCityBlob(blob + SCN_HEADER_BYTES, ScnMiscSlots(version));
+    if (has_infrastructure) Water_LoadPipes(blob + ScnCityEnd(version));
 
     SetGameLevel(0);
     ResetCityWorkingState();
@@ -823,7 +858,7 @@ int32_t Scenario_LoadFile(const char *path)
     recreationPercent = 1.0f;
     LandfillResetCity();
     /* Must follow LandfillResetCity, which clears the fill. */
-    LandfillDecodeFill(has_infrastructure ? blob + SCN_CITY_END + Water_PipeBlockBytes() : NULL);
+    LandfillDecodeFill(has_infrastructure ? blob + ScnCityEnd(version) + Water_PipeBlockBytes() : NULL);
     free(blob);
 
     InitSimLoad = 1;
@@ -880,8 +915,8 @@ int32_t Scenario_SaveToDirectory(const ScenarioDef *def, char *saved_path, size_
     if (!blob) return 0;
     EncodeScenarioHeader(def, blob);
     EncodeCityBlob(blob + SCN_HEADER_BYTES);
-    Water_CopyPipes(blob + SCN_CITY_END);
-    LandfillEncodeFill(blob + SCN_CITY_END + Water_PipeBlockBytes());
+    Water_CopyPipes(blob + ScnCityEnd(SCN_VERSION));
+    LandfillEncodeFill(blob + ScnCityEnd(SCN_VERSION) + Water_PipeBlockBytes());
     int32_t ok = WriteFileAtomic(path, blob, total);
     free(blob);
     if (!ok) return 0;

@@ -35,8 +35,7 @@
 #define NB_LV_PER_LINK    1
 #define NB_LV_BONUS_MAX   8
 
-/* Save layout in MiscHis. Only slots 0-119 are written to the city file (see ParseCityBlob), so
- * everything lives there. Slots 0, 46-49 and 118-119 are otherwise unused. */
+/* Save layout in MiscHis, which is written to the city file in full (see EncodeCityBlob). */
 #define NB_SAVE_TAG       0x4E44
 #define NB_SAVE_TAG_LEGACY 0x4E43   /* units in 4-bit nibbles, one slot per side */
 #define NB_SAVE_TAG_SLOT  79
