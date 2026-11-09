@@ -793,7 +793,7 @@ static void StepNeighborTrains(void)
             continue;
         }
         if (s->frame == 0) {
-            if (TotalPop > 20 && !Rand(25)) PlaceTrain(s, (int16_t)tx, (int16_t)ty);
+            if (!Rand(25)) PlaceTrain(s, (int16_t)tx, (int16_t)ty);
             continue;
         }
         StepTrainTimed(s);
