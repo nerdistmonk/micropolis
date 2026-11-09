@@ -422,6 +422,7 @@ static bool PipeCanLay(uint16_t raw)
     if (t >= RESBASE && t <= LASTZONE) return false;
     /* CoalSmoke() paints these over the plant's upper-right footprint tiles. */
     if (t >= COALSMOKE1 && t < COALSMOKE4 + 4) return false;
+    if (TILE_IS_TRAFFIC_BLOCK(raw)) return false;
     return !(t >= WATERTOWER && t < WATERTOWER + WATERTOWER_TILES);
 }
 
@@ -463,7 +464,13 @@ int32_t LayWaterTower(int32_t x, int32_t y)
         for (int32_t dx = -1; dx <= 1; dx++) {
             uint16_t tile = (uint16_t)(WATERTOWER + (dy + 1) * 3 + (dx + 1));
             Water_RemovePipe(x + dx, y + dy);
-            Map[x + dx][y + dy] = (uint16_t)(tile | BULLBIT);
+            Map[x + dx][y + dy] = (uint16_t)(tile | BULLBIT | CONDBIT);
+        }
+    }
+    /* Refresh adjacent wires so they draw a connection to the tower. */
+    for (int32_t dy = -1; dy <= 1; dy++) {
+        for (int32_t dx = -1; dx <= 1; dx++) {
+            FixZone(x + dx, y + dy);
         }
     }
     TotalFunds -= CostOf[waterTowerState] + doze_cost;
