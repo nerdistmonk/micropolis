@@ -538,8 +538,6 @@ extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect, RecEffect;
 #define GARAGE_ZONES         9
 #define STATION_ZONES        18
 #define TRAF_ROADS_PER_ZONE  10
-/* Traffic news fires when this share of growing zones is unserviced (TrafProblemShare scale, 0-255). */
-#define TRAF_JAM_SHARE       26
 #define PORT_COST            25
 #define AIRPORT_COST         45
 #define PORT_SERVICE_ZONES   128
@@ -811,6 +809,9 @@ void TrafRushHour(void);
 void TrafResetCity(void);
 bool TrafZoneUnserviced(int32_t x, int32_t y);
 int32_t TrafProblemShare(void);
+bool TrafAtCapacity(void);
+bool TrafGridlocked(void);
+bool TrafAnimStepDue(void);
 int16_t TrafRoadLoad(void);
 void TrafNetworkStats(int32_t *demand, int32_t *capacity);
 float TrafServiceShare(void);

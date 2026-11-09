@@ -126,7 +126,8 @@ static const char * const SimMessages[] = {
     [47] = "Parks go short of funding.",
     [48] = "Ports and airports are over capacity.",
     [49] = "Garage needs an adjacent road.",
-    [50] = "Station needs an adjacent rail line."
+    [50] = "Station needs an adjacent rail line.",
+    [51] = "Gridlock reported. Commuters cannot get through."
 };
 
 static const char *GetMessageText(int16_t id)
@@ -260,8 +261,11 @@ void SendMessages(void)
         Advisory(44, NEWS_EVENT_ADV_RIOTS, (TotalPop > 60) && (CrimeAverage > 150));
         break;
     case 63: {
-        bool congested = NewsCondition(12, TrafProblemShare() >= TRAF_JAM_SHARE);
-        if (congested) {
+        bool jammed = NewsCondition(12, TrafAtCapacity());
+        bool gridlocked = NewsCondition(51, TrafGridlocked());
+        if (gridlocked) {
+            SendMesTickerAt(-51, 0, 0);
+        } else if (jammed) {
             SendMesTickerAt(-12, 0, 0);
         }
         break;
@@ -477,7 +481,7 @@ static void AlertTarget(int16_t mnum, int16_t *x, int16_t *y)
     switch (mnum) {
     case -10: *x = PolMaxX;   *y = PolMaxY;   break;
     case -11: *x = CrimeMaxX; *y = CrimeMaxY; break;
-    case -12: *x = TrafMaxX;  *y = TrafMaxY;  break;
+    case -12: case -51: *x = TrafMaxX; *y = TrafMaxY; break;
     case -35: case -36: case -37: case -38: case -39: case -40:
         *x = CCx; *y = CCy;
         break;

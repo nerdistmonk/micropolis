@@ -7,8 +7,9 @@
  *
  * The road network is one pooled entity. Each road tile adds a tenth of a zone of
  * capacity, and each parking garage or passenger station adds more. Every zone and
- * placeable building adds demand. Road-connected growing zones absorb the excess as
- * unserviced zones, and that set rotates at each rush hour. Other buildings keep working.
+ * placeable building adds demand. Up to TRAF_ABSORBED_ZONES over capacity only congests traffic.
+ * Beyond that, road-connected growing zones go unserviced, and that set rotates at each rush hour.
+ * Other buildings keep working.
  */
 
 #include "sim.h"
@@ -17,6 +18,14 @@
 #define TRAF_CITIZENS_PER_RESPOP 20
 #define TRAF_COMMUTE_PERCENT     60
 #define TRAF_TRIPS_PER_ZONE      480
+
+/* Zones over capacity that only congest traffic. Gridlock starts one zone past them. */
+#define TRAF_ABSORBED_ZONES      3
+#define TRAF_GRIDLOCK_ZONES      (TRAF_ABSORBED_ZONES + 1)
+
+/* AnimateTiles passes per traffic animation step: fastest with spare capacity, slowest at capacity and beyond. */
+#define TRAF_ANIM_FASTEST        1
+#define TRAF_ANIM_SLOWEST        8
 
 int16_t TrafMaxX = 0;
 int16_t TrafMaxY = 0;
@@ -28,6 +37,12 @@ static int32_t TrafProblemUnserviced = 0;
 static int32_t TrafProblemZones = 0;
 /* Rush-hour load on the road network, percent of capacity, 0-100 */
 static int16_t TrafLoad = 0;
+/* Demand and capacity at the last rush hour, in zones. */
+static int32_t TrafDemandZones = 0;
+static int32_t TrafCapacityZones = 0;
+/* Traffic tiles advance on AnimateTiles passes that are multiples of TrafAnimEvery. */
+static int32_t TrafAnimEvery = TRAF_ANIM_FASTEST;
+static uint32_t TrafAnimPass = 0;
 
 /* Fire, police, hospitals, power plants, ports, airports, stadiums, landfill, water towers, and parks.
  * Each building counts once: at its zone centre, landfill centre, water tower centre, or park tile.
@@ -90,10 +105,20 @@ void TrafNetworkStats(int32_t *demand, int32_t *capacity)
     *capacity = TrafCapacityOf(&t);
 }
 
+/* Passes between traffic animation steps: fastest with spare capacity, slowest from capacity onward. */
+static int32_t TrafAnimInterval(int32_t demand, int32_t capacity)
+{
+    if (demand <= 0) return TRAF_ANIM_FASTEST;
+    if (capacity <= 0) return TRAF_ANIM_SLOWEST;
+    int64_t pct = (int64_t)demand * 100 / capacity;
+    if (pct > 100) pct = 100;
+    return TRAF_ANIM_FASTEST + (int32_t)((TRAF_ANIM_SLOWEST - TRAF_ANIM_FASTEST) * pct / 100);
+}
+
 /* Runs at each rush hour. The road grid is one pool: its capacity is the share of
  * road tiles plus the garages and stations that have road or rail access. Demand is
- * every growing zone plus every placeable building. The excess over capacity is cut
- * from road-connected growing zones, and the cut window rotates at each rush hour.
+ * every growing zone plus every placeable building. Excess beyond TRAF_ABSORBED_ZONES
+ * is cut from road-connected growing zones, and the cut window rotates at each rush hour.
  */
 void TrafRushHour(void)
 {
@@ -105,13 +130,17 @@ void TrafRushHour(void)
     int32_t demand = growing + buildings;
     int32_t capacity = TrafCapacityOf(&t);
     int32_t excess = demand > capacity ? demand - capacity : 0;
-    int32_t cut = excess < accessible ? excess : accessible;
+    int32_t absorbed = excess > TRAF_ABSORBED_ZONES ? excess - TRAF_ABSORBED_ZONES : 0;
+    int32_t cut = absorbed < accessible ? absorbed : accessible;
     int64_t volume = (int64_t)TrafServicedResPop * TRAF_CITIZENS_PER_RESPOP * TRAF_COMMUTE_PERCENT / 100;
     int64_t full = (int64_t)capacity * TRAF_TRIPS_PER_ZONE;
     int32_t level = full > 0 ? (int32_t)(volume * 255 / full) : 0;
     if (level > 255) level = 255;
     int64_t load = full > 0 ? volume * 100 / full : 0;
     TrafLoad = (int16_t)(load > 100 ? 100 : load);
+    TrafDemandZones = demand;
+    TrafCapacityZones = capacity;
+    TrafAnimEvery = TrafAnimInterval(demand, capacity);
 
     int32_t rotor = accessible > 0 ? TrafRotor % accessible : 0;
     int32_t ordinal = 0;
@@ -177,6 +206,9 @@ void TrafResetCity(void)
     TrafMaxY = 0;
     TrafServicedResPop = 0;
     TrafLoad = 0;
+    TrafDemandZones = 0;
+    TrafCapacityZones = 0;
+    TrafAnimEvery = TRAF_ANIM_FASTEST;
 }
 
 bool TrafZoneUnserviced(int32_t x, int32_t y)
@@ -200,6 +232,23 @@ int32_t TrafProblemShare(void)
 int16_t TrafRoadLoad(void)
 {
     return TrafLoad;
+}
+
+/* Demand has reached road capacity. Traffic is jammed, though no growing zone is cut yet. */
+bool TrafAtCapacity(void)
+{
+    return TrafDemandZones > 0 && TrafDemandZones >= TrafCapacityZones;
+}
+
+bool TrafGridlocked(void)
+{
+    return TrafDemandZones - TrafCapacityZones >= TRAF_GRIDLOCK_ZONES;
+}
+
+/* Called once per AnimateTiles pass. True on the passes where traffic tiles advance. */
+bool TrafAnimStepDue(void)
+{
+    return TrafAnimPass++ % (uint32_t)TrafAnimEvery == 0;
 }
 
 bool RoadTest(int32_t tile)

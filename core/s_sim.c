@@ -154,6 +154,12 @@ void SetNewCityLevel(int16_t level)
     TotalFunds = NewCityFunds[GameLevel];
 }
 
+/* Traffic road shapes: LTRFBASE and HTRFBASE each hold the 16 road shapes that DoRoad picks from. */
+static bool IsTrafficRoadTile(uint16_t id)
+{
+    return (id >= LTRFBASE && id < LTRFBASE + 16) || (id >= HTRFBASE && id < HTRFBASE + 16);
+}
+
 void AnimateTiles(void)
 {
     if (!DoAnimation) return;
@@ -164,12 +170,16 @@ void AnimateTiles(void)
 
     if (SimSpeed == 0) return;
 
+    bool trafficStep = TrafAnimStepDue();
+
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
             uint16_t tile = Map[x][y];
             if (tile & ANIMBIT) {
                 uint16_t flags = tile & ALLBITS;
                 uint16_t id = tile & LOMASK;
+
+                if (!trafficStep && IsTrafficRoadTile(id)) continue;
 
                 if (id < 1024) {
                     id = (uint16_t)aniTile[id];
@@ -819,8 +829,9 @@ static void DoRoad(void)
         tden = 2;
     }
 
-    Density = (int16_t)((TrfDensity[SMapX >> 1][SMapY >> 1]) >> 6);
-    if (Density > 1) Density--;
+    /* Any rush-hour load animates. Heavy load (192 and up) uses the heavy-traffic sprites. */
+    Density = TrfDensity[SMapX >> 1][SMapY >> 1];
+    Density = (int16_t)(Density == 0 ? 0 : (Density < 192 ? 1 : 2));
 
     if (tden != Density) {
         uint16_t z = (uint16_t)(((CChr9 - ROADBASE) & 15) + DenTab[Density]);

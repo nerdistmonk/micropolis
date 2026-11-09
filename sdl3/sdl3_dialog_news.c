@@ -145,6 +145,7 @@ static const NewsGameHeadline game_headlines[] = {
     { 41, "Heavy traffic snarls the city" },
     { 42, "Floodwaters spread through the city" },
     { 43, "Nuclear meltdown at the power plant" },
+    { 51, "Gridlock paralyzes the city's streets" },
     { NEWS_EVENT_TREASURY_EMPTY, "City treasury runs dry" },
     { NEWS_EVENT_TREASURY_MILLION, "City treasury tops $1,000,000" },
     { NEWS_EVENT_TREASURY_BUSTED, "The city is nearly busted" },
