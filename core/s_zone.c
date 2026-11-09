@@ -56,8 +56,8 @@ int16_t SetZPower(void)
     }
 }
 
-/* Parks and water towers have no zone bit, so they are counted here instead of in DoZone */
-void CountUnzonedUtilities(bool needs_water)
+/* Water towers have no zone bit and draw no load, so they count only toward power status */
+void CountWaterTowerPower(void)
 {
     QUAD power_wrd = POWERWORD(SMapX, SMapY);
     bool powered = (power_wrd < PWRMAPSIZE) &&
@@ -68,7 +68,12 @@ void CountUnzonedUtilities(bool needs_water)
     } else {
         unPwrdZCnt++;
     }
-    if (needs_water && powered && !WaterIsSupplied(SMapX, SMapY)) {
+}
+
+/* Parks have no zone bit. They need water but not power, so they count only toward water */
+void CountParkWater(void)
+{
+    if (!WaterIsSupplied(SMapX, SMapY)) {
         UnwateredZCnt++;
     }
 }

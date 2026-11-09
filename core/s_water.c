@@ -84,11 +84,25 @@ static bool IsWaterConductor(uint16_t tile)
     return true;
 }
 
+/* Each placeable building with a zone bit counts once, at its centre. Parks count too. Power plants, landfill, and water towers draw nothing. */
+static bool IsWaterLoad(uint16_t tile)
+{
+    if (TILE_IS_PARK(tile)) return true;
+    return (tile & ZONEBIT) && !TILE_IS_POWER_PLANT(tile) && !TILE_IS_LANDFILL(tile);
+}
+
+/* A park takes water but passes it on only where a pipe or conductor runs under it. */
+static bool WaterIsLeaf(int32_t x, int32_t y)
+{
+    uint16_t tile = Map[x][y];
+    return TILE_IS_PARK(tile) && !pipe_map[x][y] && !IsWaterConductor(tile);
+}
+
 static bool WaterCanEnter(int32_t x, int32_t y)
 {
     if (!TestBounds(x, y)) return false;
     uint16_t tile = Map[x][y];
-    return pipe_map[x][y] || TILE_IS_POWER_PLANT(tile) || TILE_IS_WATER_TOWER(tile) || IsWaterConductor(tile);
+    return pipe_map[x][y] || TILE_IS_POWER_PLANT(tile) || TILE_IS_WATER_TOWER(tile) || TILE_IS_PARK(tile) || IsWaterConductor(tile);
 }
 
 /* A 4x4 plant is watered as one unit: find its center around (x,y) and mark every footprint tile. */
@@ -172,12 +186,13 @@ static void SupplyFromTower(int32_t tx, int32_t ty, int32_t limit)
             uint16_t tile = Map[nx][ny];
             if (TILE_IS_POWER_PLANT(tile)) {
                 MarkPlantFootprint(nx, ny);
-            } else if ((tile & ZONEBIT) && !TILE_IS_LANDFILL(tile) && !TILE_IS_TRAFFIC_BLOCK(tile) && !water_map[nx][ny]) {
+            } else if (IsWaterLoad(tile) && !water_map[nx][ny]) {
                 if (zones >= limit) continue;
                 zones++;
             }
 
             water_map[nx][ny] = 1;
+            if (WaterIsLeaf(nx, ny)) continue;
             pipe_queue[tail++] = nx * WORLD_Y + ny;
         }
     }
@@ -209,12 +224,14 @@ static int32_t NetFind(int32_t t)
 static void NetClaim(int32_t x, int32_t y, int32_t tower, int32_t *tail)
 {
     if (!TestBounds(x, y)) return;
+    bool leaf = WaterIsLeaf(x, y);
     int32_t owner = net_owner[x][y];
     if (owner == 0) {
         net_owner[x][y] = (int16_t)(tower + 1);
-        pipe_queue[(*tail)++] = x * WORLD_Y + y;
+        if (!leaf) pipe_queue[(*tail)++] = x * WORLD_Y + y;
         return;
     }
+    if (leaf) return;
     int32_t a = NetFind(owner - 1);
     int32_t b = NetFind(tower);
     if (a != b) net_parent[b] = a;
@@ -256,7 +273,7 @@ static void DropWaterZones(int32_t root, int32_t count, int32_t zones)
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
             if (!water_map[x][y] || !net_owner[x][y]) continue;
-            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y]) || TILE_IS_TRAFFIC_BLOCK(Map[x][y])) continue;
+            if (!IsWaterLoad(Map[x][y])) continue;
             if (NetFind(net_owner[x][y] - 1) != root) continue;
             if (((index - first + zones) % zones) < count) water_map[x][y] = 0;
             index++;
@@ -306,7 +323,7 @@ void DoWaterScan(void)
         for (int32_t y = 0; y < WORLD_Y; y++) {
             int16_t owner = net_owner[x][y];
             if (!owner) continue;
-            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y]) || TILE_IS_TRAFFIC_BLOCK(Map[x][y])) continue;
+            if (!IsWaterLoad(Map[x][y])) continue;
             net_demand[NetFind(owner - 1)]++;
         }
     }
@@ -327,7 +344,7 @@ void DoWaterScan(void)
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
             if (!water_map[x][y] || !net_owner[x][y]) continue;
-            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y]) || TILE_IS_TRAFFIC_BLOCK(Map[x][y])) continue;
+            if (!IsWaterLoad(Map[x][y])) continue;
             net_zones[NetFind(net_owner[x][y] - 1)]++;
         }
     }

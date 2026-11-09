@@ -368,6 +368,7 @@ typedef int32_t QUAD;
 #define TILE_IS_GARAGE(tile) ((((tile) & LOMASK) >= GARAGE) && (((tile) & LOMASK) < GARAGE + GARAGE_TILES))
 #define TILE_IS_STATION(tile) ((((tile) & LOMASK) >= STATION) && (((tile) & LOMASK) < STATION + STATION_TILES))
 #define TILE_IS_TRAFFIC_BLOCK(tile) (TILE_IS_GARAGE(tile) || TILE_IS_STATION(tile))
+#define TILE_IS_PARK(tile) ((((tile) & LOMASK) >= FOUNTAIN) && (((tile) & LOMASK) < FOUNTAIN + FOUNTAIN_FRAMES))
 #define TILE_IS_VULNERABLE(tile) (!((tile) & ZONEBIT) && (((tile) & LOMASK) >= RZB) && (((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_ARSONABLE(tile) (!((tile) & ZONEBIT) && (((tile) & LOMASK) >= RZB) && (((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_RIVER_EDGE(tile) ((((tile) & LOMASK) >= FIRSTRIVEDGE) && (((tile) & LOMASK) <= LASTRIVEDGE))
@@ -678,7 +679,8 @@ void SmoothWater(void);
 
 /* Zones, Power, and Automata */
 void DoZone(void);
-void CountUnzonedUtilities(bool needs_water);
+void CountWaterTowerPower(void);
+void CountParkWater(void);
 int16_t SetZPower(void);
 void DoSPZone(int16_t pwron);
 void DoNilPower(void);

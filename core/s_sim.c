@@ -745,9 +745,9 @@ static void MapScan(int32_t x1, int32_t x2)
 
                     /* Water towers supply water, so they are not counted against water demand */
                     if (CChr9 == WATERTOWER) {
-                        CountUnzonedUtilities(false);
-                    } else if ((CChr9 >= FOUNTAIN) && (CChr9 < FOUNTAIN + FOUNTAIN_FRAMES)) {
-                        CountUnzonedUtilities(true);
+                        CountWaterTowerPower();
+                    } else if (TILE_IS_PARK(CChr9)) {
+                        CountParkWater();
                     }
 
                     if ((CChr9 >= RAILBASE) && (CChr9 < RESBASE)) {
