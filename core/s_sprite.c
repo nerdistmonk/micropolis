@@ -130,17 +130,18 @@ static bool PickRailTile(int16_t *x, int16_t *y)
     return false;
 }
 
+/* A station counts only when its footprint touches rail. */
 static bool HasTrainStation(void)
 {
     for (int16_t tx = 0; tx < WORLD_X; tx++) {
         for (int16_t ty = 0; ty < WORLD_Y; ty++) {
-            if (TILE_IS_STATION(Map[tx][ty])) return true;
+            if (TILE_IS_STATION(Map[tx][ty]) && CapacityBlockHasAccess(tx, ty)) return true;
         }
     }
     return false;
 }
 
-/* Starts up to count own-city trains on random rail tiles. Requires at least one station on the map.
+/* Starts up to count own-city trains on random rail tiles. Requires at least one rail-linked station.
  * Trains beyond the pool are skipped. */
 void DispatchCityTrains(int32_t count)
 {
