@@ -148,7 +148,7 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Supply: None");
     }
 
-    if (TILE_IS_TRAFFIC_BLOCK(tile) || TILE_IS_LANDFILL(tile)) {
+    if (TILE_IS_LANDFILL(tile)) {
         snprintf(inspect_stat_power, sizeof(inspect_stat_power), "Power Grid: Not required");
         snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Supply: Not required");
     }
