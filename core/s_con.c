@@ -725,6 +725,25 @@ int32_t LayDoze(int32_t x, int32_t y)
 
     /* 3. Single-tile clearing */
     if (!has_funds) return -2;
+
+    /* Water towers are 3x3 and clear as one unit, like a zone footprint. */
+    if (TILE_IS_WATER_TOWER(raw_tile)) {
+        int32_t off = tile - WATERTOWER;
+        int32_t cx = x - (off % 3 - 1);
+        int32_t cy = y - (off / 3 - 1);
+        ClearZoneArea(cx, cy, 3);
+        Neighbor_PruneGates();
+        TotalFunds -= 1;
+        MustUpdateFunds = 1;
+        for (int32_t dy = -1; dy <= 1; dy++) {
+            for (int32_t dx = -1; dx <= 1; dx++) {
+                FixZone(cx + dx, cy + dy);
+            }
+        }
+        PlayZoneExplosion(3);
+        return 1;
+    }
+
     if (raw_tile & BULLBIT) {
         int32_t folded = tile;
         NeutralizeRoad(&folded);
