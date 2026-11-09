@@ -154,10 +154,11 @@ void SetNewCityLevel(int16_t level)
     TotalFunds = NewCityFunds[GameLevel];
 }
 
-/* Traffic road shapes: LTRFBASE and HTRFBASE each hold the 16 road shapes that DoRoad picks from. */
+/* Traffic road tiles: every animation frame of the light and heavy bands, not only the base shapes.
+ * Simulation reads this, so a tile must not change class as its animation frame advances. */
 bool IsTrafficRoadTile(uint16_t id)
 {
-    return (id >= LTRFBASE && id < LTRFBASE + 16) || (id >= HTRFBASE && id < HTRFBASE + 16);
+    return id >= LTRFBASE && id < HTRFBASE + 64;
 }
 
 /* Every traffic animation frame, light (LTRFBASE) through heavy (up to HTRFBASE + 64), follows the traffic speed. */
