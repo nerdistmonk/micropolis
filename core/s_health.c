@@ -1,15 +1,15 @@
 /* s_health.c: Hospital coverage for placeable buildings.
  *
- * Each hospital serves up to 18 buildings when it has power and water, and 9 when either is
- * missing. Funding scales that capacity (HealthEffect / 1000), so an unfunded hospital serves none.
- * Every placeable building (zones, parks, water towers) is assigned to the nearest hospital
- * with spare capacity, citywide, with no radius limit. Buildings with no hospital are uncovered.
+ * Each hospital adds capacity: 18 buildings when it has power and water, and 9 when either is
+ * missing. Funding scales that capacity (HealthEffect / 1000), so an unfunded hospital adds none.
+ * Hospital capacity is one citywide pool, as garage and station capacity is for traffic. Placeable
+ * buildings (zones, parks, water towers) are covered in map order, up to the pool size. The covered
+ * window moves forward at each rush hour, so every building takes its turn.
  * Residential zones outside coverage contribute only HEALTH_UNCOVERED_PCT of their population to tax.
  * Covered zones reach full value when healthPercent is 1.0, and fall back to the uncovered rate as
  * funding drops.
  */
 
-#include <stdlib.h>
 #include <string.h>
 #include "sim.h"
 
@@ -17,37 +17,12 @@
 #define HEALTH_COVERED_SPAN 20
 #define HEALTH_CAPACITY_FULL 18
 #define HEALTH_CAPACITY_DEGRADED 9
-#define HEALTH_MAX_STATIONS ((WORLD_X * WORLD_Y) / 9 + 1)
 
-typedef struct {
-    int32_t x;
-    int32_t y;
-    int32_t capacity;
-    int32_t assigned;
-} HospitalStation;
-
-static HospitalStation hospital_stations[HEALTH_MAX_STATIONS];
-static int32_t hospital_station_count;
-static int32_t hospital_total_demand;
+static int32_t health_capacity;
+static int32_t health_demand;
+static int32_t health_rotor;
+static int32_t health_seen_rush = -1;
 static bool health_covered[WORLD_X][WORLD_Y];
-
-static HospitalStation *NearestOpenHospital(int32_t x, int32_t y)
-{
-    HospitalStation *best = NULL;
-    int32_t best_d = 0;
-    for (int32_t i = 0; i < hospital_station_count; i++) {
-        HospitalStation *s = &hospital_stations[i];
-        if (s->assigned >= s->capacity) continue;
-        int32_t dx = s->x - x;
-        int32_t dy = s->y - y;
-        int32_t d = dx * dx + dy * dy;
-        if (!best || d < best_d) {
-            best = s;
-            best_d = d;
-        }
-    }
-    return best;
-}
 
 static void MarkHealthFootprint(int32_t ox, int32_t oy, int32_t size)
 {
@@ -61,36 +36,45 @@ static void MarkHealthFootprint(int32_t ox, int32_t oy, int32_t size)
 void HealthAnalysis(void)
 {
     memset(health_covered, 0, sizeof(health_covered));
-    hospital_station_count = 0;
-    hospital_total_demand = 0;
+    health_capacity = 0;
 
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
             uint16_t t = Map[x][y];
-            if ((t & ZONEBIT) && ((t & LOMASK) == HOSPITAL) &&
-                (hospital_station_count < HEALTH_MAX_STATIONS)) {
-                HospitalStation *s = &hospital_stations[hospital_station_count++];
+            if ((t & ZONEBIT) && ((t & LOMASK) == HOSPITAL)) {
                 bool degraded = !(t & PWRBIT) || !WaterIsSupplied(x, y);
                 int32_t base = degraded ? HEALTH_CAPACITY_DEGRADED : HEALTH_CAPACITY_FULL;
                 int32_t cap = base * (int32_t)HealthEffect / 1000;
-                s->x = x;
-                s->y = y;
-                s->capacity = (cap > 0) ? cap : 0;
-                s->assigned = 0;
+                health_capacity += (cap > 0) ? cap : 0;
             }
         }
     }
 
+    health_demand = 0;
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            int32_t ox, oy, size;
+            if (BuildingAnchorAt(x, y, &ox, &oy, &size)) health_demand++;
+        }
+    }
+    if (health_demand == 0) return;
+
+    int32_t served = health_capacity < health_demand ? health_capacity : health_demand;
+    int32_t rush = TrafRushHourCount();
+    if (rush != health_seen_rush) {
+        health_seen_rush = rush;
+        health_rotor = (health_rotor + served) % health_demand;
+    }
+
+    int32_t start = health_rotor % health_demand;
+    int32_t ordinal = 0;
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
             int32_t ox, oy, size;
             if (!BuildingAnchorAt(x, y, &ox, &oy, &size)) continue;
-            hospital_total_demand++;
-            HospitalStation *s = NearestOpenHospital(x, y);
-            if (s) {
-                s->assigned++;
-                MarkHealthFootprint(ox, oy, size);
-            }
+            bool covered = ((ordinal - start + health_demand) % health_demand) < served;
+            ordinal++;
+            if (covered) MarkHealthFootprint(ox, oy, size);
         }
     }
 }
@@ -103,12 +87,8 @@ bool HealthIsCovered(int32_t x, int32_t y)
 
 void HospitalSystemStats(int32_t *capacity, int32_t *demand)
 {
-    int32_t cap = 0;
-    for (int32_t i = 0; i < hospital_station_count; i++) {
-        cap += hospital_stations[i].capacity;
-    }
-    *capacity = cap;
-    *demand = hospital_total_demand;
+    *capacity = health_capacity;
+    *demand = health_demand;
 }
 
 int16_t HealthCoverageLevel(int32_t x, int32_t y)

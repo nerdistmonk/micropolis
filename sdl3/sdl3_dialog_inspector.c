@@ -192,14 +192,9 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Hospital Capacity: %d buildings | Demand: %d buildings (citywide)",
                  (int)capacity, (int)demand);
     } else if ((low >= FOUNTAIN && low < FOUNTAIN + FOUNTAIN_FRAMES) || (low >= STADIUMBASE && low < STADIUMBASE + 32)) {
-        int32_t rec_cap = 0;
-        int32_t rec_assigned = 0;
-        if (RecSiteStats(tile_x, tile_y, &rec_cap, &rec_assigned)) {
-            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Recreation Demand: %d zones | Capacity: %d zones",
-                     (int)rec_assigned, (int)rec_cap);
-        } else {
-            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Recreation Demand: none (site not found)");
-        }
+        RecSystemStats(&capacity, &demand);
+        snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Recreation Capacity: %d buildings | Demand: %d buildings (citywide)",
+                 (int)capacity, (int)demand);
     } else if ((low >= PORTBASE && low <= LASTPORT) || (low >= AIRPORTBASE && low < (AIRPORTBASE + 36))) {
         int32_t port_cap = 0;
         int32_t port_demand = 0;

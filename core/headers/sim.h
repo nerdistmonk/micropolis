@@ -787,7 +787,7 @@ bool HealthIsCovered(int32_t x, int32_t y);
 void HospitalSystemStats(int32_t *capacity, int32_t *demand);
 void RecAnalysis(void);
 bool RecIsCovered(int32_t x, int32_t y);
-bool RecSiteStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned);
+void RecSystemStats(int32_t *capacity, int32_t *demand);
 int16_t HealthCoverageLevel(int32_t x, int32_t y);
 int32_t HealthAdjustedPop(int32_t pop, int32_t x, int32_t y);
 void PopDenScan(void);
@@ -811,6 +811,7 @@ int16_t FireBurnRate(int32_t x, int32_t y);
 void FireSystemStats(int32_t *capacity, int32_t *demand);
 
 /* Traffic and Transportation: road capacity model, see s_traf.c */
+int32_t TrafRushHourCount(void);
 void TrafRushHour(void);
 void TrafResetCity(void);
 bool TrafZoneUnserviced(int32_t x, int32_t y);

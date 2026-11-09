@@ -48,6 +48,8 @@ static bool TrafHasCommuters = false;
 /* Demand and capacity at the last rush hour, in zones. */
 static int32_t TrafDemandZones = 0;
 static int32_t TrafCapacityZones = 0;
+/* Counts rush hours in this city. Police, fire and hospital coverage rotates when it changes. */
+static int32_t TrafRushCount = 0;
 /* Traffic tiles advance on about 1 in TrafAnimEvery AnimateTiles passes, each tile rolling on its own. */
 static int32_t TrafAnimEvery = TRAF_ANIM_FASTEST;
 static uint32_t TrafAnimPass = 0;
@@ -132,6 +134,7 @@ static int32_t TrafAnimInterval(int32_t demand, int32_t capacity)
  */
 void TrafRushHour(void)
 {
+    TrafRushCount++;
     TrafTally t;
     TrafCountNetwork(&t);
     int32_t growing = t.growing;
@@ -220,7 +223,13 @@ void TrafResetCity(void)
     TrafHasCommuters = false;
     TrafDemandZones = 0;
     TrafCapacityZones = 0;
+    TrafRushCount = 0;
     TrafAnimEvery = TRAF_ANIM_FASTEST;
+}
+
+int32_t TrafRushHourCount(void)
+{
+    return TrafRushCount;
 }
 
 bool TrafZoneUnserviced(int32_t x, int32_t y)
