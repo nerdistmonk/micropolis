@@ -124,7 +124,9 @@ static const char * const SimMessages[] = {
     [45] = "Hospitals need funding.",
     [46] = "Citizens demand a Hospital.",
     [47] = "Parks go short of funding.",
-    [48] = "Ports and airports are over capacity."
+    [48] = "Ports and airports are over capacity.",
+    [49] = "Garage needs an adjacent road.",
+    [50] = "Station needs an adjacent rail line."
 };
 
 static const char *GetMessageText(int16_t id)

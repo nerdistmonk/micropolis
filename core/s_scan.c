@@ -164,7 +164,8 @@ bool BuildingAnchorAt(int32_t x, int32_t y, int32_t *ox, int32_t *oy, int32_t *s
     return false;
 }
 
-static bool BuildingHasRoadAccess(int32_t ox, int32_t oy, int32_t size)
+/* Whether any tile edge-adjacent to the footprint has a location that matches. */
+static bool FootprintTouches(int32_t ox, int32_t oy, int32_t size, bool (*match)(uint16_t loc))
 {
     static const int32_t dirs[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
     for (int32_t x = ox; x < ox + size; x++) {
@@ -173,9 +174,41 @@ static bool BuildingHasRoadAccess(int32_t ox, int32_t oy, int32_t size)
                 int32_t nx = x + dirs[d][0];
                 int32_t ny = y + dirs[d][1];
                 if (nx >= ox && nx < ox + size && ny >= oy && ny < oy + size) continue;
-                if (TestBounds(nx, ny) && IsAccessRoad(Map[nx][ny] & LOMASK)) return true;
+                if (TestBounds(nx, ny) && match(Map[nx][ny] & LOMASK)) return true;
             }
         }
+    }
+    return false;
+}
+
+bool BuildingHasRoadAccess(int32_t ox, int32_t oy, int32_t size)
+{
+    return FootprintTouches(ox, oy, size, IsAccessRoad);
+}
+
+static bool IsRailLoc(uint16_t loc)
+{
+    return (loc >= RAILBASE && loc <= LASTRAIL) || loc == RAILHPOWERV || loc == RAILVPOWERH;
+}
+
+bool BuildingHasRailAccess(int32_t ox, int32_t oy, int32_t size)
+{
+    return FootprintTouches(ox, oy, size, IsRailLoc);
+}
+
+/* Parking garages and passenger stations are 3x3 blocks laid out row-major from the top-left tile. */
+bool CapacityBlockHasAccess(int32_t x, int32_t y)
+{
+    uint16_t low = Map[x][y] & LOMASK;
+    int32_t k;
+
+    if (low >= GARAGE && low < GARAGE + GARAGE_TILES) {
+        k = low - GARAGE;
+        return BuildingHasRoadAccess(x - k % 3, y - k / 3, 3);
+    }
+    if (low >= STATION && low < STATION + STATION_TILES) {
+        k = low - STATION;
+        return BuildingHasRailAccess(x - k % 3, y - k / 3, 3);
     }
     return false;
 }

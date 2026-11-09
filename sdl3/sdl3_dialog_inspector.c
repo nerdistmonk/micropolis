@@ -204,9 +204,17 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Landfill Capacity: %d zones | Demand: %d zones (citywide)",
                  (int)capacity, (int)demand);
     } else if (TILE_IS_GARAGE(tile)) {
-        snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: +%d zones", GARAGE_ZONES);
+        if (CapacityBlockHasAccess(hx, hy)) {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: +%d zones", GARAGE_ZONES);
+        } else {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: none (no adjacent road)");
+        }
     } else if (TILE_IS_STATION(tile)) {
-        snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: +%d zones", STATION_ZONES);
+        if (CapacityBlockHasAccess(hx, hy)) {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: +%d zones", STATION_ZONES);
+        } else {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: none (no adjacent rail)");
+        }
     }
 
     uint8_t pol = PollutionMem[hx][hy];

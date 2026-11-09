@@ -155,17 +155,23 @@ static void PlayToolTone(int16_t tool)
     }
 }
 
-/* Mirrors Unix ToolDown: -2 is insufficient funds, anything else is a refusal */
+/* Mirrors Unix ToolDown: -2 is insufficient funds, -3 and -4 are access refusals, anything else is a refusal */
 static void ReportToolFailure(int32_t result)
 {
     ClearMes();
     if (result == -2) {
         SendMes(33);
         Audio_MakeSound("edit", "Sorry");
+        return;
+    }
+    if (result == -3) {
+        SendMes(49);
+    } else if (result == -4) {
+        SendMes(50);
     } else {
         SendMes(34);
-        Audio_MakeSound("edit", "UhUh");
     }
+    Audio_MakeSound("edit", "UhUh");
 }
 
 static void ApplyTool(int16_t tool, int32_t tx, int32_t ty, bool first)

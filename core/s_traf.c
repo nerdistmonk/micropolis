@@ -6,8 +6,9 @@
  * Modernized to C11 / C17 for headless execution and SDL3 integration.
  *
  * The road network is one pooled entity. Each road tile adds a tenth of a zone of
- * capacity, and each parking garage or passenger station adds more. Growing zones
- * beyond capacity are unserviced, and the unserviced set rotates at each rush hour.
+ * capacity, and each parking garage or passenger station adds more. Every zone and
+ * placeable building adds demand. Road-connected growing zones absorb the excess as
+ * unserviced zones, and that set rotates at each rush hour. Other buildings keep working.
  */
 
 #include "sim.h"
@@ -26,9 +27,18 @@ static int32_t TrafRotor = 0;
 static int32_t TrafProblemUnserviced = 0;
 static int32_t TrafProblemZones = 0;
 
+/* Fire, police, hospitals, power plants, ports, airports, stadiums, landfill, water towers, and parks. */
+static bool IsPlaceableBuilding(uint16_t tile)
+{
+    uint16_t id = tile & LOMASK;
+    if (tile & ZONEBIT) return !IsGrowingZone(id);
+    return id == WATERTOWER + 4 || (id >= FOUNTAIN && id < FOUNTAIN + FOUNTAIN_FRAMES);
+}
+
 /* Runs at each rush hour. The road grid is one pool: its capacity is the share of
- * road tiles plus garages and stations. Growing zones with road access beyond that
- * capacity are unserviced, and the unserviced window rotates at each rush hour.
+ * road tiles plus the garages and stations that have road or rail access. Demand is
+ * every growing zone plus every placeable building. The excess over capacity is cut
+ * from road-connected growing zones, and the cut window rotates at each rush hour.
  */
 void TrafRushHour(void)
 {
@@ -36,7 +46,8 @@ void TrafRushHour(void)
     int32_t garages = 0;
     int32_t stations = 0;
     int32_t growing = 0;
-    int32_t demand = 0;
+    int32_t accessible = 0;
+    int32_t buildings = 0;
 
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
@@ -46,24 +57,28 @@ void TrafRushHour(void)
             if (id >= ROADBASE && id <= LASTROAD) {
                 roads++;
             } else if (id == GARAGE + 4) {
-                garages++;
+                if (CapacityBlockHasAccess(x, y)) garages++;
             } else if (id == STATION + 4) {
-                stations++;
+                if (CapacityBlockHasAccess(x, y)) stations++;
             } else if ((tile & ZONEBIT) && IsGrowingZone(id)) {
                 growing++;
-                if (ZoneHasRoadAccess(x, y)) demand++;
+                if (ZoneHasRoadAccess(x, y)) accessible++;
+            } else if (IsPlaceableBuilding(tile)) {
+                buildings++;
             }
         }
     }
 
+    int32_t demand = growing + buildings;
     int32_t capacity = roads / TRAF_ROADS_PER_ZONE + garages * GARAGE_ZONES + stations * STATION_ZONES;
     int32_t excess = demand > capacity ? demand - capacity : 0;
+    int32_t cut = excess < accessible ? excess : accessible;
     int64_t volume = (int64_t)TrafServicedResPop * TRAF_CITIZENS_PER_RESPOP * TRAF_COMMUTE_PERCENT / 100;
     int64_t full = (int64_t)capacity * TRAF_TRIPS_PER_ZONE;
     int32_t level = full > 0 ? (int32_t)(volume * 255 / full) : 0;
     if (level > 255) level = 255;
 
-    int32_t rotor = demand > 0 ? TrafRotor % demand : 0;
+    int32_t rotor = accessible > 0 ? TrafRotor % accessible : 0;
     int32_t ordinal = 0;
     int32_t blocked = 0;
     bool roadFound = false;
@@ -91,7 +106,7 @@ void TrafRushHour(void)
                 if (!ZoneHasRoadAccess(x, y)) {
                     unserviced = true;
                 } else {
-                    unserviced = ((ordinal - rotor + demand) % demand) < excess;
+                    unserviced = ((ordinal - rotor + accessible) % accessible) < cut;
                     ordinal++;
                 }
             }
@@ -101,7 +116,7 @@ void TrafRushHour(void)
         }
     }
 
-    TrafRotor = demand > 0 ? (rotor + excess) % demand : 0;
+    TrafRotor = accessible > 0 ? (rotor + cut) % accessible : 0;
     TrafProblemUnserviced = blocked;
     TrafProblemZones = growing;
 }

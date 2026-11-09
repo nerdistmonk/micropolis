@@ -239,7 +239,8 @@ bool CheckZoneClear(int32_t x, int32_t y, int16_t size)
     return true;
 }
 
-/* Returns 1 on success, -1 if the footprint is not clear, -2 if funds are short, 0 for a non-zone tool. */
+/* Returns 1 on success, -1 if the footprint is not clear, -2 if funds are short, -3 if a garage has no adjacent road,
+   -4 if a station has no adjacent rail, 0 for a non-zone tool. */
 int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
 {
     int32_t base_cost = 0;
@@ -346,6 +347,13 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
                 return -1;
             }
         }
+    }
+
+    if (tool_id == garageState && !BuildingHasRoadAccess(start_x, start_y, size)) {
+        return -3;
+    }
+    if (tool_id == stationState && !BuildingHasRailAccess(start_x, start_y, size)) {
+        return -4;
     }
 
     if (TotalFunds < (base_cost + doze_cost)) {
