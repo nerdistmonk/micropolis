@@ -16,7 +16,7 @@ This is a port of the original Micropolis Unix source, refactored from 1989 C to
 
 ## Command Line
 
-    micropolis [--load-city FILE] [--load-scenario N|FILE]
+    micropolis [--load-city FILE] [--load-scenario FILE]
 
 - `--load-city FILE` starts with a saved city (`.cot`, or legacy `.cty`).
 - `--load-scenario FILE` starts with a scenario file (`.scn`).
