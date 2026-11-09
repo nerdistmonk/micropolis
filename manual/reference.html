@@ -12,7 +12,7 @@ describing it. Press Escape to leave help mode.  <p>
 
 In Micropolis, you will primarily use the left mouse button to edit the city.
 Click on the map to use the selected tool, or drag to use it along a line.
-Dragging the map with the right button pans the view. Shift and right click
+Dragging the map with the right button pans the view. Shift and right-drag
 bulldozes a tile. <p>
 
 Clicking a mouse button means to press and release it without moving.
@@ -30,19 +30,28 @@ straight line. <p>
 <li>X and Z: select the next or previous tool
 <li>B, R, P, T: hold to use the bulldozer, road, power line, or railroad; release to return to the previous tool
 <li>Arrow keys, or A, E, comma, and O: scroll the map
-<li>F7 and F8: quick save to and quick load from quicksave.cty
+<li>+ and -: zoom the map
+<li>F7 and F8: quick save to and quick load from quicksave.cot
 <li>Escape: quit (asks for confirmation)
 </ul>
 <p>
 
-<h2>File &amp; Scenario Manager</h2>
+<h2>File Dialog</h2>
 
 Open the File menu from the status bar to start a new city, load or save a
 city, choose a scenario, or change options. The dialog has four tabs:
-Save / Load, Scenarios, Options, and About. <p>
+Save / Load, Options, About, and Jukebox. <p>
 
-The Save / Load tab opens your system's file dialog. Use it to save the
-current city or load a saved city from disk. <p>
+On the Save / Load tab, Save City writes the current city to the cities
+folder as a .cot file. Load City lists the .cot and .cty files in the cities
+folder. Load Scenario lists the .scn files in the scenarios folder. <p>
+
+Editor Mode opens the scenario editor. Choose a city to start from, then build
+the terrain and set up the scenario. Saving from the editor writes a .scn file
+to the scenarios folder. <p>
+
+The Jukebox tab controls music playback: volume, track order, and skipping
+tracks. <p>
 
 To start a new city from a random map, choose New City Map. You can select
 the Game Level (Easy, Medium, or Hard) and the terrain (Trees, Lakes, Rivers,
@@ -51,7 +60,9 @@ or Island). <p>
 Choosing New City or a scenario first opens a "Choose Another City" dialog.
 Click "Another city!" to continue, or "Keep playing." to keep the current city. <p>
 
-The Scenarios provide both real and hypothetical problems for you to
+Scenarios are .scn files in the scenarios folder, and Load Scenario lists them.
+The eight classic scenarios below are kept in the Legacy folder, so they do not
+appear in the list by default. They provide both real and hypothetical problems for you to
 deal with in seven famous (and one not-so-famous) cities. They present
 various levels of difficulty. Some problems are in the form of
 disasters which will occur some time after you start. Other problems
@@ -238,8 +249,11 @@ disasters yourself from the Disasters dialog.
 
 The Overlays button shows the map in one of these views: Normal View, Power
 Grid, Traffic Density, Pollution Map, Crime Rate, Land Value, Pop Density,
-Growth Rate, Fire Coverage, Police Coverage, Residential Zone, Commercial Zone,
-Industrial Zone, and Transportation.
+Growth Rate, Fire Coverage, Police Coverage, Healthcare Coverage, Recreation
+Coverage, Water Supply, Residential Zone, Commercial Zone, Industrial Zone,
+Transportation, and Underground Pipes. The Underground Pipes view shows the
+water pipes beneath the surface. The Pipe tool switches to it automatically and
+switches back to your previous view when you change tools.
 
 <h3>Disasters</h3>
 
@@ -257,9 +271,6 @@ disasters will happen more often. Random disasters can be eliminated by turning
 off the Spontaneous Disasters Enabled option in File &gt; Options. <p>
 
 <ul>
-<li>Shipwreck: Shipwrecks can occur once you have an operating seaport. They can
-cause fires where the ship crashes into a shore or bridge. Shipwrecks are not
-available on the Disasters dialog. <p>
 					<li>Monster<br>
 Sets a monster loose on your city. <p>
 
@@ -414,8 +425,8 @@ option in File &gt; Options is on.  <p>
 
 Roadways are maintained by the transit budget, and wear out if there
 is a lack of funding. The amount of yearly funding requested by the
-transportation department is $1 for each section of road, $4 for each
-section of bridge.  <p>
+transportation department depends on the length of your road and rail network
+(see Funding Levels under City Hall: Budget).  <p>
 
 It costs $10 to lay one section of road and $50 to lay one section of
 bridge.  <p>
@@ -459,8 +470,8 @@ to a straight line.  <p>
 
 Transit lines are maintained by the transit budget. The level of
 funding affects the efficiency of the system. The amount of yearly
-funding requested by the transportation department is $4 for each
-section of rail, and $10 for each section of tunnel.  <p>
+funding requested by the transportation department depends on your network
+(see Funding Levels under City Hall: Budget).  <p>
 
 It costs $20 per section of track laid on land, 
 $100 per section under water.  <p>
@@ -521,7 +532,7 @@ depends on the level of police department funding and transit access.
 <p>
 
 It costs $500 to build a police station. Full yearly maintenance of
-each Police Station is $100.  <p>
+each Police Station is $60.  <p>
 
 <li>Fire Departments<br>
 Make surrounding areas less susceptible to fires.
@@ -530,7 +541,7 @@ station is near. The effectiveness of fire containment depends on the
 level of fire department funding and transit access.  <p>
 
 It costs $500 to build a fire station. Full yearly maintenance of each
-fire station is $100.  <p>
+fire station is $60.  <p>
 
 <li>Stadiums<br>
 Encourage residential growth, once a city has become fairly
@@ -581,6 +592,35 @@ alerts you to heavy traffic areas.  <p>
 
 It costs $10,000 to zone land for use as an airport.  <p>
 
+<li>Water Tower ($500)<br>
+Supplies water to nearby zones. Place it on dry land within four tiles of water. A powered
+water tower supplies up to 18 zones through the pipe network. With no power touching it, it
+supplies 9 zones. <p>
+
+<li>Water Pipe ($2)<br>
+Lays underground pipe beneath roads, rail, and open ground. Pipe attaches to zone and plant edges like power lines. Zones placed over pipe bulldoze it. Use the Underground Pipes overlay to
+see the pipe network. <p>
+
+<li>Hospital ($1000)<br>
+Covers nearby homes with healthcare. Homes without coverage pay less tax. Use the Healthcare
+Coverage overlay to see the area it covers. <p>
+
+<li>Landfill ($100)<br>
+A 3x3 landfill that absorbs the trash of nearby zones. It must touch a road. The in-game help (press F1,
+then click the tool) describes its capacity. <p>
+
+<li>Connect Neighbor ($1000)<br>
+Click a map edge tile that has a road, rail, power line, or pipe on it.
+Each neighbor takes one link of each kind. Bulldozing a link breaks it. <p>
+
+<li>Parking Garage ($3000)<br>
+Place it next to a road. Each garage adds road capacity for 9 more zones at
+rush hour. <p>
+
+<li>Passenger Station ($6000)<br>
+Place it next to a rail line. Each station adds road and rail capacity for 18
+more zones at rush hour. <p>
+
 </ul>
 
 <h2>City Hall: Budget</h2>
@@ -593,9 +633,8 @@ the property tax rate.  <p>
 
 You can open the budget at any time by clicking Funds in the status bar, which
 opens City Hall on the Budget tab. When Auto-Budget Processing is on, all the
-funding levels will remain at full funding, or your last setting. If there is
-not enough money to completely fund the budget, money will go first to the
-Transit Department, then the Fire Department, then the Police Department.  <p>
+funding levels will remain at full funding, or your last setting. If the yearly costs are more than your funds, the treasury is left at zero
+rather than going negative.  <p>
 
 You can set the funding levels on the Budget tab and the tax rate on the Taxes
 tab.
@@ -614,7 +653,7 @@ To slow city growth without actually shrinking, set the tax rate to 8% or 9%.  <
 <h3>Funding Levels</h3>
 
 The amount of yearly funding requested for the fire and police
-departments is $100 per station that you have placed. Until you
+departments is $60 per station that you have placed. Until you
 actually build fire or police stations, you cannot fund them. You
 cannot allocate more than 100% of the requested funding for fire and
 police departments -- Micropolis police officers and fire inspectors are
@@ -624,10 +663,10 @@ Allocating less than the requested amount will decrease the effective
 coverage of the police or fire stations.  <p>
 
 The amount of yearly funding requested for the transportation
-department is $1 for each section of road, $4 for each section of
-bridge (roads over water), $4 for each section of rail, and $10 for
-each section of tunnel (underwater rails). You cannot allocate more
-than 100% of the requested funds.  <p>
+department depends on your network. Each section of road counts once and each
+section of rail counts twice. The total is multiplied by a factor for the game
+level: 0.7 on Easy, 0.9 on Medium, and 1.2 on Hard. Seaports and airports add a
+fixed amount each. You cannot allocate more than 100% of the requested funds.  <p>
 
 Transportation maintenance funding slightly below 100% will cause
 slow, minor deterioration of the transit system -- an occasional
@@ -640,7 +679,7 @@ system.  <p>
 
 The cash flow is calculated as follows:
 <p>
-<pre>CashFlow = TaxesCllected - TotalAllocatedFunds
+<pre>CashFlow = TaxesCollected - (Police + Fire + Transportation + Health + Recreation + Landfill spending)
 
 </pre>
 
