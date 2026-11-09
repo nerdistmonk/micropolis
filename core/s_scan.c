@@ -390,6 +390,7 @@ void PTLScan(void)
 static int32_t GetPValue(int32_t loc)
 {
     if (loc < POWERBASE) {
+        if (IsTrafficRoadTile((uint16_t)loc)) return TrafRoadPollution();
         if (loc >= HTRFBASE) return 75;
         if (loc >= LTRFBASE) return 50;
         if (loc < ROADBASE) {

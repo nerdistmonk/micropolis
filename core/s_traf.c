@@ -9,7 +9,8 @@
  * capacity, and each parking garage or passenger station adds more. Every zone and
  * placeable building adds demand. Up to TRAF_ABSORBED_ZONES over capacity only congests traffic.
  * Beyond that, road-connected growing zones go unserviced, and that set rotates at each rush hour.
- * Other buildings keep working.
+ * Other buildings keep working. Road pollution follows the congestion tier: negligible below
+ * capacity, moderate at capacity, and worst once gridlocked.
  */
 
 #include "sim.h"
@@ -26,6 +27,11 @@
 /* AnimateTiles passes per traffic animation step: fastest with spare capacity, slowest at capacity and beyond. */
 #define TRAF_ANIM_FASTEST        1
 #define TRAF_ANIM_SLOWEST        8
+
+/* Pollution per traffic road tile, by congestion tier. */
+#define TRAF_POLLUTION_NEGLIGIBLE 2
+#define TRAF_POLLUTION_MODERATE   25
+#define TRAF_POLLUTION_WORST      50
 
 int16_t TrafMaxX = 0;
 int16_t TrafMaxY = 0;
@@ -243,6 +249,14 @@ bool TrafAtCapacity(void)
 bool TrafGridlocked(void)
 {
     return TrafDemandZones - TrafCapacityZones >= TRAF_GRIDLOCK_ZONES;
+}
+
+/* Pollution tier for traffic road tiles. Gridlock, past the absorbed zones, is the over-capacity tier. */
+int32_t TrafRoadPollution(void)
+{
+    if (TrafGridlocked()) return TRAF_POLLUTION_WORST;
+    if (TrafAtCapacity()) return TRAF_POLLUTION_MODERATE;
+    return TRAF_POLLUTION_NEGLIGIBLE;
 }
 
 /* Called once per AnimateTiles pass. True on the passes where traffic tiles advance. */

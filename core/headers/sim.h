@@ -811,6 +811,8 @@ bool TrafZoneUnserviced(int32_t x, int32_t y);
 int32_t TrafProblemShare(void);
 bool TrafAtCapacity(void);
 bool TrafGridlocked(void);
+int32_t TrafRoadPollution(void);
+bool IsTrafficRoadTile(uint16_t id);
 bool TrafAnimStepDue(void);
 int16_t TrafRoadLoad(void);
 void TrafNetworkStats(int32_t *demand, int32_t *capacity);

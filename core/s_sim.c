@@ -155,7 +155,7 @@ void SetNewCityLevel(int16_t level)
 }
 
 /* Traffic road shapes: LTRFBASE and HTRFBASE each hold the 16 road shapes that DoRoad picks from. */
-static bool IsTrafficRoadTile(uint16_t id)
+bool IsTrafficRoadTile(uint16_t id)
 {
     return (id >= LTRFBASE && id < LTRFBASE + 16) || (id >= HTRFBASE && id < HTRFBASE + 16);
 }
@@ -832,6 +832,12 @@ static void DoRoad(void)
     /* Any rush-hour load animates. Heavy load (192 and up) uses the heavy-traffic sprites. */
     Density = TrfDensity[SMapX >> 1][SMapY >> 1];
     Density = (int16_t)(Density == 0 ? 0 : (Density < 192 ? 1 : 2));
+    /* Congestion keeps every road drawn as traffic, so the congestion tier applies to all of them. */
+    if (TrafGridlocked()) {
+        Density = 2;
+    } else if (TrafAtCapacity() && Density == 0) {
+        Density = 1;
+    }
 
     if (tden != Density) {
         uint16_t z = (uint16_t)(((CChr9 - ROADBASE) & 15) + DenTab[Density]);
