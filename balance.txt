@@ -124,7 +124,7 @@ New model (capacity-based):
    and the power/water overlay flash icons (TILE_IS_LANDFILL). The inspector shows citywide
    capacity vs demand (LandfillSystemStats) for a clicked landfill.
 
-Verified with scratch probe (probe_landfill.c), one connected block, Legacy/freds.cty:
+Verified with scratch probe (probe_landfill.c), one connected block, freds.cty (Legacy folder, since removed):
 - Under, zones 0, capacity 9: 1200 -> 800 in 30 ticks (10 steps of 40).
 - Overloaded, zones 5, percent 0: +40 per tick, stage tiles change at 800/1600/2400,
   caps at 2400, LandfillAtCapacity set.
