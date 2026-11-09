@@ -279,7 +279,7 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
         size = 4;
         break;
     case stadiumState:
-        base_cost = 5000;
+        base_cost = 6000;
         base_tile = STADIUMBASE;
         size = 4;
         break;
@@ -289,7 +289,7 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
         size = 4;
         break;
     case nuclearState:
-        base_cost = 5000;
+        base_cost = 6000;
         base_tile = NUCLEARBASE;
         size = 4;
         break;
