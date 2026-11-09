@@ -158,6 +158,7 @@ typedef int32_t QUAD;
 #define BUS 8
 #define OBJN 9
 #define EXP_SLOTS 64
+#define TRA_SLOTS 24
 
 /* Graph History Indexes */
 #define RES_HIST 0
@@ -769,7 +770,7 @@ int16_t DoFreePop(void);
 
 /* Presentation & Sprite Subsystems */
 void InitSprites(void);
-void GenerateTrain(int16_t x, int16_t y);
+void DispatchCityTrains(int32_t count);
 void GenerateShip(void);
 void GeneratePlane(int16_t x, int16_t y);
 void GenerateCopter(int16_t x, int16_t y);
@@ -819,7 +820,8 @@ bool TrafGridlocked(void);
 int32_t TrafRoadPollution(void);
 int32_t TrafUncongestedPollution(void);
 bool IsTrafficRoadTile(uint16_t id);
-bool TrafAnimStepDue(void);
+bool TrafAnimTileDue(int32_t x, int32_t y);
+void TrafAnimBeginPass(void);
 int16_t TrafRoadLoad(void);
 void TrafNetworkStats(int32_t *demand, int32_t *capacity);
 float TrafServiceShare(void);

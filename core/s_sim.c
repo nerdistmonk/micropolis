@@ -170,7 +170,7 @@ void AnimateTiles(void)
 
     if (SimSpeed == 0) return;
 
-    bool trafficStep = TrafAnimStepDue();
+    TrafAnimBeginPass();
 
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
@@ -179,7 +179,7 @@ void AnimateTiles(void)
                 uint16_t flags = tile & ALLBITS;
                 uint16_t id = tile & LOMASK;
 
-                if (!trafficStep && IsTrafficRoadTile(id)) continue;
+                if (IsTrafficRoadTile(id) && !TrafAnimTileDue(x, y)) continue;
 
                 if (id < 1024) {
                     id = (uint16_t)aniTile[id];
@@ -259,6 +259,9 @@ void Simulate(int32_t mod16)
         }
         if ((CityTime & 3) == 0 || (CityTime & 3) == 3) {
             TrafRushHour();
+            DispatchCityTrains(2);
+        } else {
+            DispatchCityTrains(1);
         }
         ClearCensus();
 
@@ -770,7 +773,6 @@ static void MapScan(int32_t x1, int32_t x2)
 static void DoRail(void)
 {
     RailTotal++;
-    GenerateTrain(SMapX, SMapY);
 
     if (RoadEffect < 30) {
         if (!(Rand16() & 511)) {

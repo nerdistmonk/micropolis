@@ -24,8 +24,9 @@
 #define TRAF_ABSORBED_ZONES      3
 #define TRAF_GRIDLOCK_ZONES      (TRAF_ABSORBED_ZONES + 1)
 
-/* AnimateTiles passes per traffic animation step: fastest with spare capacity, slowest at capacity and beyond. */
-#define TRAF_ANIM_FASTEST        1
+/* AnimateTiles passes per traffic animation step: fastest with spare capacity, slowest at capacity and beyond.
+ * The fastest is 2, so no tile is due on every pass and the traffic never moves in lockstep. */
+#define TRAF_ANIM_FASTEST        2
 #define TRAF_ANIM_SLOWEST        8
 
 /* Pollution per traffic road tile, by congestion tier. */
@@ -46,7 +47,7 @@ static int16_t TrafLoad = 0;
 /* Demand and capacity at the last rush hour, in zones. */
 static int32_t TrafDemandZones = 0;
 static int32_t TrafCapacityZones = 0;
-/* Traffic tiles advance on AnimateTiles passes that are multiples of TrafAnimEvery. */
+/* Traffic tiles advance on about 1 in TrafAnimEvery AnimateTiles passes, each tile rolling on its own. */
 static int32_t TrafAnimEvery = TRAF_ANIM_FASTEST;
 static uint32_t TrafAnimPass = 0;
 
@@ -265,10 +266,22 @@ int32_t TrafUncongestedPollution(void)
     return TRAF_POLLUTION_NEGLIGIBLE;
 }
 
-/* Called once per AnimateTiles pass. True on the passes where traffic tiles advance. */
-bool TrafAnimStepDue(void)
+/* Called once per AnimateTiles pass, before the map scan. */
+void TrafAnimBeginPass(void)
 {
-    return TrafAnimPass++ % (uint32_t)TrafAnimEvery == 0;
+    TrafAnimPass++;
+}
+
+/* True when traffic tile (x, y) advances this pass. The hash mixes the tile and pass, so tiles drift out of step. */
+bool TrafAnimTileDue(int32_t x, int32_t y)
+{
+    uint32_t h = (uint32_t)x * 0x9E3779B1u + (uint32_t)y * 0x85EBCA77u + TrafAnimPass * 0xC2B2AE3Du;
+    h ^= h >> 16;
+    h *= 0x85EBCA6Bu;
+    h ^= h >> 13;
+    h *= 0xC2B2AE35u;
+    h ^= h >> 16;
+    return h % (uint32_t)TrafAnimEvery == 0;
 }
 
 bool RoadTest(int32_t tile)

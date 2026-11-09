@@ -11,6 +11,10 @@ extern void SendMesAt(int16_t msg, int16_t x, int16_t y);
 
 static SimSprite active_sprites[OBJN];
 static SimSprite neighbor_trains[NB_SIDES];
+static SimSprite city_trains[TRA_SLOTS];
+
+/* Travel budget per train, in MoveObjects steps. Retires a train so a roaming one frees its slot. */
+#define TRAIN_TRAVEL_STEPS 250
 static SimSprite explosions[EXP_SLOTS];
 
 /* Turn sprite smoothly towards target direction (1..8) */
@@ -59,12 +63,14 @@ void InitSprites(void)
 {
     memset(active_sprites, 0, sizeof(active_sprites));
     memset(neighbor_trains, 0, sizeof(neighbor_trains));
+    memset(city_trains, 0, sizeof(city_trains));
     memset(explosions, 0, sizeof(explosions));
     for (int i = 0; i < OBJN; i++) {
         active_sprites[i].type = i;
         GlobalSprites[i] = &active_sprites[i];
     }
     for (int i = 0; i < NB_SIDES; i++) neighbor_trains[i].type = TRA;
+    for (int i = 0; i < TRA_SLOTS; i++) city_trains[i].type = TRA;
 }
 
 static int16_t GetChar(int32_t px, int32_t py)
@@ -82,6 +88,7 @@ static void PlaceTrain(SimSprite *s, int16_t x, int16_t y)
     s->frame = 1;
     s->x = (x << 4) + 1;
     s->y = (y << 4) - 2;
+    if (s->y < 0) s->y = 0;
     s->width = 32;
     s->height = 32;
     s->x_offset = -8;
@@ -89,14 +96,66 @@ static void PlaceTrain(SimSprite *s, int16_t x, int16_t y)
     s->x_hot = 0;
     s->y_hot = 0;
     s->dir = 4;
-    s->count = 0;
+    s->count = TRAIN_TRAVEL_STEPS;
 }
 
-void GenerateTrain(int16_t x, int16_t y)
+static bool IsRailId(int16_t c)
 {
-    SimSprite *s = &active_sprites[TRA];
-    if (TotalPop <= 20 || s->frame != 0 || Rand(25) != 0) return;
-    PlaceTrain(s, x, y);
+    return ((c >= RAILBASE) && (c <= LASTRAIL)) || (c == RAILVPOWERH) || (c == RAILHPOWERV);
+}
+
+/* Uniform pick over every rail tile on the map. */
+static bool PickRailTile(int16_t *x, int16_t *y)
+{
+    int32_t rails = 0;
+    for (int16_t tx = 0; tx < WORLD_X; tx++) {
+        for (int16_t ty = 0; ty < WORLD_Y; ty++) {
+            if (IsRailId((int16_t)(Map[tx][ty] & LOMASK))) rails++;
+        }
+    }
+    if (rails == 0) return false;
+
+    /* Rand(range) is inclusive of range, so the largest index is rails - 1. */
+    int32_t pick = Rand((int16_t)(rails - 1));
+    for (int16_t tx = 0; tx < WORLD_X; tx++) {
+        for (int16_t ty = 0; ty < WORLD_Y; ty++) {
+            if (!IsRailId((int16_t)(Map[tx][ty] & LOMASK))) continue;
+            if (pick-- == 0) {
+                *x = tx;
+                *y = ty;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool HasTrainStation(void)
+{
+    for (int16_t tx = 0; tx < WORLD_X; tx++) {
+        for (int16_t ty = 0; ty < WORLD_Y; ty++) {
+            if (TILE_IS_STATION(Map[tx][ty])) return true;
+        }
+    }
+    return false;
+}
+
+/* Starts up to count own-city trains on random rail tiles. Requires at least one station on the map.
+ * Trains beyond the pool are skipped. */
+void DispatchCityTrains(int32_t count)
+{
+    if (!HasTrainStation()) return;
+    for (int32_t n = 0; n < count; n++) {
+        int16_t x, y;
+        if (!PickRailTile(&x, &y)) return;
+
+        SimSprite *s = NULL;
+        for (int32_t i = 0; i < TRA_SLOTS && s == NULL; i++) {
+            if (city_trains[i].frame == 0) s = &city_trains[i];
+        }
+        if (s == NULL) return;
+        PlaceTrain(s, x, y);
+    }
 }
 
 void GenerateCopter(int16_t x, int16_t y)
@@ -341,8 +400,7 @@ static void StepTrain(SimSprite *s)
             }
 
             int16_t c = GetChar(s->x + Cx[dir2] + 8, s->y + Cy[dir2] + 8);
-            if (((c >= RAILBASE) && (c <= LASTRAIL)) ||
-                (c == RAILVPOWERH) || (c == RAILHPOWERV)) {
+            if (IsRailId(c)) {
                 if (s->dir != dir2 && s->dir != 4) {
                     s->frame = (s->dir + dir2 == 3) ? 3 : 4;
                 } else {
@@ -700,8 +758,12 @@ static void StepTornado(SimSprite *s)
     for (int32_t i = 0; i < OBJN; i++) {
         SimSprite *other = &active_sprites[i];
         if (other->frame == 0) continue;
-        if (other->type != AIR && other->type != COP && other->type != SHI && other->type != TRA) continue;
+        if (other->type != AIR && other->type != COP && other->type != SHI) continue;
         if (CheckSpriteCollision(s, other)) ExplodeSprite(other);
+    }
+
+    for (int32_t i = 0; i < TRA_SLOTS; i++) {
+        if (CheckSpriteCollision(s, &city_trains[i])) ExplodeSprite(&city_trains[i]);
     }
 
     z = Rand(5);
@@ -712,6 +774,13 @@ static void StepTornado(SimSprite *s)
     if (s->count != 0 && !Rand(500)) s->frame = 0;
 
     DestroyAt(s->x + 8, s->y + 24);
+}
+
+/* Steps a train and retires it once its travel budget is spent or it leaves the map. */
+static void StepTrainTimed(SimSprite *s)
+{
+    StepTrain(s);
+    if (--s->count <= 0 || SpriteNotInBounds(s)) s->frame = 0;
 }
 
 static void StepNeighborTrains(void)
@@ -727,8 +796,7 @@ static void StepNeighborTrains(void)
             if (TotalPop > 20 && !Rand(25)) PlaceTrain(s, (int16_t)tx, (int16_t)ty);
             continue;
         }
-        StepTrain(s);
-        if (SpriteNotInBounds(s)) s->frame = 0;
+        StepTrainTimed(s);
     }
 }
 
@@ -737,7 +805,9 @@ void MoveObjects(void)
     if (SimSpeed == 0) return;
     Cycle++;
 
-    if (active_sprites[TRA].frame) StepTrain(&active_sprites[TRA]);
+    for (int32_t i = 0; i < TRA_SLOTS; i++) {
+        if (city_trains[i].frame) StepTrainTimed(&city_trains[i]);
+    }
     StepNeighborTrains();
     if (active_sprites[COP].frame) StepCopter(&active_sprites[COP]);
     if (active_sprites[AIR].frame) StepPlane(&active_sprites[AIR]);
@@ -767,6 +837,10 @@ SimSprite *GetSpriteSlot(int32_t type, int32_t index)
 {
     if (type == EXP) {
         if (index >= 0 && index < EXP_SLOTS) return &explosions[index];
+        return NULL;
+    }
+    if (type == TRA) {
+        if (index >= 0 && index < TRA_SLOTS) return &city_trains[index];
         return NULL;
     }
     if (index == 0) return GetSprite(type);

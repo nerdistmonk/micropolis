@@ -583,6 +583,12 @@ static void RenderSprites(SDL_Renderer *renderer)
     DrawSpriteSlot(renderer, s, cam_pixel_x, cam_pixel_y);
   }
 
+  for (int32_t i = 0; i < TRA_SLOTS; i++) {
+    SimSprite *s = GetSpriteSlot(TRA, i);
+    if (!s || s->frame == 0) continue;
+    DrawSpriteSlot(renderer, s, cam_pixel_x, cam_pixel_y);
+  }
+
   for (int32_t i = 0; i < EXP_SLOTS; i++) {
     SimSprite *s = GetSpriteSlot(EXP, i);
     if (!s || s->frame == 0) continue;
