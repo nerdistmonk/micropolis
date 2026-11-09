@@ -839,6 +839,8 @@ int32_t Scenario_LoadFile(const char *path)
     ResetUncountedFunds();
     RecomputeFundSpends();
     CityEvaluation();
+
+    Scenario_Activate(&def);
     News_ResetSession();
 
     if (EngineCallbacks.update_funds) EngineCallbacks.update_funds(TotalFunds);
