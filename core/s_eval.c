@@ -30,7 +30,7 @@ int32_t EvalChanged = 0;
 static void    DoPopNum(void);
 static void    DoProblems(void);
 static void    VoteProblems(void);
-static int16_t AverageTrf(void);
+static void UpdateTrafficAverage(void);
 static int16_t GetUnemployment(void);
 static int16_t GetFire(void);
 static void    GetScore(void);
@@ -153,7 +153,8 @@ static void DoProblems(void)
     ProblemTable[1] = PolluteAverage;                              /* Pollution */
     ProblemTable[2] = (int16_t)((float)LVAverage * 0.7f);          /* Housing */
     ProblemTable[3] = (int16_t)(GetAverageTaxRate() * 10);         /* Taxes */
-    ProblemTable[4] = AverageTrf();                                /* Traffic */
+    UpdateTrafficAverage();
+    ProblemTable[4] = (int16_t)TrafProblemShare();                 /* Traffic */
     ProblemTable[5] = GetUnemployment();                           /* Unemployment */
     ProblemTable[6] = GetFire();                                   /* Fire */
     ProblemTable[7] = ShareOfZones(unPwrdZCnt);                    /* Power */
@@ -209,7 +210,7 @@ static void VoteProblems(void)
     }
 }
 
-static int16_t AverageTrf(void)
+static void UpdateTrafficAverage(void)
 {
     QUAD trf_total = 0;
     int32_t count = 1;
@@ -224,7 +225,6 @@ static int16_t AverageTrf(void)
     }
 
     TrafficAverage = (int16_t)((trf_total / count) * 2.4);
-    return TrafficAverage;
 }
 
 static int16_t GetUnemployment(void)

@@ -1,230 +1,127 @@
-/* s_traf.c: Traffic generation, trip pathfinding, and transit density mapping.
+/* s_traf.c: Road capacity traffic model.
  *
  * Originally designed and implemented by Will Wright.
  * Unix version by Don Hopkins.
  *
  * Modernized to C11 / C17 for headless execution and SDL3 integration.
+ *
+ * The road network is one pooled entity. Each road tile adds a tenth of a zone of
+ * capacity, and each parking garage or passenger station adds more. Growing zones
+ * beyond capacity are unserviced, and the unserviced set rotates at each rush hour.
  */
 
 #include "sim.h"
 
-#define MAXDIS 30
+/* Rush hour volume: 20 citizens per ResPop, 60% commuting, and a full zone is 40 ResPop */
+#define TRAF_CITIZENS_PER_RESPOP 20
+#define TRAF_COMMUTE_PERCENT     60
+#define TRAF_TRIPS_PER_ZONE      480
 
-/* Coordinate Stack for Pathfinding Steps */
-int16_t PosStackN = 0;
-int16_t SMapXStack[MAXDIS + 1];
-int16_t SMapYStack[MAXDIS + 1];
-int16_t LDir = 0;
-int16_t Zsource = 0;
 int16_t TrafMaxX = 0;
 int16_t TrafMaxY = 0;
+int32_t TrafServicedResPop = 0;
 
-/* Forward Declarations of Internal Functions */
-static void    PushPos(void);
-static void    PullPos(void);
-static bool    TryDrive(void);
-static bool    TryGo(int32_t step);
-static int16_t GetFromMap(int32_t dir);
-static bool    DriveDone(void);
-bool RoadTest(int32_t tile);
+static uint8_t TrafUnserviced[WORLD_X][WORLD_Y];
+static int32_t TrafRotor = 0;
+static int32_t TrafProblemUnserviced = 0;
+static int32_t TrafProblemZones = 0;
 
-/* External sprite accessor (stubbed or provided by sprite subsystem) */
-extern SimSprite *GetSprite(int32_t type);
-
-int32_t MakeTraf(int32_t zt)
+/* Runs at each rush hour. The road grid is one pool: its capacity is the share of
+ * road tiles plus garages and stations. Growing zones with road access beyond that
+ * capacity are unserviced, and the unserviced window rotates at each rush hour.
+ */
+void TrafRushHour(void)
 {
-    int16_t xtem = SMapX;
-    int16_t ytem = SMapY;
+    int32_t roads = 0;
+    int32_t garages = 0;
+    int32_t stations = 0;
+    int32_t growing = 0;
+    int32_t demand = 0;
 
-    Zsource = (int16_t)zt;
-    PosStackN = 0;
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            uint16_t tile = Map[x][y];
+            uint16_t id = tile & LOMASK;
 
-    if (FindPRoad()) { /* Look for road on zone perimeter */
-        if (TryDrive()) { /* Attempt to drive toward destination zone */
-            SetTrafMem(); /* If successful, increment traffic density */
-            SMapX = xtem;
-            SMapY = ytem;
-            return TRUE;  /* Trip succeeded */
+            if (id >= ROADBASE && id <= LASTROAD) {
+                roads++;
+            } else if (id == GARAGE + 4) {
+                garages++;
+            } else if (id == STATION + 4) {
+                stations++;
+            } else if ((tile & ZONEBIT) && IsGrowingZone(id)) {
+                growing++;
+                if (ZoneHasRoadAccess(x, y)) demand++;
+            }
         }
-        SMapX = xtem;
-        SMapY = ytem;
-        return FALSE;     /* Trip failed */
     }
 
-    return -1;            /* No road found adjacent to zone */
-}
+    int32_t capacity = roads / TRAF_ROADS_PER_ZONE + garages * GARAGE_ZONES + stations * STATION_ZONES;
+    int32_t excess = demand > capacity ? demand - capacity : 0;
+    int64_t volume = (int64_t)TrafServicedResPop * TRAF_CITIZENS_PER_RESPOP * TRAF_COMMUTE_PERCENT / 100;
+    int64_t full = (int64_t)capacity * TRAF_TRIPS_PER_ZONE;
+    int32_t level = full > 0 ? (int32_t)(volume * 255 / full) : 0;
+    if (level > 255) level = 255;
 
-void SetTrafMem(void)
-{
-    for (int16_t x = PosStackN; x > 0; x--) {
-        PullPos();
-        if (TestBounds(SMapX, SMapY)) {
-            uint16_t z = Map[SMapX][SMapY] & LOMASK;
-            if ((z >= ROADBASE) && (z < POWERBASE)) {
-                int32_t density = TrfDensity[SMapX >> 1][SMapY >> 1];
-                density += 50;
+    int32_t rotor = demand > 0 ? TrafRotor % demand : 0;
+    int32_t ordinal = 0;
+    int32_t blocked = 0;
+    bool roadFound = false;
 
-                if ((density > 240) && !Rand(5)) {
-                    density = 240;
-                    TrafMaxX = (int16_t)(SMapX << 4);
-                    TrafMaxY = (int16_t)(SMapY << 4);
+    for (int16_t x = 0; x < HWLDX; x++) {
+        for (int16_t y = 0; y < HWLDY; y++) {
+            TrfDensity[x][y] = 0;
+        }
+    }
 
-                    SimSprite *sprite = GetSprite(COP);
-                    if (sprite && (sprite->control == -1)) {
-                        sprite->dest_x = TrafMaxX;
-                        sprite->dest_y = TrafMaxY;
-                    }
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            uint16_t tile = Map[x][y];
+            uint16_t id = tile & LOMASK;
+            bool unserviced = false;
+
+            if (id >= ROADBASE && id <= LASTROAD) {
+                TrfDensity[x >> 1][y >> 1] = (Byte)level;
+                if (!roadFound) {
+                    TrafMaxX = (int16_t)(x << 4);
+                    TrafMaxY = (int16_t)(y << 4);
+                    roadFound = true;
                 }
-
-                if (density > 255) density = 255;
-                TrfDensity[SMapX >> 1][SMapY >> 1] = (Byte)density;
+            } else if ((tile & ZONEBIT) && IsGrowingZone(id)) {
+                if (!ZoneHasRoadAccess(x, y)) {
+                    unserviced = true;
+                } else {
+                    unserviced = ((ordinal - rotor + demand) % demand) < excess;
+                    ordinal++;
+                }
             }
+
+            TrafUnserviced[x][y] = unserviced ? 1 : 0;
+            if (unserviced) blocked++;
         }
     }
+
+    TrafRotor = demand > 0 ? (rotor + excess) % demand : 0;
+    TrafProblemUnserviced = blocked;
+    TrafProblemZones = growing;
 }
 
-static void PushPos(void)
+bool TrafZoneUnserviced(int32_t x, int32_t y)
 {
-    if (PosStackN < MAXDIS) {
-        PosStackN++;
-        SMapXStack[PosStackN] = SMapX;
-        SMapYStack[PosStackN] = SMapY;
-    }
+    return TestBounds(x, y) && TrafUnserviced[x][y] != 0;
 }
 
-static void PullPos(void)
+float TrafServiceShare(void)
 {
-    if (PosStackN > 0) {
-        SMapX = SMapXStack[PosStackN];
-        SMapY = SMapYStack[PosStackN];
-        PosStackN--;
-    }
+    if (ResPop <= 0) return 1.0f;
+    float share = (float)TrafServicedResPop / (float)ResPop;
+    return share > 1.0f ? 1.0f : share;
 }
 
-int32_t FindPRoad(void)
+int32_t TrafProblemShare(void)
 {
-    static const int16_t PerimX[12] = { -1,  0,  1,  2, 2, 2, 1, 0, -1, -2, -2, -2 };
-    static const int16_t PerimY[12] = { -2, -2, -2, -1, 0, 1, 2, 2,  2,  1,  0, -1 };
-
-    for (int32_t z = 0; z < 12; z++) {
-        int16_t tx = (int16_t)(SMapX + PerimX[z]);
-        int16_t ty = (int16_t)(SMapY + PerimY[z]);
-        if (TestBounds(tx, ty)) {
-            if (RoadTest(Map[tx][ty])) {
-                SMapX = tx;
-                SMapY = ty;
-                return TRUE;
-            }
-        }
-    }
-    return FALSE;
-}
-
-static bool TryDrive(void)
-{
-    LDir = 5;
-    for (int16_t z = 0; z < MAXDIS; z++) {
-        if (TryGo(z)) {
-            if (DriveDone()) {
-                return true;
-            }
-        } else {
-            if (PosStackN > 0) {
-                PosStackN--;
-                z = (int16_t)(z + 3);
-            } else {
-                return false;
-            }
-        }
-    }
-    return false;
-}
-
-static bool TryGo(int32_t step)
-{
-    int16_t rdir = (int16_t)(Rand16() & 3);
-
-    for (int16_t x = rdir; x < (rdir + 4); x++) {
-        int16_t realdir = (int16_t)(x & 3);
-        if (realdir == LDir) {
-            continue;
-        }
-
-        if (RoadTest(GetFromMap(realdir))) {
-            MoveMapSim(realdir);
-            LDir = (int16_t)((realdir + 2) & 3);
-            if (step & 1) {
-                PushPos();
-            }
-            return true;
-        }
-    }
-    return false;
-}
-
-static int16_t GetFromMap(int32_t dir)
-{
-    switch (dir) {
-    case 0: /* North */
-        if (SMapY > 0) {
-            return (int16_t)(Map[SMapX][SMapY - 1] & LOMASK);
-        }
-        return 0;
-
-    case 1: /* East */
-        if (SMapX < (WORLD_X - 1)) {
-            return (int16_t)(Map[SMapX + 1][SMapY] & LOMASK);
-        }
-        return 0;
-
-    case 2: /* South */
-        if (SMapY < (WORLD_Y - 1)) {
-            return (int16_t)(Map[SMapX][SMapY + 1] & LOMASK);
-        }
-        return 0;
-
-    case 3: /* West */
-        if (SMapX > 0) {
-            return (int16_t)(Map[SMapX - 1][SMapY] & LOMASK);
-        }
-        return 0;
-
-    default:
-        break;
-    }
-    return 0;
-}
-
-static bool DriveDone(void)
-{
-    static const uint16_t TARGL[3] = { COMBASE, LHTHR, LHTHR };
-    static const uint16_t TARGH[3] = { NUCLEAR, PORT,  COMBASE };
-
-    uint16_t l = TARGL[Zsource];
-    uint16_t h = TARGH[Zsource];
-    uint16_t z;
-
-    if (SMapY > 0) {
-        z = Map[SMapX][SMapY - 1] & LOMASK;
-        if ((z >= l) && (z <= h)) return true;
-    }
-
-    if (SMapX < (WORLD_X - 1)) {
-        z = Map[SMapX + 1][SMapY] & LOMASK;
-        if ((z >= l) && (z <= h)) return true;
-    }
-
-    if (SMapY < (WORLD_Y - 1)) {
-        z = Map[SMapX][SMapY + 1] & LOMASK;
-        if ((z >= l) && (z <= h)) return true;
-    }
-
-    if (SMapX > 0) {
-        z = Map[SMapX - 1][SMapY] & LOMASK;
-        if ((z >= l) && (z <= h)) return true;
-    }
-
-    return false;
+    if (TrafProblemZones <= 0) return 0;
+    return (int32_t)((int64_t)TrafProblemUnserviced * 255 / TrafProblemZones);
 }
 
 bool RoadTest(int32_t tile)

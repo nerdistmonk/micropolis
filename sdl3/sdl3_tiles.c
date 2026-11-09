@@ -19,6 +19,8 @@ extern const char **Micropolis_GetTilesXpmData(void);
 extern const char **Micropolis_GetWaterTowerXpmData(void);
 extern const char **Micropolis_GetHospitalXpmData(void);
 extern const char **Micropolis_GetLandfillXpmData(void);
+extern const char **Micropolis_GetGarageXpmData(void);
+extern const char **Micropolis_GetStationXpmData(void);
 extern const char **Micropolis_GetAutumnTilesXpmData(void);
 
 static uint32_t *tile_pixels = NULL;
@@ -205,7 +207,10 @@ bool Tiles_Init(void)
     uint32_t *tower_px = NULL;
     uint32_t *hosp_px = NULL;
     uint32_t *land_px = NULL;
+    uint32_t *garage_px = NULL;
+    uint32_t *station_px = NULL;
     int32_t tiles_w = 0, tiles_h = 0, tower_w = 0, tower_h = 0, hosp_w = 0, hosp_h = 0, land_w = 0, land_h = 0;
+    int32_t garage_w = 0, garage_h = 0, station_w = 0, station_h = 0;
 
     if (!ParseXpmSheet(Micropolis_GetTilesXpmData(), &tiles_px, &tiles_w, &tiles_h)) return false;
     DarkenWoodsTiles(tiles_px, tiles_w);
@@ -253,32 +258,61 @@ bool Tiles_Init(void)
         return false;
     }
 
-    /* Water tower tiles follow the base sheet, so tile IDs 960+ index the appended rows. */
+    if (!ParseXpmSheet(Micropolis_GetGarageXpmData(), &garage_px, &garage_w, &garage_h) ||
+        garage_w != tiles_w || garage_h != GARAGE_TILES * TILE_H) {
+        SDL_Log("Error: Parking garage sheet is missing or does not match the tile sheet.");
+        free(tiles_px);
+        free(tower_px);
+        free(land_px);
+        free(garage_px);
+        return false;
+    }
+
+    if (!ParseXpmSheet(Micropolis_GetStationXpmData(), &station_px, &station_w, &station_h) ||
+        station_w != tiles_w || station_h != STATION_TILES * TILE_H) {
+        SDL_Log("Error: Passenger station sheet is missing or does not match the tile sheet.");
+        free(tiles_px);
+        free(tower_px);
+        free(land_px);
+        free(garage_px);
+        free(station_px);
+        return false;
+    }
+
+    /* Water tower, landfill, garage and station tiles follow the base sheet in ID order, so each ID indexes its appended row. */
     size_t tiles_count = (size_t)tiles_w * (size_t)tiles_h;
     size_t tower_count = (size_t)tower_w * (size_t)tower_h;
     size_t land_count = (size_t)land_w * (size_t)land_h;
-    uint32_t *combined = (uint32_t *)calloc(tiles_count + tower_count + land_count, sizeof(uint32_t));
+    size_t garage_count = (size_t)garage_w * (size_t)garage_h;
+    size_t station_count = (size_t)station_w * (size_t)station_h;
+    uint32_t *combined = (uint32_t *)calloc(tiles_count + tower_count + land_count + garage_count + station_count, sizeof(uint32_t));
     if (!combined) {
         free(tiles_px);
         free(tower_px);
         free(land_px);
+        free(garage_px);
+        free(station_px);
         return false;
     }
     memcpy(combined, tiles_px, tiles_count * sizeof(uint32_t));
     memcpy(combined + tiles_count, tower_px, tower_count * sizeof(uint32_t));
     memcpy(combined + tiles_count + tower_count, land_px, land_count * sizeof(uint32_t));
+    memcpy(combined + tiles_count + tower_count + land_count, garage_px, garage_count * sizeof(uint32_t));
+    memcpy(combined + tiles_count + tower_count + land_count + garage_count, station_px, station_count * sizeof(uint32_t));
     free(tiles_px);
     free(tower_px);
     free(land_px);
+    free(garage_px);
+    free(station_px);
 
     free(tile_pixels);
     tile_pixels = combined;
     sheet_width = tiles_w;
-    sheet_height = tiles_h + tower_h + land_h;
+    sheet_height = tiles_h + tower_h + land_h + garage_h + station_h;
     tiles_ready = true;
 
-    SDL_Log("Embedded tiles successfully initialized: %dx%d (%d base + %d water tower rows + %d landfill rows)",
-            tiles_w, tiles_h, tiles_h, tower_h, land_h);
+    SDL_Log("Embedded tiles successfully initialized: %dx%d (%d base + %d water tower + %d landfill + %d garage + %d station rows)",
+            tiles_w, tiles_h, tiles_h, tower_h, land_h, garage_h, station_h);
     return true;
 }
 
@@ -322,7 +356,7 @@ uint32_t Tiles_GetPixel(uint16_t tile_id, int32_t px, int32_t py)
     if (!tiles_ready || !tile_pixels) return 0xFF000000;
 
     uint16_t id = tile_id & LOMASK;
-    if (id >= TOTAL_SHEET_TILES + LANDFILL_TILES) id = 0;
+    if (id >= STATION + STATION_TILES) id = 0;
 
     int32_t sheet_x, sheet_y;
 

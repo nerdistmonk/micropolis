@@ -45,7 +45,9 @@ static GuiToolButton tool_buttons[] = {
   { pipeState,        "Water Pipe",       "icpipe", 2, { 56.0f, 434.0f, 46.0f, 46.0f }, NULL, NULL },
   { hospitalState,    "Hospital",         "ichosp", 1000, { 56.0f, 384.0f, 46.0f, 46.0f }, NULL, NULL },
   { landfillState,    "Landfill",         "icland", 100, { 6.0f, 484.0f, 46.0f, 46.0f }, NULL, NULL },
-  { connectState,     "Connect Neighbor", "icconn", 1000, { 56.0f, 484.0f, 46.0f, 46.0f }, NULL, NULL }
+  { connectState,     "Connect Neighbor", "icconn", 1000, { 56.0f, 484.0f, 46.0f, 46.0f }, NULL, NULL },
+  { garageState,      "Parking Garage",   "icgarage", GARAGE_COST, { 6.0f, 534.0f, 46.0f, 46.0f }, NULL, NULL },
+  { stationState,     "Passenger Station", "icstation", STATION_COST, { 56.0f, 534.0f, 46.0f, 46.0f }, NULL, NULL }
 };
 
 #define NUM_TOOL_BUTTONS (sizeof(tool_buttons) / sizeof(tool_buttons[0]))

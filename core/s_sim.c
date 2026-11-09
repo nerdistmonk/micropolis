@@ -56,7 +56,6 @@ static void SetValves(void);
 void ClearCensus(void);
 static void TakeCensus(void);
 static void Take2Census(void);
-static void DecTrafficMem(void);
 static void DecROGMem(void);
 static void SetCommonInits(void);
 static void MapScan(int32_t x1, int32_t x2);
@@ -248,6 +247,9 @@ void Simulate(int32_t mod16)
         if (!(Scycle & 1)) {
             SetValves();
         }
+        if ((CityTime & 3) == 0 || (CityTime & 3) == 3) {
+            TrafRushHour();
+        }
         ClearCensus();
 
         if (EngineCallbacks.update_date) {
@@ -297,7 +299,6 @@ void Simulate(int32_t mod16)
         if (!(Scycle % 5)) {
             DecROGMem();
         }
-        DecTrafficMem();
         SendMessages();
         if (EngineCallbacks.invalidate_maps) {
             EngineCallbacks.invalidate_maps();
@@ -344,26 +345,6 @@ void Simulate(int32_t mod16)
     }
 }
 
-static void DecTrafficMem(void)
-{
-    for (int16_t x = 0; x < HWLDX; x++) {
-        for (int16_t y = 0; y < HWLDY; y++) {
-            uint8_t z = TrfDensity[x][y];
-            if (z != 0) {
-                if (z > 24) {
-                    if (z > 200) {
-                        TrfDensity[x][y] = (Byte)(z - 34);
-                    } else {
-                        TrfDensity[x][y] = (Byte)(z - 24);
-                    }
-                } else {
-                    TrfDensity[x][y] = 0;
-                }
-            }
-        }
-    }
-}
-
 static void DecROGMem(void)
 {
     for (int16_t x = 0; x < SmX; x++) {
@@ -390,6 +371,7 @@ void ClearCensus(void)
     RoadTotal = 0;
     RailTotal = 0;
     ResPop = 0;
+    TrafServicedResPop = 0;
     ResTaxPop = 0;
     ResUncoveredPop = 0;
     ResUnrecPop = 0;
@@ -456,6 +438,9 @@ static void SetValves(void)
     }
 
     Migration = NormResPop * (Employment - 1.0f);
+    if (Migration > 0.0f) {
+        Migration *= TrafServiceShare();
+    }
     Births = NormResPop * 0.02f;
     PjResPop = NormResPop + Migration + Births;
 
@@ -736,6 +721,10 @@ static void MapScan(int32_t x1, int32_t x2)
 
                     if ((CChr9 >= ROADBASE) && (CChr9 < POWERBASE)) {
                         DoRoad();
+                        continue;
+                    }
+
+                    if (TILE_IS_TRAFFIC_BLOCK(CChr9)) {
                         continue;
                     }
 

@@ -113,7 +113,7 @@ static void PullPowerStack(void)
 
 static bool IsPowerZone(uint16_t tile)
 {
-    return (tile & ZONEBIT) && !TILE_IS_POWER_PLANT(tile) && !TILE_IS_LANDFILL(tile);
+    return (tile & ZONEBIT) && !TILE_IS_POWER_PLANT(tile) && !TILE_IS_LANDFILL(tile) && !TILE_IS_TRAFFIC_BLOCK(tile);
 }
 
 static bool IsConductiveTile(int32_t x, int32_t y)

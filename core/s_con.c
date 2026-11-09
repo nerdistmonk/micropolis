@@ -307,6 +307,16 @@ int32_t PlaceZone(int32_t x, int32_t y, int16_t tool_id)
         base_tile = LANDFILL;
         size = 3;
         break;
+    case garageState:
+        base_cost = GARAGE_COST;
+        base_tile = GARAGE;
+        size = 3;
+        break;
+    case stationState:
+        base_cost = STATION_COST;
+        base_tile = STATION;
+        size = 3;
+        break;
     default:
         return 0;
     }

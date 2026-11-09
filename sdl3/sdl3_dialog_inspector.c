@@ -95,6 +95,10 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         strncpy(inspect_title, "Municipal Park", sizeof(inspect_title));
     } else if (low >= LANDFILL && low < LANDFILL + LANDFILL_TILES) {
         strncpy(inspect_title, "Landfill", sizeof(inspect_title));
+    } else if (TILE_IS_GARAGE(tile)) {
+        strncpy(inspect_title, "Parking Garage", sizeof(inspect_title));
+    } else if (TILE_IS_STATION(tile)) {
+        strncpy(inspect_title, "Passenger Station", sizeof(inspect_title));
     } else if (low >= RUBBLE && low <= LASTRUBBLE) {
         strncpy(inspect_title, "Demolished Rubble", sizeof(inspect_title));
     } else {
@@ -124,7 +128,7 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Supply: None");
     }
 
-    if (TILE_IS_LANDFILL(tile)) {
+    if (TILE_IS_TRAFFIC_BLOCK(tile) || TILE_IS_LANDFILL(tile)) {
         snprintf(inspect_stat_power, sizeof(inspect_stat_power), "Power Grid: Not required");
         snprintf(inspect_stat_water, sizeof(inspect_stat_water), "Water Supply: Not required");
     }
@@ -199,6 +203,10 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         LandfillSystemStats(&capacity, &demand);
         snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Landfill Capacity: %d zones | Demand: %d zones (citywide)",
                  (int)capacity, (int)demand);
+    } else if (TILE_IS_GARAGE(tile)) {
+        snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: +%d zones", GARAGE_ZONES);
+    } else if (TILE_IS_STATION(tile)) {
+        snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: +%d zones", STATION_ZONES);
     }
 
     uint8_t pol = PollutionMem[hx][hy];

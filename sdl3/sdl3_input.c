@@ -210,6 +210,8 @@ static void ApplyTool(int16_t tool, int32_t tx, int32_t ty, bool first)
     case airportState:
     case hospitalState:
     case landfillState:
+    case garageState:
+    case stationState:
         result = PlaceZone(tx, ty, tool);
         break;
 

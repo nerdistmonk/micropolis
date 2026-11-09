@@ -171,7 +171,7 @@ static void SupplyFromTower(int32_t tx, int32_t ty, int32_t limit)
             uint16_t tile = Map[nx][ny];
             if (TILE_IS_POWER_PLANT(tile)) {
                 MarkPlantFootprint(nx, ny);
-            } else if ((tile & ZONEBIT) && !TILE_IS_LANDFILL(tile) && !water_map[nx][ny]) {
+            } else if ((tile & ZONEBIT) && !TILE_IS_LANDFILL(tile) && !TILE_IS_TRAFFIC_BLOCK(tile) && !water_map[nx][ny]) {
                 if (zones >= limit) continue;
                 zones++;
             }
@@ -255,7 +255,7 @@ static void DropWaterZones(int32_t root, int32_t count, int32_t zones)
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
             if (!water_map[x][y] || !net_owner[x][y]) continue;
-            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y])) continue;
+            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y]) || TILE_IS_TRAFFIC_BLOCK(Map[x][y])) continue;
             if (NetFind(net_owner[x][y] - 1) != root) continue;
             if (((index - first + zones) % zones) < count) water_map[x][y] = 0;
             index++;
@@ -305,7 +305,7 @@ void DoWaterScan(void)
         for (int32_t y = 0; y < WORLD_Y; y++) {
             int16_t owner = net_owner[x][y];
             if (!owner) continue;
-            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y])) continue;
+            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y]) || TILE_IS_TRAFFIC_BLOCK(Map[x][y])) continue;
             net_demand[NetFind(owner - 1)]++;
         }
     }
@@ -326,7 +326,7 @@ void DoWaterScan(void)
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
             if (!water_map[x][y] || !net_owner[x][y]) continue;
-            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y])) continue;
+            if (!(Map[x][y] & ZONEBIT) || TILE_IS_POWER_PLANT(Map[x][y]) || TILE_IS_LANDFILL(Map[x][y]) || TILE_IS_TRAFFIC_BLOCK(Map[x][y])) continue;
             net_zones[NetFind(net_owner[x][y] - 1)]++;
         }
     }

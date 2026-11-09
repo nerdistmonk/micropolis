@@ -315,6 +315,13 @@ typedef int32_t QUAD;
 #define LANDFILL_STAGES 4
 #define LANDFILL_TILES (LANDFILL_STAGE_TILES * LANDFILL_STAGES)
 
+/* Parking garage and passenger station: 3x3 traffic blocks, tile IDs 1006-1023.
+ * Both are appended to the sheet after landfill, so the IDs fit under LOMASK. */
+#define GARAGE 1006
+#define GARAGE_TILES 9
+#define STATION 1015
+#define STATION_TILES 9
+
 /* No-water icon: the tile after the water tower block, drawn on zones lacking water */
 #define WATERDROP 969
 
@@ -343,9 +350,11 @@ typedef int32_t QUAD;
 #define hospitalState 21
 #define landfillState 22
 #define connectState 23
+#define garageState 24
+#define stationState 25
 
 #define firstState residentialState
-#define lastState connectState
+#define lastState stationState
 
 /* Global Bounds and Validity Macros */
 #define ABS(x) (((x) < 0) ? (-(x)) : (x))
@@ -355,6 +364,9 @@ typedef int32_t QUAD;
 #define TILE_IS_POWER_PLANT(tile) ((((tile) & LOMASK) >= COALBASE && ((tile) & LOMASK) <= LASTPOWERPLANT) || (((tile) & LOMASK) >= NUCLEARBASE && ((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_WATER_TOWER(tile) ((((tile) & LOMASK) >= WATERTOWER) && (((tile) & LOMASK) < WATERTOWER + WATERTOWER_TILES))
 #define TILE_IS_LANDFILL(tile) ((((tile) & LOMASK) >= LANDFILL) && (((tile) & LOMASK) < LANDFILL + LANDFILL_TILES))
+#define TILE_IS_GARAGE(tile) ((((tile) & LOMASK) >= GARAGE) && (((tile) & LOMASK) < GARAGE + GARAGE_TILES))
+#define TILE_IS_STATION(tile) ((((tile) & LOMASK) >= STATION) && (((tile) & LOMASK) < STATION + STATION_TILES))
+#define TILE_IS_TRAFFIC_BLOCK(tile) (TILE_IS_GARAGE(tile) || TILE_IS_STATION(tile))
 #define TILE_IS_VULNERABLE(tile) (!((tile) & ZONEBIT) && (((tile) & LOMASK) >= RZB) && (((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_ARSONABLE(tile) (!((tile) & ZONEBIT) && (((tile) & LOMASK) >= RZB) && (((tile) & LOMASK) <= LASTZONE))
 #define TILE_IS_RIVER_EDGE(tile) ((((tile) & LOMASK) >= FIRSTRIVEDGE) && (((tile) & LOMASK) <= LASTRIVEDGE))
@@ -516,6 +528,11 @@ extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect, RecEffect;
 #define PARK_COST           25
 #define STADIUM_COST        150
 #define LANDFILL_CENTRE_COST 20
+#define GARAGE_COST          3000
+#define STATION_COST         6000
+#define GARAGE_ZONES         9
+#define STATION_ZONES        18
+#define TRAF_ROADS_PER_ZONE  10
 #define PORT_COST            25
 #define AIRPORT_COST         45
 #define PORT_SERVICE_ZONES   128
@@ -570,6 +587,7 @@ extern int32_t absDist;
 
 extern int16_t CCx, CCy, CCx2, CCy2;
 extern int16_t TrafMaxX, TrafMaxY;
+extern int32_t TrafServicedResPop;
 extern int16_t CrimeMaxX, CrimeMaxY;
 extern int16_t PolMaxX, PolMaxY;
 extern int16_t FloodX, FloodY;
@@ -781,10 +799,11 @@ int32_t FireZoneState(int32_t x, int32_t y);
 int16_t FireBurnRate(int32_t x, int32_t y);
 bool FireStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned);
 
-/* Traffic and Transportation */
-int32_t MakeTraf(int32_t zone_type);
-void SetTrafMem(void);
-int32_t FindPRoad(void);
+/* Traffic and Transportation: road capacity model, see s_traf.c */
+void TrafRushHour(void);
+bool TrafZoneUnserviced(int32_t x, int32_t y);
+int32_t TrafProblemShare(void);
+float TrafServiceShare(void);
 
 /* Network Auto-Tiling & Layout Operations */
 void FixZone(int32_t x, int32_t y);

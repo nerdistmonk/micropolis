@@ -646,7 +646,7 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
 
     if (has_power) {
       return 0x9000E5FF;
-    } else if ((tile & ZONEBIT) && !(tile & PWRBIT) && !TILE_IS_LANDFILL(tile)) {
+    } else if ((tile & ZONEBIT) && !(tile & PWRBIT) && !TILE_IS_LANDFILL(tile) && !TILE_IS_TRAFFIC_BLOCK(tile)) {
       return 0x852020D0;
     }
     break;
@@ -783,7 +783,7 @@ static uint32_t GetOverlayColorRamp(OverlayViewMode mode, int32_t tx, int32_t ty
     uint16_t tile = Map[tx][ty];
     if (WaterIsSupplied(tx, ty)) {
       return 0x90FFB428u;
-    } else if ((tile & ZONEBIT) && !TILE_IS_LANDFILL(tile)) {
+    } else if ((tile & ZONEBIT) && !TILE_IS_LANDFILL(tile) && !TILE_IS_TRAFFIC_BLOCK(tile)) {
       return 0x852828DCu;
     }
     break;
@@ -985,6 +985,8 @@ static const ToolCursorStyle tool_cursor_style[] = {
     [hospitalState]    = { 3, 1, COLOR_LIGHTGRAY, COLOR_RED },
     [landfillState]    = { 3, 1, COLOR_LIGHTGRAY, COLOR_LIGHTBROWN },
     [connectState]     = { 1, 0, COLOR_YELLOW, COLOR_DARKGREEN },
+    [garageState]      = { 3, 1, COLOR_LIGHTGRAY, COLOR_LIGHTBLUE },
+    [stationState]     = { 3, 1, COLOR_LIGHTGRAY, COLOR_RED },
 };
 
 /* Unix w_x.c palette */
@@ -1275,7 +1277,7 @@ void Video_RenderFrame(void)
           if (FilterViewHidesTile(overlay_mode, raw_tile)) {
             raw_tile = DIRT;
           }
-        } else if ((raw_tile & ZONEBIT) && !TILE_IS_LANDFILL(raw_tile)) {
+        } else if ((raw_tile & ZONEBIT) && !TILE_IS_LANDFILL(raw_tile) && !TILE_IS_TRAFFIC_BLOCK(raw_tile)) {
           bool no_power = !(raw_tile & PWRBIT);
           bool no_water = !WaterIsSupplied(tx, ty);
           if (no_power && no_water) {

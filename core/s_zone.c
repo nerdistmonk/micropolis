@@ -33,9 +33,8 @@ static void    ResPlop(int32_t den, int32_t value);
 static void    ComPlop(int32_t den, int32_t value);
 static void    IndPlop(int32_t den, int32_t value);
 static int16_t EvalLot(int32_t x, int32_t y);
-static int16_t EvalRes(int32_t traf);
-static int16_t EvalCom(int32_t traf);
-static int16_t EvalInd(int32_t traf);
+static int16_t EvalRes(void);
+static int16_t EvalCom(void);
 
 int16_t SetZPower(void)
 {
@@ -180,26 +179,20 @@ void SetSmoke(int32_t zone_power)
 
 static void DoIndustrial(int16_t zone_pwr_flg)
 {
-    int16_t tpop, zscore, trf_good;
+    int16_t tpop, zscore;
 
     IndZPop++;
     SetSmoke(zone_pwr_flg);
     tpop = IZPop(CChr9);
     IndPop += tpop;
 
-    if (tpop > Rand(5)) {
-        trf_good = (int16_t)MakeTraf(2);
-    } else {
-        trf_good = TRUE;
-    }
-
-    if (trf_good == -1) {
+    if (TrafZoneUnserviced(SMapX, SMapY)) {
         DoIndOut(tpop, Rand16() & 1);
         return;
     }
 
     if (!(Rand16() & 7)) {
-        zscore = (int16_t)(IValve + EvalInd(trf_good));
+        zscore = IValve;
         if (!zone_pwr_flg) {
             zscore = -500;
         }
@@ -219,34 +212,27 @@ static void DoIndustrial(int16_t zone_pwr_flg)
 
 static void DoCommercial(int16_t zone_pwr_flg)
 {
-    int16_t tpop, trf_good;
+    int16_t tpop;
     int16_t zscore, locvalve, value;
 
     ComZPop++;
     tpop = CZPop(CChr9);
     ComPop += tpop;
 
-    if (tpop > Rand(5)) {
-        trf_good = (int16_t)MakeTraf(1);
-    } else {
-        trf_good = TRUE;
-    }
-
-    if (trf_good == -1) {
+    if (TrafZoneUnserviced(SMapX, SMapY)) {
         value = GetCRVal();
         DoComOut(tpop, value);
         return;
     }
 
     if (!(Rand16() & 7)) {
-        locvalve = EvalCom(trf_good);
+        locvalve = EvalCom();
         zscore = (int16_t)(CValve + locvalve);
         if (!zone_pwr_flg) {
             zscore = -500;
         }
 
-        if (trf_good &&
-            (zscore > -350) &&
+        if ((zscore > -350) &&
             ((int16_t)(zscore - 26380) > Rand16Signed())) {
             value = GetCRVal();
             DoComIn(tpop, value);
@@ -263,7 +249,7 @@ static void DoCommercial(int16_t zone_pwr_flg)
 
 static void DoResidential(int16_t zone_pwr_flg)
 {
-    int16_t tpop, zscore, locvalve, value, trf_good;
+    int16_t tpop, zscore, locvalve, value;
 
     ResZPop++;
     if (CChr9 == FREEZ) {
@@ -281,20 +267,15 @@ static void DoResidential(int16_t zone_pwr_flg)
         ResUnrecPop += tpop;
     }
 
-    if (tpop > Rand(35)) {
-        trf_good = (int16_t)MakeTraf(0);
-    } else {
-        trf_good = TRUE;
-    }
-
-    if (trf_good == -1) {
+    if (TrafZoneUnserviced(SMapX, SMapY)) {
         value = GetCRVal();
         DoResOut(tpop, value);
         return;
     }
+    TrafServicedResPop += tpop;
 
     if ((CChr9 == FREEZ) || !(Rand16() & 7)) {
-        locvalve = EvalRes(trf_good);
+        locvalve = EvalRes();
         zscore = (int16_t)(RValve + locvalve);
         if (!zone_pwr_flg) {
             zscore = -500;
@@ -604,10 +585,8 @@ void PlantPlop(int16_t base, int32_t size)
     Map[SMapX][SMapY] |= (ZONEBIT | BULLBIT);
 }
 
-static int16_t EvalRes(int32_t traf)
+static int16_t EvalRes(void)
 {
-    if (traf < 0) return -3000;
-
     int32_t value = LandValueMem[SMapX >> 1][SMapY >> 1];
     value -= PollutionMem[SMapX >> 1][SMapY >> 1];
 
@@ -622,16 +601,9 @@ static int16_t EvalRes(int32_t traf)
     return (int16_t)(value - 3000);
 }
 
-static int16_t EvalCom(int32_t traf)
+static int16_t EvalCom(void)
 {
-    if (traf < 0) return -3000;
     return ComRate[SMapX >> 3][SMapY >> 3];
-}
-
-static int16_t EvalInd(int32_t traf)
-{
-    if (traf < 0) return -1000;
-    return 0;
 }
 
 int16_t DoFreePop(void)
