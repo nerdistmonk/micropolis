@@ -63,7 +63,7 @@ static bool IsPlaceableBuilding(uint16_t tile)
            ((id - LANDFILL) % LANDFILL_STAGE_TILES) == LANDFILL_CENTRE_OFFSET;
 }
 
-/* One pass over the map. Garages and stations count only with the access they need. */
+/* One pass over the map. Garages and stations count only with road or rail access, power, and water. */
 typedef struct {
     int32_t roads;
     int32_t garages;
@@ -84,9 +84,9 @@ static void TrafCountNetwork(TrafTally *t)
             if (id >= ROADBASE && id <= LASTROAD) {
                 t->roads++;
             } else if (id == GARAGE + 4) {
-                if (CapacityBlockHasAccess(x, y)) t->garages++;
+                if (CapacityBlockHasAccess(x, y) && CapacityBlockPowered(x, y) && CapacityBlockWatered(x, y)) t->garages++;
             } else if (id == STATION + 4) {
-                if (CapacityBlockHasAccess(x, y)) t->stations++;
+                if (CapacityBlockHasAccess(x, y) && CapacityBlockPowered(x, y) && CapacityBlockWatered(x, y)) t->stations++;
             } else if ((tile & ZONEBIT) && IsGrowingZone(id)) {
                 t->growing++;
                 if (ZoneHasRoadAccess(x, y)) t->accessible++;
@@ -256,6 +256,12 @@ int32_t TrafRoadPollution(void)
 {
     if (TrafGridlocked()) return TRAF_POLLUTION_WORST;
     if (TrafAtCapacity()) return TRAF_POLLUTION_MODERATE;
+    return TRAF_POLLUTION_NEGLIGIBLE;
+}
+
+/* Garage tiles pollute like an uncongested road tile, whatever the network load. */
+int32_t TrafUncongestedPollution(void)
+{
     return TRAF_POLLUTION_NEGLIGIBLE;
 }
 

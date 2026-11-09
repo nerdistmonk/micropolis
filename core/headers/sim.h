@@ -478,6 +478,8 @@ bool BuildingAnchorAt(int32_t x, int32_t y, int32_t *ox, int32_t *oy, int32_t *s
 bool BuildingHasRoadAccess(int32_t ox, int32_t oy, int32_t size);
 bool BuildingHasRailAccess(int32_t ox, int32_t oy, int32_t size);
 bool CapacityBlockHasAccess(int32_t x, int32_t y);
+bool CapacityBlockPowered(int32_t x, int32_t y);
+bool CapacityBlockWatered(int32_t x, int32_t y);
 int32_t LandValueWithNeighbors(int32_t value);
 extern Byte *CrimeMem[HWLDX];
 extern Byte *tem[HWLDX];
@@ -812,6 +814,7 @@ int32_t TrafProblemShare(void);
 bool TrafAtCapacity(void);
 bool TrafGridlocked(void);
 int32_t TrafRoadPollution(void);
+int32_t TrafUncongestedPollution(void);
 bool IsTrafficRoadTile(uint16_t id);
 bool TrafAnimStepDue(void);
 int16_t TrafRoadLoad(void);

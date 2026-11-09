@@ -51,8 +51,8 @@ static const HelpEntry help_entries[HELP_TOPIC_COUNT] = {
     [HELP_TOOL_HOSPITAL] = { "Hospital", "Covers nearby homes with healthcare. Homes without coverage pay less tax." },
     [HELP_TOOL_LANDFILL] = { "Landfill", "Places a 3x3 landfill that absorbs the trash of the zones it serves. It must touch a road. Each connected landfill serves 9 zones, and budget funding scales that. Overloaded landfills fill up; under-capacity landfills slowly empty. Place more landfills as the city grows." },
     [HELP_TOOL_CONNECT] = { "Connect Neighbor", "Click a map edge tile that has a road, rail, power line, or pipe on it. Each neighbor takes one link of each kind. If you bulldoze the link, it breaks." },
-    [HELP_TOOL_GARAGE] = { "Parking Garage", "Needs an adjacent road. Adds road capacity: each garage lets the road network serve 9 more zones at rush hour. Zones beyond capacity go unserviced and their residents cannot reach jobs." },
-    [HELP_TOOL_STATION] = { "Passenger Station", "Needs an adjacent rail line. Adds road capacity: each station lets the road and rail network serve 18 more zones at rush hour. Road and rail share one network." }
+    [HELP_TOOL_GARAGE] = { "Parking Garage", "Needs an adjacent road, power, and water. Adds road capacity: each garage lets the road network serve 9 more zones at rush hour. Zones beyond capacity go unserviced and their residents cannot reach jobs. Garages pollute like an uncongested road." },
+    [HELP_TOOL_STATION] = { "Passenger Station", "Needs an adjacent rail line, power, and water. Adds road capacity: each station lets the road and rail network serve 18 more zones at rush hour. Road and rail share one network." }
 };
 
 static const SDL_Color help_title_color = { 255, 215, 90, 255 };

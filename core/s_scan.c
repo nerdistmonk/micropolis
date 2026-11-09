@@ -197,6 +197,23 @@ bool BuildingHasRailAccess(int32_t ox, int32_t oy, int32_t size)
 }
 
 /* Parking garages and passenger stations are 3x3 blocks laid out row-major from the top-left tile. */
+static bool CapacityBlockCentre(int32_t x, int32_t y, int32_t *cx, int32_t *cy)
+{
+    uint16_t low = Map[x][y] & LOMASK;
+    int32_t k;
+
+    if (low >= GARAGE && low < GARAGE + GARAGE_TILES) {
+        k = low - GARAGE;
+    } else if (low >= STATION && low < STATION + STATION_TILES) {
+        k = low - STATION;
+    } else {
+        return false;
+    }
+    *cx = x - k % 3 + 1;
+    *cy = y - k / 3 + 1;
+    return true;
+}
+
 bool CapacityBlockHasAccess(int32_t x, int32_t y)
 {
     uint16_t low = Map[x][y] & LOMASK;
@@ -211,6 +228,20 @@ bool CapacityBlockHasAccess(int32_t x, int32_t y)
         return BuildingHasRailAccess(x - k % 3, y - k / 3, 3);
     }
     return false;
+}
+
+/* Garage and station blocks have power when their centre tile does. */
+bool CapacityBlockPowered(int32_t x, int32_t y)
+{
+    int32_t cx, cy;
+    return CapacityBlockCentre(x, y, &cx, &cy) && (Map[cx][cy] & PWRBIT);
+}
+
+/* Garage and station blocks have water when their centre tile does. */
+bool CapacityBlockWatered(int32_t x, int32_t y)
+{
+    int32_t cx, cy;
+    return CapacityBlockCentre(x, y, &cx, &cy) && WaterIsSupplied(cx, cy);
 }
 
 /* Marks every placeable building's tiles, and whether a road touches its edge. */
@@ -402,6 +433,7 @@ static int32_t GetPValue(int32_t loc)
     if (loc <= LASTIND) return 0;
     if (loc < PORTBASE) return 50;
     if (loc <= LASTPOWERPLANT) return 100;
+    if (TILE_IS_GARAGE(loc)) return TrafUncongestedPollution();
     return LandfillPollution(loc);
 }
 

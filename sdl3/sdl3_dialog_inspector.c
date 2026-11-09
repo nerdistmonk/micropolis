@@ -224,16 +224,24 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Landfill Capacity: %d zones | Demand: %d zones (citywide)",
                  (int)capacity, (int)demand);
     } else if (TILE_IS_GARAGE(tile)) {
-        if (CapacityBlockHasAccess(tile_x, tile_y)) {
-            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: +%d zones", GARAGE_ZONES);
-        } else {
+        if (!CapacityBlockHasAccess(tile_x, tile_y)) {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: none (no adjacent road)");
+        } else if (!CapacityBlockPowered(tile_x, tile_y)) {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: none (no power)");
+        } else if (!CapacityBlockWatered(tile_x, tile_y)) {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: none (no water)");
+        } else {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: +%d zones", GARAGE_ZONES);
         }
     } else if (TILE_IS_STATION(tile)) {
-        if (CapacityBlockHasAccess(tile_x, tile_y)) {
-            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: +%d zones", STATION_ZONES);
-        } else {
+        if (!CapacityBlockHasAccess(tile_x, tile_y)) {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: none (no adjacent rail)");
+        } else if (!CapacityBlockPowered(tile_x, tile_y)) {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: none (no power)");
+        } else if (!CapacityBlockWatered(tile_x, tile_y)) {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: none (no water)");
+        } else {
+            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: +%d zones", STATION_ZONES);
         }
     }
 
