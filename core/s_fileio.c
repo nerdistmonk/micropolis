@@ -368,6 +368,13 @@ static void RestoreFundSnapshot(void)
     RecomputeFundSpends();
 }
 
+/* A city built from nothing starts with no uncounted budget. The editor calls this so its saves do not carry the previous city's. */
+void ResetBudgetForNewCity(void)
+{
+    ResetUncountedFunds();
+    RecomputeFundSpends();
+}
+
 static void RestoreSimState(void)
 {
     EMarket = (float)MiscHis[1];
@@ -875,8 +882,7 @@ int32_t Scenario_LoadFile(const char *path)
     HealthEffect = 1000;
     RecEffect = 1000;
     CityRescan();
-    ResetUncountedFunds();
-    RecomputeFundSpends();
+    RestoreFundSnapshot();
     CityEvaluation();
 
     Scenario_Activate(&def);

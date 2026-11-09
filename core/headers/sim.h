@@ -670,6 +670,7 @@ void ResetMapState(void);
 void ResetEditorState(void);
 void AnimateTiles(void);
 void ClearCensus(void);
+void ResetBudgetForNewCity(void);
 
 /* Map Generation */
 void GenerateNewCity(void);

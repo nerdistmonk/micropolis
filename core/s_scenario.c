@@ -308,6 +308,7 @@ void Scenario_EditorBegin(void)
     DoInitialEval = 0;
     InitSprites();
     CityRescan();
+    ResetBudgetForNewCity();
 
     SetSimSpeed(SIM_SPEED_PAUSED);
     NotifyEngineChanged();
