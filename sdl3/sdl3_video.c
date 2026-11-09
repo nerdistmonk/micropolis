@@ -596,9 +596,11 @@ static void RenderSprites(SDL_Renderer *renderer)
   }
 
   for (int32_t side = 0; side < NB_SIDES; side++) {
-    SimSprite *s = GetNeighborTrain(side);
-    if (!s || s->frame == 0) continue;
-    DrawSpriteSlot(renderer, s, cam_pixel_x, cam_pixel_y);
+    for (int32_t i = 0; i < NB_TRAINS_PER_SIDE; i++) {
+      SimSprite *s = GetNeighborTrainSlot(side, i);
+      if (!s || s->frame == 0) continue;
+      DrawSpriteSlot(renderer, s, cam_pixel_x, cam_pixel_y);
+    }
   }
 }
 

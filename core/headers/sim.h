@@ -159,6 +159,8 @@ typedef int32_t QUAD;
 #define OBJN 9
 #define EXP_SLOTS 64
 #define TRA_SLOTS 24
+/* Most trains one linked neighbour side can run at once, matching the largest per-side count in s_sprite.c. */
+#define NB_TRAINS_PER_SIDE 2
 
 /* Graph History Indexes */
 #define RES_HIST 0
@@ -756,7 +758,7 @@ void Neighbor_BlackoutSale(int32_t side, int32_t goods);
 bool Neighbor_SaleBlackedOut(int32_t side, int32_t goods);
 int32_t Neighbor_GarbageFeedZones(void);
 bool Neighbor_RailTile(int32_t side, int32_t *x, int32_t *y);
-SimSprite *GetNeighborTrain(int32_t side);
+SimSprite *GetNeighborTrainSlot(int32_t side, int32_t index);
 int32_t Neighbor_LandValueBonusPercent(void);
 bool Neighbor_Connect(int32_t x, int32_t y);
 void FireZone(int32_t xloc, int32_t yloc, int32_t ch);
@@ -770,7 +772,7 @@ int16_t DoFreePop(void);
 
 /* Presentation & Sprite Subsystems */
 void InitSprites(void);
-void DispatchCityTrains(int32_t count);
+void DispatchTrains(void);
 void GenerateShip(void);
 void GeneratePlane(int16_t x, int16_t y);
 void GenerateCopter(int16_t x, int16_t y);
@@ -813,6 +815,9 @@ void FireSystemStats(int32_t *capacity, int32_t *demand);
 /* Traffic and Transportation: road capacity model, see s_traf.c */
 int32_t TrafRushHourCount(void);
 void TrafRushHour(void);
+enum { TRAF_LIGHT, TRAF_NORMAL, TRAF_CONGESTED, TRAF_OVERLOADED, TRAF_STATE_COUNT };
+int32_t TrafState(void);
+bool TrafCommuting(void);
 void TrafResetCity(void);
 bool TrafZoneUnserviced(int32_t x, int32_t y);
 int32_t TrafProblemShare(void);

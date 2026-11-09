@@ -266,6 +266,20 @@ bool TrafGridlocked(void)
     return TrafDemandZones - TrafCapacityZones >= TRAF_GRIDLOCK_ZONES;
 }
 
+/* City traffic state, using the same thresholds as the road tiers. Rail trains follow it. */
+int32_t TrafState(void)
+{
+    if (TrafGridlocked()) return TRAF_OVERLOADED;
+    if (TrafAtCapacity()) return TRAF_CONGESTED;
+    if (2 * TrafDemandZones >= TrafCapacityZones) return TRAF_NORMAL;
+    return TRAF_LIGHT;
+}
+
+bool TrafCommuting(void)
+{
+    return TrafHasCommuters;
+}
+
 /* Pollution tier for traffic road tiles. Gridlock, past the absorbed zones, is the over-capacity tier. */
 int32_t TrafRoadPollution(void)
 {

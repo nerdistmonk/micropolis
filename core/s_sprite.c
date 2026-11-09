@@ -10,11 +10,16 @@ extern void ClearMes(void);
 extern void SendMesAt(int16_t msg, int16_t x, int16_t y);
 
 static SimSprite active_sprites[OBJN];
-static SimSprite neighbor_trains[NB_SIDES];
+static SimSprite neighbor_trains[NB_SIDES][NB_TRAINS_PER_SIDE];
 static SimSprite city_trains[TRA_SLOTS];
 
 /* Travel budget per train, in MoveObjects steps. Retires a train so a roaming one frees its slot. */
 #define TRAIN_TRAVEL_STEPS 250
+
+/* Trains per traffic state (light, normal, congested, overloaded), matching the road states.
+ * Each linked neighbour side runs its own trains. */
+static const int32_t CityTrainsByState[TRAF_STATE_COUNT] = { 1, 2, 4, 6 };
+static const int32_t NeighborTrainsByState[TRAF_STATE_COUNT] = { 1, 2, 2, 2 };
 static SimSprite explosions[EXP_SLOTS];
 
 /* Turn sprite smoothly towards target direction (1..8) */
@@ -69,7 +74,9 @@ void InitSprites(void)
         active_sprites[i].type = i;
         GlobalSprites[i] = &active_sprites[i];
     }
-    for (int i = 0; i < NB_SIDES; i++) neighbor_trains[i].type = TRA;
+    for (int i = 0; i < NB_SIDES; i++) {
+        for (int k = 0; k < NB_TRAINS_PER_SIDE; k++) neighbor_trains[i][k].type = TRA;
+    }
     for (int i = 0; i < TRA_SLOTS; i++) city_trains[i].type = TRA;
 }
 
@@ -141,21 +148,77 @@ static bool HasTrainStation(void)
     return false;
 }
 
-/* Starts up to count own-city trains on random rail tiles. Requires at least one rail-linked station.
- * Trains beyond the pool are skipped. */
-void DispatchCityTrains(int32_t count)
+/* Walks along rail from (x, y) for up to steps tiles, so a second neighbour train starts clear of the gate. */
+static void WalkRail(int16_t *x, int16_t *y, int32_t steps)
 {
-    if (!HasTrainStation()) return;
-    for (int32_t n = 0; n < count; n++) {
-        int16_t x, y;
-        if (!PickRailTile(&x, &y)) return;
+    static const int16_t Dx[4] = { 0, 1, 0, -1 };
+    static const int16_t Dy[4] = { -1, 0, 1, 0 };
+    int16_t prevX = *x;
+    int16_t prevY = *y;
+    for (int32_t n = 0; n < steps; n++) {
+        bool moved = false;
+        for (int32_t d = 0; d < 4 && !moved; d++) {
+            int32_t nx = *x + Dx[d];
+            int32_t ny = *y + Dy[d];
+            if (!TestBounds(nx, ny)) continue;
+            if (nx == prevX && ny == prevY) continue;
+            if (!IsRailId((int16_t)(Map[nx][ny] & LOMASK))) continue;
+            prevX = *x;
+            prevY = *y;
+            *x = (int16_t)nx;
+            *y = (int16_t)ny;
+            moved = true;
+        }
+        if (!moved) return;
+    }
+}
 
+/* Brings each train group to the target for the current traffic state, as roads change at once:
+ * extra trains leave immediately and missing trains start. Trains run only in a city with commuters,
+ * like road traffic. Overloaded trains stop in place (see MoveObjects). */
+void DispatchTrains(void)
+{
+    int32_t state = TrafState();
+    bool commuting = TrafCommuting();
+
+    int32_t cityTarget = (commuting && HasTrainStation()) ? CityTrainsByState[state] : 0;
+    int32_t cityHave = 0;
+    for (int32_t i = 0; i < TRA_SLOTS; i++) {
+        if (city_trains[i].frame) cityHave++;
+    }
+    for (int32_t i = TRA_SLOTS - 1; i >= 0 && cityHave > cityTarget; i--) {
+        if (city_trains[i].frame) {
+            city_trains[i].frame = 0;
+            cityHave--;
+        }
+    }
+    while (cityHave < cityTarget) {
+        int16_t x, y;
         SimSprite *s = NULL;
         for (int32_t i = 0; i < TRA_SLOTS && s == NULL; i++) {
             if (city_trains[i].frame == 0) s = &city_trains[i];
         }
-        if (s == NULL) return;
+        if (s == NULL || !PickRailTile(&x, &y)) break;
         PlaceTrain(s, x, y);
+        cityHave++;
+    }
+
+    int32_t neighborTarget = commuting ? NeighborTrainsByState[state] : 0;
+    for (int32_t side = 0; side < NB_SIDES; side++) {
+        int32_t tx, ty;
+        int32_t want = Neighbor_RailTile(side, &tx, &ty) ? neighborTarget : 0;
+        for (int32_t k = 0; k < NB_TRAINS_PER_SIDE; k++) {
+            SimSprite *s = &neighbor_trains[side][k];
+            if (k >= want) {
+                s->frame = 0;
+                continue;
+            }
+            if (s->frame != 0) continue;
+            int16_t x = (int16_t)tx;
+            int16_t y = (int16_t)ty;
+            if (k > 0) WalkRail(&x, &y, 3 * k);
+            PlaceTrain(s, x, y);
+        }
     }
 }
 
@@ -784,32 +847,22 @@ static void StepTrainTimed(SimSprite *s)
     if (--s->count <= 0 || SpriteNotInBounds(s)) s->frame = 0;
 }
 
-static void StepNeighborTrains(void)
-{
-    for (int32_t side = 0; side < NB_SIDES; side++) {
-        SimSprite *s = &neighbor_trains[side];
-        int32_t tx, ty;
-        if (!Neighbor_RailTile(side, &tx, &ty)) {
-            s->frame = 0;
-            continue;
-        }
-        if (s->frame == 0) {
-            if (!Rand(25)) PlaceTrain(s, (int16_t)tx, (int16_t)ty);
-            continue;
-        }
-        StepTrainTimed(s);
-    }
-}
-
 void MoveObjects(void)
 {
     if (SimSpeed == 0) return;
     Cycle++;
 
-    for (int32_t i = 0; i < TRA_SLOTS; i++) {
-        if (city_trains[i].frame) StepTrainTimed(&city_trains[i]);
+    /* Overloaded traffic stops in place: rail trains freeze like gridlocked road tiles. */
+    if (!TrafGridlocked()) {
+        for (int32_t i = 0; i < TRA_SLOTS; i++) {
+            if (city_trains[i].frame) StepTrainTimed(&city_trains[i]);
+        }
+        for (int32_t side = 0; side < NB_SIDES; side++) {
+            for (int32_t k = 0; k < NB_TRAINS_PER_SIDE; k++) {
+                if (neighbor_trains[side][k].frame) StepTrainTimed(&neighbor_trains[side][k]);
+            }
+        }
     }
-    StepNeighborTrains();
     if (active_sprites[COP].frame) StepCopter(&active_sprites[COP]);
     if (active_sprites[AIR].frame) StepPlane(&active_sprites[AIR]);
     if (active_sprites[SHI].frame) StepShip(&active_sprites[SHI]);
@@ -828,10 +881,11 @@ SimSprite *GetSprite(int32_t type)
     return NULL;
 }
 
-SimSprite *GetNeighborTrain(int32_t side)
+SimSprite *GetNeighborTrainSlot(int32_t side, int32_t index)
 {
     if (side < 0 || side >= NB_SIDES) return NULL;
-    return &neighbor_trains[side];
+    if (index < 0 || index >= NB_TRAINS_PER_SIDE) return NULL;
+    return &neighbor_trains[side][index];
 }
 
 SimSprite *GetSpriteSlot(int32_t type, int32_t index)

@@ -266,10 +266,8 @@ void Simulate(int32_t mod16)
         /* Rush hours are the 1st and 3rd ticks of each 4-tick month. */
         if ((CityTime & 3) == 0 || (CityTime & 3) == 2) {
             TrafRushHour();
-            DispatchCityTrains(2);
-        } else {
-            DispatchCityTrains(1);
         }
+        DispatchTrains();
         ClearCensus();
 
         if (EngineCallbacks.update_date) {
