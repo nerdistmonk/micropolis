@@ -102,6 +102,10 @@ static void SyncMiscHis(void)
     MiscHis[8] = (int16_t)((ct >> 16) & 0xFFFFu);
     MiscHis[9] = (int16_t)(ct & 0xFFFFu);
 
+    MiscHis[2] = (int16_t)ResPop;
+    MiscHis[3] = ComPop;
+    MiscHis[4] = IndPop;
+
     MiscHis[52] = autoBulldoze;
     MiscHis[53] = autoBudget;
     MiscHis[54] = autoGo;
