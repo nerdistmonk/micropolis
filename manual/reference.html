@@ -61,8 +61,8 @@ Choosing New City or a scenario first opens a "Choose Another City" dialog.
 Click "Another city!" to continue, or "Keep playing." to keep the current city. <p>
 
 Scenarios are .scn files in the scenarios folder, and Load Scenario lists them.
-This build ships with no scenario files, so the list starts empty. The eight classic scenarios below provide both real and hypothetical problems for you to
-deal with in seven famous (and one not-so-famous) cities. They present
+This build ships with no scenario files, so the list starts empty. Scenarios provide both real and hypothetical problems for you to
+deal with. They present
 various levels of difficulty. Some problems are in the form of
 disasters which will occur some time after you start. Other problems
 are more long-term, such as crime.  <p>
@@ -213,8 +213,8 @@ click the ticker to center the map on it. Clicking the ticker also dismisses it;
 the x button dismisses it without moving the map. <p>
 
 The tool palette on the left side of the window holds the tools described in
-the Edit Window section below. The Query tool at the bottom of the palette
-opens the Zone Query Inspector when you click a tile on the map. <p>
+the Edit Window section below. The Query tool, a button on the right edge above the Radar Map,
+opens the Query Inspector when you click a tile on the map. <p>
 
 The minimap shows an overview of the whole city. Click it to move the view to
 that spot. <p>
@@ -343,7 +343,7 @@ This is where all actual zoning and building takes place.
 
 <h3>Terrain</h3>
 
-There are three types of terrain in the Edit Window: Open Land, Trees,
+There are three types of terrain in the Edit Window: Land, Forest,
 and Water.  <p>
 
 Open Land is where you can zone and build. It is shown as brown with
@@ -387,7 +387,7 @@ when it's over the map, to indicate the area the tool will effect.
 <ul>
 
 <li>Query Tool (question mark)<br>
-Shows the Zone Status Window, 
+Shows the Query Inspector, 
 describing the population density, value, crime rate, pollution, 
 and growth rate of the zone under the cursor. 
 It doesn't cost anything to use.  <p>
@@ -563,8 +563,8 @@ restored. Connecting too many zones to a power plant causes brownouts.
 <p>
 
 Coal power plants cost $3000 to build, and supply enough energy for
-about 50 zones. Nuclear power plants cost $6000 and supply electricity
-for about 150 zones.  <p>
+about 24 zones. Nuclear power plants cost $6000 and supply electricity
+for about 48 zones.  <p>
 
 <li>Seaports<br>
 Increase the potential for industrial growth. They have
@@ -592,7 +592,7 @@ alerts you to heavy traffic areas.  <p>
 It costs $10,000 to zone land for use as an airport.  <p>
 
 <li>Water Tower ($500)<br>
-Supplies water to nearby zones. Place it on dry land within four tiles of water. A powered
+Supplies water to nearby zones. Place it on dry land and lay pipe from it to a river. A powered
 water tower supplies up to 18 zones through the pipe network. With no power touching it, it
 supplies 9 zones. <p>
 
@@ -893,17 +893,17 @@ The Categories are defined by population as follows: <p>
 
 <ul>
 
-<li>Village: 0 to 1,999
+<li>Village: 0 to 2,000
 
-<li>Town: 2,000 to 9,999
+<li>Town: 2,001 to 10,000
 
-<li>City: 10,000 to 49,999
+<li>City: 10,001 to 50,000
 
-<li>Capital: 50,000 to 99,999
+<li>Capital: 50,001 to 100,000
 
-<li>Metropolis: 100,000 to 499,999
+<li>Metropolis: 100,001 to 500,000
 
-<li>Megalopolis: 500,000 and above
+<li>Megalopolis: over 500,000
 
 </ul>
 
