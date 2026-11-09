@@ -28,6 +28,7 @@ typedef struct {
 
 static HospitalStation hospital_stations[HEALTH_MAX_STATIONS];
 static int32_t hospital_station_count;
+static int32_t hospital_total_demand;
 static bool health_covered[WORLD_X][WORLD_Y];
 
 static HospitalStation *NearestOpenHospital(int32_t x, int32_t y)
@@ -61,6 +62,7 @@ void HealthAnalysis(void)
 {
     memset(health_covered, 0, sizeof(health_covered));
     hospital_station_count = 0;
+    hospital_total_demand = 0;
 
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
@@ -83,6 +85,7 @@ void HealthAnalysis(void)
         for (int32_t y = 0; y < WORLD_Y; y++) {
             int32_t ox, oy, size;
             if (!BuildingAnchorAt(x, y, &ox, &oy, &size)) continue;
+            hospital_total_demand++;
             HospitalStation *s = NearestOpenHospital(x, y);
             if (s) {
                 s->assigned++;
@@ -98,17 +101,14 @@ bool HealthIsCovered(int32_t x, int32_t y)
     return health_covered[x][y];
 }
 
-bool HospitalStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned)
+void HospitalSystemStats(int32_t *capacity, int32_t *demand)
 {
+    int32_t cap = 0;
     for (int32_t i = 0; i < hospital_station_count; i++) {
-        HospitalStation *s = &hospital_stations[i];
-        if (abs(s->x - x) <= 1 && abs(s->y - y) <= 1) {
-            *capacity = s->capacity;
-            *assigned = s->assigned;
-            return true;
-        }
+        cap += hospital_stations[i].capacity;
     }
-    return false;
+    *capacity = cap;
+    *demand = hospital_total_demand;
 }
 
 int16_t HealthCoverageLevel(int32_t x, int32_t y)

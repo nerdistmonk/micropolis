@@ -784,7 +784,7 @@ void FireAnalysis(void);
 void HealthAnalysis(void);
 void SmoothServiceMap(int16_t map[SmX][SmY]);
 bool HealthIsCovered(int32_t x, int32_t y);
-bool HospitalStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned);
+void HospitalSystemStats(int32_t *capacity, int32_t *demand);
 void RecAnalysis(void);
 bool RecIsCovered(int32_t x, int32_t y);
 bool RecSiteStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned);
@@ -799,7 +799,7 @@ void PTLScan(void);
 void PoliceAnalysis(void);
 int32_t PoliceZoneState(int32_t x, int32_t y);
 bool PoliceCoversCrimeCell(int32_t hx, int32_t hy);
-bool PoliceStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned);
+void PoliceSystemStats(int32_t *capacity, int32_t *demand);
 void CrimeScan(void);
 
 #define FIRE_ZONE_NONE 0
@@ -808,7 +808,7 @@ void CrimeScan(void);
 void FireCoverageAnalysis(void);
 int32_t FireZoneState(int32_t x, int32_t y);
 int16_t FireBurnRate(int32_t x, int32_t y);
-bool FireStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned);
+void FireSystemStats(int32_t *capacity, int32_t *demand);
 
 /* Traffic and Transportation: road capacity model, see s_traf.c */
 void TrafRushHour(void);

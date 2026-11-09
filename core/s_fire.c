@@ -26,6 +26,7 @@ typedef struct {
 
 static FireStation fire_stations[FIRE_MAX_STATIONS];
 static int32_t fire_station_count;
+static int32_t fire_total_demand;
 static uint8_t fire_zone_state[WORLD_X][WORLD_Y];
 
 static FireStation *NearestOpenFireStation(int32_t x, int32_t y)
@@ -64,6 +65,7 @@ void FireCoverageAnalysis(void)
 {
     memset(fire_zone_state, 0, sizeof(fire_zone_state));
     fire_station_count = 0;
+    fire_total_demand = 0;
 
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
@@ -86,6 +88,7 @@ void FireCoverageAnalysis(void)
         for (int32_t y = 0; y < WORLD_Y; y++) {
             int32_t ox, oy, size;
             if (!BuildingAnchorAt(x, y, &ox, &oy, &size)) continue;
+            fire_total_demand++;
             FireStation *s = NearestOpenFireStation(x, y);
             if (s) {
                 s->assigned++;
@@ -111,15 +114,12 @@ int16_t FireBurnRate(int32_t x, int32_t y)
     return FIRE_BURN_RATE_STOCK;
 }
 
-bool FireStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned)
+void FireSystemStats(int32_t *capacity, int32_t *demand)
 {
+    int32_t cap = 0;
     for (int32_t i = 0; i < fire_station_count; i++) {
-        FireStation *s = &fire_stations[i];
-        if (abs(s->x - x) <= 1 && abs(s->y - y) <= 1) {
-            *capacity = s->capacity;
-            *assigned = s->assigned;
-            return true;
-        }
+        cap += fire_stations[i].capacity;
     }
-    return false;
+    *capacity = cap;
+    *demand = fire_total_demand;
 }

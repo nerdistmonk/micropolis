@@ -180,26 +180,17 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Water Demand: none (no river in range)");
         }
     } else if (low >= POLICESTBASE && low < (POLICESTBASE + 9)) {
-        if (PoliceStationStats(tile_x, tile_y, &capacity, &demand)) {
-            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Police Demand: %d zones | Capacity: %d zones",
-                     (int)demand, (int)capacity);
-        } else {
-            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Police Demand: none (station not found)");
-        }
+        PoliceSystemStats(&capacity, &demand);
+        snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Police Capacity: %d buildings | Demand: %d buildings (citywide)",
+                 (int)capacity, (int)demand);
     } else if (low >= FIRESTBASE && low < (FIRESTBASE + 9)) {
-        if (FireStationStats(tile_x, tile_y, &capacity, &demand)) {
-            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Fire Demand: %d zones | Capacity: %d zones",
-                     (int)demand, (int)capacity);
-        } else {
-            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Fire Demand: none (station not found)");
-        }
+        FireSystemStats(&capacity, &demand);
+        snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Fire Capacity: %d buildings | Demand: %d buildings (citywide)",
+                 (int)capacity, (int)demand);
     } else if (low >= HOSPITAL && low < CHURCH) {
-        if (HospitalStationStats(tile_x, tile_y, &capacity, &demand)) {
-            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Hospital Demand: %d zones | Capacity: %d zones",
-                     (int)demand, (int)capacity);
-        } else {
-            snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Hospital Demand: none (station not found)");
-        }
+        HospitalSystemStats(&capacity, &demand);
+        snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Hospital Capacity: %d buildings | Demand: %d buildings (citywide)",
+                 (int)capacity, (int)demand);
     } else if ((low >= FOUNTAIN && low < FOUNTAIN + FOUNTAIN_FRAMES) || (low >= STADIUMBASE && low < STADIUMBASE + 32)) {
         int32_t rec_cap = 0;
         int32_t rec_assigned = 0;

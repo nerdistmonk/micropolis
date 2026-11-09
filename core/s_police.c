@@ -24,6 +24,7 @@ typedef struct {
 
 static PoliceStation police_stations[POLICE_MAX_STATIONS];
 static int32_t police_station_count;
+static int32_t police_total_demand;
 static uint8_t police_zone_state[WORLD_X][WORLD_Y];
 static bool police_cover[HWLDX][HWLDY];
 
@@ -65,6 +66,7 @@ void PoliceAnalysis(void)
     memset(police_zone_state, 0, sizeof(police_zone_state));
     memset(police_cover, 0, sizeof(police_cover));
     police_station_count = 0;
+    police_total_demand = 0;
 
     for (int32_t x = 0; x < WORLD_X; x++) {
         for (int32_t y = 0; y < WORLD_Y; y++) {
@@ -87,6 +89,7 @@ void PoliceAnalysis(void)
         for (int32_t y = 0; y < WORLD_Y; y++) {
             int32_t ox, oy, size;
             if (!BuildingAnchorAt(x, y, &ox, &oy, &size)) continue;
+            police_total_demand++;
             PoliceStation *s = NearestOpenStation(x, y);
             if (s) {
                 s->assigned++;
@@ -109,15 +112,12 @@ bool PoliceCoversCrimeCell(int32_t hx, int32_t hy)
     return police_cover[hx][hy];
 }
 
-bool PoliceStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned)
+void PoliceSystemStats(int32_t *capacity, int32_t *demand)
 {
+    int32_t cap = 0;
     for (int32_t i = 0; i < police_station_count; i++) {
-        PoliceStation *s = &police_stations[i];
-        if (abs(s->x - x) <= 1 && abs(s->y - y) <= 1) {
-            *capacity = s->capacity;
-            *assigned = s->assigned;
-            return true;
-        }
+        cap += police_stations[i].capacity;
     }
-    return false;
+    *capacity = cap;
+    *demand = police_total_demand;
 }
