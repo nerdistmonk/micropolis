@@ -449,6 +449,58 @@ void CityRescan(void)
     RecAnalysis();
 }
 
+/* Stored 16.16 percents round-trip slightly low (0.20 -> 0.19999695), so round to 0.001
+ * to reproduce the exact values the budget dialog set. */
+static float DecodePolicyPercent(int16_t hi, int16_t lo)
+{
+    float v = (float)((int32_t)(((uint32_t)(uint16_t)hi << 16) | (uint16_t)lo)) / 65536.0f;
+    return ClampPercent(roundf(v * 1000.0f) / 1000.0f);
+}
+
+/* Tax rates, budget percents, and the effect caches the sim reads in place of the percents.
+ * Untagged images fall back the same way city load always has. */
+static void RestorePolicyFromMisc(void)
+{
+    if (MiscHis[65] == TAXRATES_SAVE_TAG) {
+        ResTax = MiscHis[66];
+        ComTax = MiscHis[67];
+        IndTax = MiscHis[68];
+    } else {
+        ResTax = ComTax = IndTax = MiscHis[56];
+    }
+    if (ResTax > 20 || ResTax < 0) ResTax = 7;
+    if (ComTax > 20 || ComTax < 0) ComTax = 7;
+    if (IndTax > 20 || IndTax < 0) IndTax = 7;
+
+    policePercent = DecodePolicyPercent(MiscHis[58], MiscHis[59]);
+    firePercent = DecodePolicyPercent(MiscHis[60], MiscHis[61]);
+    roadPercent = DecodePolicyPercent(MiscHis[62], MiscHis[63]);
+
+    if (MiscHis[71] == HEALTH_SAVE_TAG) {
+        healthPercent = DecodePolicyPercent(MiscHis[69], MiscHis[70]);
+    } else {
+        healthPercent = 1.0f;
+    }
+
+    if (MiscHis[120] == REC_SAVE_TAG) {
+        recreationPercent = DecodePolicyPercent(MiscHis[118], MiscHis[119]);
+    } else {
+        recreationPercent = 1.0f;
+    }
+
+    if (MiscHis[74] == LANDFILL_SAVE_TAG) {
+        landfillPercent = DecodePolicyPercent(MiscHis[72], MiscHis[73]);
+    } else {
+        landfillPercent = 1.0f;
+    }
+
+    RoadEffect = (int16_t)(roadPercent * 32.0f);
+    PoliceEffect = (int16_t)(policePercent * 1000.0f);
+    FireEffect = (int16_t)(firePercent * 1000.0f);
+    HealthEffect = (int16_t)(healthPercent * 1000.0f);
+    RecEffect = (int16_t)(recreationPercent * 1000.0f);
+}
+
 int32_t LoadCity(const char *filename)
 {
     if (!filename) return 0;
@@ -472,49 +524,10 @@ int32_t LoadCity(const char *filename)
     autoBudget = MiscHis[53];
     autoGo = MiscHis[54];
     UserSoundOn = MiscHis[55];
-    if (MiscHis[65] == TAXRATES_SAVE_TAG) {
-        ResTax = MiscHis[66];
-        ComTax = MiscHis[67];
-        IndTax = MiscHis[68];
-    } else {
-        ResTax = ComTax = IndTax = MiscHis[56];
-    }
+    RestorePolicyFromMisc();
     SimSpeed = MiscHis[57];
 
-    uint16_t p0 = (uint16_t)MiscHis[58];
-    uint16_t p1 = (uint16_t)MiscHis[59];
-    policePercent = ClampPercent((float)((int32_t)(((uint32_t)p0 << 16) | p1)) / 65536.0f);
-
-    uint16_t fi0 = (uint16_t)MiscHis[60];
-    uint16_t fi1 = (uint16_t)MiscHis[61];
-    firePercent = ClampPercent((float)((int32_t)(((uint32_t)fi0 << 16) | fi1)) / 65536.0f);
-
-    uint16_t r0 = (uint16_t)MiscHis[62];
-    uint16_t r1 = (uint16_t)MiscHis[63];
-    roadPercent = ClampPercent((float)((int32_t)(((uint32_t)r0 << 16) | r1)) / 65536.0f);
-
-    if (MiscHis[71] == HEALTH_SAVE_TAG) {
-        uint16_t h0 = (uint16_t)MiscHis[69];
-        uint16_t h1 = (uint16_t)MiscHis[70];
-        healthPercent = ClampPercent((float)((int32_t)(((uint32_t)h0 << 16) | h1)) / 65536.0f);
-    } else {
-        healthPercent = 1.0f;
-    }
-    HealthEffect = (int16_t)(healthPercent * 1000.0f);
-
-    if (MiscHis[120] == REC_SAVE_TAG) {
-        uint16_t c0 = (uint16_t)MiscHis[118];
-        uint16_t c1 = (uint16_t)MiscHis[119];
-        recreationPercent = ClampPercent((float)((int32_t)(((uint32_t)c0 << 16) | c1)) / 65536.0f);
-    } else {
-        recreationPercent = 1.0f;
-    }
-    RecEffect = (int16_t)(recreationPercent * 1000.0f);
-
     if (MiscHis[74] == LANDFILL_SAVE_TAG) {
-        uint16_t l0 = (uint16_t)MiscHis[72];
-        uint16_t l1 = (uint16_t)MiscHis[73];
-        landfillPercent = ClampPercent((float)((int32_t)(((uint32_t)l0 << 16) | l1)) / 65536.0f);
         uint16_t p0 = (uint16_t)MiscHis[75];
         uint16_t p1 = (uint16_t)MiscHis[76];
         TrashPending = (int32_t)(((uint32_t)p0 << 16) | p1);
@@ -524,15 +537,11 @@ int32_t LoadCity(const char *filename)
         UnservicedTrash = (int32_t)(((uint32_t)u0 << 16) | u1);
         if (UnservicedTrash < 0) UnservicedTrash = 0;
     } else {
-        landfillPercent = 1.0f;
         TrashPending = 0;
         UnservicedTrash = 0;
     }
 
     if (CityTime < 0) CityTime = 0;
-    if (ResTax > 20 || ResTax < 0) ResTax = 7;
-    if (ComTax > 20 || ComTax < 0) ComTax = 7;
-    if (IndTax > 20 || IndTax < 0) IndTax = 7;
     if (SimSpeed < 0 || SimSpeed > SIM_SPEED_MAX) SimSpeed = SIM_SPEED_FAST;
     NoDisasters = (MiscHis[64] == NODISASTERS_SAVE_TAG) ? 1 : 0;
 
@@ -552,10 +561,6 @@ int32_t LoadCity(const char *filename)
 
     InitSprites();
 
-    RoadEffect = 32;
-    PoliceEffect = 1000;
-    FireEffect = 1000;
-    HealthEffect = 1000;
     CityRescan();
     RestoreFundSnapshot();
     CityEvaluation();
@@ -861,26 +866,17 @@ int32_t Scenario_LoadFile(const char *path)
     CityFileName = NULL;
 
     SimSpeed = SIM_SPEED_FAST;
-    ResTax = ComTax = IndTax = 7;
-    roadPercent = 1.0f;
-    policePercent = 1.0f;
-    firePercent = 1.0f;
-    healthPercent = 1.0f;
-    recreationPercent = 1.0f;
     LandfillResetCity();
     /* Must follow LandfillResetCity, which clears the fill. */
     LandfillDecodeFill(has_infrastructure ? blob + ScnCityEnd(version) + Water_PipeBlockBytes() : NULL);
     free(blob);
+    /* Must follow LandfillResetCity, which resets landfillPercent. */
+    RestorePolicyFromMisc();
 
     InitSimLoad = 1;
     DoInitialEval = 0;
     InitSprites();
 
-    RoadEffect = 32;
-    PoliceEffect = 1000;
-    FireEffect = 1000;
-    HealthEffect = 1000;
-    RecEffect = 1000;
     CityRescan();
     RestoreFundSnapshot();
     CityEvaluation();
