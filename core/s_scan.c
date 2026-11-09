@@ -433,7 +433,8 @@ static int32_t GetPValue(int32_t loc)
     if (loc <= LASTIND) return 0;
     if (loc < PORTBASE) return 50;
     if (loc <= LASTPOWERPLANT) return 100;
-    if (TILE_IS_GARAGE(loc)) return TrafUncongestedPollution();
+    /* A garage is one building, so only its centre tile pollutes. */
+    if (TILE_IS_GARAGE(loc)) return loc == GARAGE + 4 ? TrafUncongestedPollution() : 0;
     return LandfillPollution(loc);
 }
 
