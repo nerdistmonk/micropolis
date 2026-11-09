@@ -309,9 +309,11 @@ static bool TrafInRovingGap(int32_t x, int32_t y)
     return r >= start && r < start + len;
 }
 
-/* True when traffic tile (x, y) advances this pass. The hash mixes the tile and pass, so tiles drift out of step. */
+/* True when traffic tile (x, y) advances this pass. The hash mixes the tile and pass, so tiles drift out of step.
+ * Gridlocked roads never advance, so the packed cars stay still. */
 bool TrafAnimTileDue(int32_t x, int32_t y)
 {
+    if (TrafGridlocked()) return false;
     if (TrafInRovingGap(x, y)) return false;
     uint32_t h = (uint32_t)x * 0x9E3779B1u + (uint32_t)y * 0x85EBCA77u + TrafAnimPass * 0xC2B2AE3Du;
     h ^= h >> 16;
@@ -322,13 +324,21 @@ bool TrafAnimTileDue(int32_t x, int32_t y)
     return h % (uint32_t)TrafAnimEvery == 0;
 }
 
-/* Traffic tier for road tile (x, y): 0 empty, 1 light, 2 heavy. Only the share of roads given by the
- * rush-hour load percent carries traffic. A road that is busy at one load stays busy at higher loads. */
+/* Traffic tier for road tile (x, y): 0 empty, 1 light, 2 heavy. Gridlock packs every road. Otherwise the
+ * share of roads given by the rush-hour load percent carries traffic: light uses it as is, normal doubles
+ * it, and congested quadruples it. A road that is busy at one load stays busy at higher loads. */
 int32_t TrafRoadDensity(int32_t x, int32_t y)
 {
-    if (TrafLoad <= 0) return 0;
-    if ((int32_t)(TrafMix((uint32_t)x, (uint32_t)y) % 100u) >= TrafLoad) return 0;
     if (TrafGridlocked()) return 2;
+    if (TrafLoad <= 0) return 0;
+    int32_t share = TrafLoad;
+    if (TrafDemandZones >= TrafCapacityZones) {
+        share *= 4;
+    } else if (2 * TrafDemandZones >= TrafCapacityZones) {
+        share *= 2;
+    }
+    if (share > 100) share = 100;
+    if ((int32_t)(TrafMix((uint32_t)x, (uint32_t)y) % 100u) >= share) return 0;
     int32_t level = TrfDensity[x >> 1][y >> 1];
     return level >= 192 ? 2 : 1;
 }
