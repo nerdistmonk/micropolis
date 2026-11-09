@@ -322,6 +322,17 @@ bool TrafAnimTileDue(int32_t x, int32_t y)
     return h % (uint32_t)TrafAnimEvery == 0;
 }
 
+/* Traffic tier for road tile (x, y): 0 empty, 1 light, 2 heavy. Only the share of roads given by the
+ * rush-hour load percent carries traffic. A road that is busy at one load stays busy at higher loads. */
+int32_t TrafRoadDensity(int32_t x, int32_t y)
+{
+    if (TrafLoad <= 0) return 0;
+    if ((int32_t)(TrafMix((uint32_t)x, (uint32_t)y) % 100u) >= TrafLoad) return 0;
+    if (TrafGridlocked()) return 2;
+    int32_t level = TrfDensity[x >> 1][y >> 1];
+    return level >= 192 ? 2 : 1;
+}
+
 bool RoadTest(int32_t tile)
 {
     int32_t x = tile & LOMASK;

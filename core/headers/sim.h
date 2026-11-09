@@ -821,6 +821,7 @@ int32_t TrafRoadPollution(void);
 int32_t TrafUncongestedPollution(void);
 bool IsTrafficRoadTile(uint16_t id);
 bool TrafAnimTileDue(int32_t x, int32_t y);
+int32_t TrafRoadDensity(int32_t x, int32_t y);
 void TrafAnimBeginPass(void);
 int16_t TrafRoadLoad(void);
 void TrafNetworkStats(int32_t *demand, int32_t *capacity);

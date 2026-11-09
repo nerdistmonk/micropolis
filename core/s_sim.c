@@ -841,15 +841,7 @@ static void DoRoad(void)
         tden = 2;
     }
 
-    /* Any rush-hour load animates. Heavy load (192 and up) uses the heavy-traffic sprites. */
-    Density = TrfDensity[SMapX >> 1][SMapY >> 1];
-    Density = (int16_t)(Density == 0 ? 0 : (Density < 192 ? 1 : 2));
-    /* Congestion keeps every road drawn as traffic, so the congestion tier applies to all of them. */
-    if (TrafGridlocked()) {
-        Density = 2;
-    } else if (TrafAtCapacity() && Density == 0) {
-        Density = 1;
-    }
+    Density = (int16_t)TrafRoadDensity(SMapX, SMapY);
 
     if (tden != Density) {
         uint16_t z = (uint16_t)(((CChr9 - ROADBASE) & 15) + DenTab[Density]);
