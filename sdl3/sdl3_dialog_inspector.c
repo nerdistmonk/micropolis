@@ -14,11 +14,12 @@ static char inspect_stat_landvalue[64] = {0};
 static char inspect_stat_lvfactors[7][72];
 static int inspect_lvfactor_lines = 0;
 static char inspect_stat_services[2][80] = {{0}};
-static const float kInspectorHeight = 512.0f;
+static float inspect_dh = 512.0f;
 static float inspect_dw = 404.0f;
 static char inspect_stat_growth[64] = {0};
 static char inspect_stat_water[64] = {0};
 static char inspect_stat_supply[96] = {0};
+static char inspect_stat_network[96] = {0};
 
 /* Widens the window to fit the longest line. Stat lines start at +24 and breakdown lines at +40. */
 static void InspectorFitWidth(void)
@@ -26,7 +27,7 @@ static void InspectorFitWidth(void)
     const char *lines[] = {
         inspect_stat_density, inspect_stat_power, inspect_stat_pollution, inspect_stat_crime,
         inspect_stat_landvalue, inspect_stat_growth, inspect_stat_water, inspect_stat_supply,
-        inspect_stat_services[0], inspect_stat_services[1],
+        inspect_stat_network, inspect_stat_services[0], inspect_stat_services[1],
     };
     int widest = 0;
     for (size_t i = 0; i < sizeof(lines) / sizeof(lines[0]); i++) {
@@ -39,6 +40,25 @@ static void InspectorFitWidth(void)
     }
     float need = (float)widest + 24.0f + 24.0f;
     inspect_dw = need > 404.0f ? need : 404.0f;
+}
+
+/* Offset of the land-value block from the stats origin (cy). It keeps its usual row unless the network and service rows push it lower. */
+static int InspectorLandValueOffset(void)
+{
+    int row = 192;
+    if (inspect_stat_network[0]) row += 24;
+    for (int i = 0; i < 2; i++) {
+        if (inspect_stat_services[i][0]) row += 20;
+    }
+    return row + 8 > 240 ? row + 8 : 240;
+}
+
+/* Grows the dialog so the last land-value line clears the OK button. */
+static void InspectorFitHeight(void)
+{
+    float bottom = 82.0f + (float)InspectorLandValueOffset() + 20.0f * (float)(inspect_lvfactor_lines - 1) + 16.0f;
+    float need = bottom + 50.0f;
+    inspect_dh = need > 512.0f ? need : 512.0f;
 }
 
 void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
@@ -204,17 +224,26 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Landfill Capacity: %d zones | Demand: %d zones (citywide)",
                  (int)capacity, (int)demand);
     } else if (TILE_IS_GARAGE(tile)) {
-        if (CapacityBlockHasAccess(hx, hy)) {
+        if (CapacityBlockHasAccess(tile_x, tile_y)) {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: +%d zones", GARAGE_ZONES);
         } else {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: none (no adjacent road)");
         }
     } else if (TILE_IS_STATION(tile)) {
-        if (CapacityBlockHasAccess(hx, hy)) {
+        if (CapacityBlockHasAccess(tile_x, tile_y)) {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: +%d zones", STATION_ZONES);
         } else {
             snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Road Capacity: none (no adjacent rail)");
         }
+    }
+
+    inspect_stat_network[0] = '\0';
+    if ((low >= ROADBASE && low <= LASTROAD) || (low >= RAILBASE && low <= LASTRAIL) || TILE_IS_TRAFFIC_BLOCK(tile)) {
+        int32_t net_demand = 0;
+        int32_t net_capacity = 0;
+        TrafNetworkStats(&net_demand, &net_capacity);
+        snprintf(inspect_stat_network, sizeof(inspect_stat_network), "Network Demand: %d zones | Capacity: %d zones",
+                 (int)net_demand, (int)net_capacity);
     }
 
     uint8_t pol = PollutionMem[hx][hy];
@@ -269,6 +298,7 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
     }
 
     InspectorFitWidth();
+    InspectorFitHeight();
 }
 
 static SDL_FRect InspectorOkRect(float dx, float dy, float dw, float dh)
@@ -281,7 +311,7 @@ static SDL_FRect InspectorOkRect(float dx, float dy, float dw, float dh)
 bool Dialog_Inspector_HandleClick(float mx, float my)
 {
     float dw = inspect_dw;
-    float dh = kInspectorHeight;
+    float dh = inspect_dh;
     float dx = DialogCenteredX(dw);
     float dy = DialogCenteredY(dh);
 
@@ -309,7 +339,7 @@ bool Dialog_Inspector_HandleClick(float mx, float my)
 void Dialog_Inspector_Render(SDL_Renderer *renderer)
 {
     float dw = inspect_dw;
-    float dh = kInspectorHeight;
+    float dh = inspect_dh;
     float dx = DialogCenteredX(dw);
     float dy = DialogCenteredY(dh);
 
@@ -349,14 +379,21 @@ void Dialog_Inspector_Render(SDL_Renderer *renderer)
     if (inspect_stat_supply[0]) {
         GUI_DrawText(renderer, (int)dx + 24, cy + 168, inspect_stat_supply, col_gold);
     }
+    int row = cy + 192;
+    if (inspect_stat_network[0]) {
+        GUI_DrawText(renderer, (int)dx + 24, row, inspect_stat_network, col_gold);
+        row += 24;
+    }
     for (int i = 0; i < 2; i++) {
         if (inspect_stat_services[i][0]) {
-            GUI_DrawText(renderer, (int)dx + 24, cy + 192 + 20 * i, inspect_stat_services[i], col_white);
+            GUI_DrawText(renderer, (int)dx + 24, row, inspect_stat_services[i], col_white);
+            row += 20;
         }
     }
+    int lv_y = cy + InspectorLandValueOffset();
     for (int i = 0; i < inspect_lvfactor_lines; i++) {
         SDL_Color c = (i == 0 || i == inspect_lvfactor_lines - 1) ? col_gold : col_white;
-        GUI_DrawText(renderer, (int)dx + 40, cy + 240 + 20 * i, inspect_stat_lvfactors[i], c);
+        GUI_DrawText(renderer, (int)dx + 40, lv_y + 20 * i, inspect_stat_lvfactors[i], c);
     }
 
     SDL_FRect ok_btn = InspectorOkRect(dx, dy, dw, dh);

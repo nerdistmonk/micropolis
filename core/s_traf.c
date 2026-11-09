@@ -42,6 +42,54 @@ static bool IsPlaceableBuilding(uint16_t tile)
            ((id - LANDFILL) % LANDFILL_STAGE_TILES) == LANDFILL_CENTRE_OFFSET;
 }
 
+/* One pass over the map. Garages and stations count only with the access they need. */
+typedef struct {
+    int32_t roads;
+    int32_t garages;
+    int32_t stations;
+    int32_t growing;
+    int32_t accessible;
+    int32_t buildings;
+} TrafTally;
+
+static void TrafCountNetwork(TrafTally *t)
+{
+    memset(t, 0, sizeof *t);
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            uint16_t tile = Map[x][y];
+            uint16_t id = tile & LOMASK;
+
+            if (id >= ROADBASE && id <= LASTROAD) {
+                t->roads++;
+            } else if (id == GARAGE + 4) {
+                if (CapacityBlockHasAccess(x, y)) t->garages++;
+            } else if (id == STATION + 4) {
+                if (CapacityBlockHasAccess(x, y)) t->stations++;
+            } else if ((tile & ZONEBIT) && IsGrowingZone(id)) {
+                t->growing++;
+                if (ZoneHasRoadAccess(x, y)) t->accessible++;
+            } else if (IsPlaceableBuilding(tile)) {
+                t->buildings++;
+            }
+        }
+    }
+}
+
+static int32_t TrafCapacityOf(const TrafTally *t)
+{
+    return t->roads / TRAF_ROADS_PER_ZONE + t->garages * GARAGE_ZONES + t->stations * STATION_ZONES;
+}
+
+/* Current demand and capacity of the pooled road network, in zones. */
+void TrafNetworkStats(int32_t *demand, int32_t *capacity)
+{
+    TrafTally t;
+    TrafCountNetwork(&t);
+    *demand = t.growing + t.buildings;
+    *capacity = TrafCapacityOf(&t);
+}
+
 /* Runs at each rush hour. The road grid is one pool: its capacity is the share of
  * road tiles plus the garages and stations that have road or rail access. Demand is
  * every growing zone plus every placeable building. The excess over capacity is cut
@@ -49,35 +97,13 @@ static bool IsPlaceableBuilding(uint16_t tile)
  */
 void TrafRushHour(void)
 {
-    int32_t roads = 0;
-    int32_t garages = 0;
-    int32_t stations = 0;
-    int32_t growing = 0;
-    int32_t accessible = 0;
-    int32_t buildings = 0;
-
-    for (int32_t x = 0; x < WORLD_X; x++) {
-        for (int32_t y = 0; y < WORLD_Y; y++) {
-            uint16_t tile = Map[x][y];
-            uint16_t id = tile & LOMASK;
-
-            if (id >= ROADBASE && id <= LASTROAD) {
-                roads++;
-            } else if (id == GARAGE + 4) {
-                if (CapacityBlockHasAccess(x, y)) garages++;
-            } else if (id == STATION + 4) {
-                if (CapacityBlockHasAccess(x, y)) stations++;
-            } else if ((tile & ZONEBIT) && IsGrowingZone(id)) {
-                growing++;
-                if (ZoneHasRoadAccess(x, y)) accessible++;
-            } else if (IsPlaceableBuilding(tile)) {
-                buildings++;
-            }
-        }
-    }
-
+    TrafTally t;
+    TrafCountNetwork(&t);
+    int32_t growing = t.growing;
+    int32_t accessible = t.accessible;
+    int32_t buildings = t.buildings;
     int32_t demand = growing + buildings;
-    int32_t capacity = roads / TRAF_ROADS_PER_ZONE + garages * GARAGE_ZONES + stations * STATION_ZONES;
+    int32_t capacity = TrafCapacityOf(&t);
     int32_t excess = demand > capacity ? demand - capacity : 0;
     int32_t cut = excess < accessible ? excess : accessible;
     int64_t volume = (int64_t)TrafServicedResPop * TRAF_CITIZENS_PER_RESPOP * TRAF_COMMUTE_PERCENT / 100;

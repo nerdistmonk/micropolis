@@ -812,6 +812,7 @@ void TrafResetCity(void);
 bool TrafZoneUnserviced(int32_t x, int32_t y);
 int32_t TrafProblemShare(void);
 int16_t TrafRoadLoad(void);
+void TrafNetworkStats(int32_t *demand, int32_t *capacity);
 float TrafServiceShare(void);
 
 /* Network Auto-Tiling & Layout Operations */
