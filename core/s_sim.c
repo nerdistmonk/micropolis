@@ -257,7 +257,8 @@ void Simulate(int32_t mod16)
         if (!(Scycle & 1)) {
             SetValves();
         }
-        if ((CityTime & 3) == 0 || (CityTime & 3) == 3) {
+        /* Rush hours are the 1st and 3rd ticks of each 4-tick month. */
+        if ((CityTime & 3) == 0 || (CityTime & 3) == 2) {
             TrafRushHour();
             DispatchCityTrains(2);
         } else {
