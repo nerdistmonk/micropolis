@@ -64,7 +64,7 @@ static bool IsPlaceableBuilding(uint16_t tile)
            ((id - LANDFILL) % LANDFILL_STAGE_TILES) == LANDFILL_CENTRE_OFFSET;
 }
 
-/* One pass over the map. Garages and stations count only with road or rail access, power, and water. */
+/* One pass over the map. Each garage and station is one building. It adds capacity only with road or rail access, power, and water. */
 typedef struct {
     int32_t roads;
     int32_t garages;
@@ -85,8 +85,10 @@ static void TrafCountNetwork(TrafTally *t)
             if (id >= ROADBASE && id <= LASTROAD) {
                 t->roads++;
             } else if (id == GARAGE + 4) {
+                t->buildings++;
                 if (CapacityBlockHasAccess(x, y) && CapacityBlockPowered(x, y) && CapacityBlockWatered(x, y)) t->garages++;
             } else if (id == STATION + 4) {
+                t->buildings++;
                 if (CapacityBlockHasAccess(x, y) && CapacityBlockPowered(x, y) && CapacityBlockWatered(x, y)) t->stations++;
             } else if ((tile & ZONEBIT) && IsGrowingZone(id)) {
                 t->growing++;
