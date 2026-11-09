@@ -679,6 +679,7 @@ void SmoothWater(void);
 
 /* Zones, Power, and Automata */
 void DoZone(void);
+int16_t CountZoneLoad(void);
 void CountWaterTowerPower(void);
 void CountParkWater(void);
 int16_t SetZPower(void);

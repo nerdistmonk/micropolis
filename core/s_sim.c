@@ -735,6 +735,9 @@ static void MapScan(int32_t x1, int32_t x2)
                     }
 
                     if (TILE_IS_TRAFFIC_BLOCK(CChr9)) {
+                        if (CChr & ZONEBIT) {
+                            CountZoneLoad();
+                        }
                         continue;
                     }
 

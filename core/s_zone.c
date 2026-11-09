@@ -84,7 +84,8 @@ bool IsGrowingZone(int32_t low)
     return low < PORTBASE && !(low >= HOSPITAL && low < COMBASE);
 }
 
-void DoZone(void)
+/* Counts one placeable building toward power and water status. Returns whether it is powered and watered. */
+int16_t CountZoneLoad(void)
 {
     int16_t zone_pwr_flg = SetZPower();
 
@@ -103,7 +104,12 @@ void DoZone(void)
     if (zone_pwr_flg && !watered) {
         UnwateredZCnt++;
     }
-    zone_pwr_flg = zone_pwr_flg && watered;
+    return zone_pwr_flg && watered;
+}
+
+void DoZone(void)
+{
+    int16_t zone_pwr_flg = CountZoneLoad();
 
     /* Growing zones with no road touching them do not grow. Other buildings are not gated. */
     if (IsGrowingZone(CChr9) && !ZoneHasRoadAccess(SMapX, SMapY)) {
