@@ -314,6 +314,7 @@ typedef int32_t QUAD;
 #define LANDFILL_STAGE_TILES 9
 #define LANDFILL_STAGES 4
 #define LANDFILL_TILES (LANDFILL_STAGE_TILES * LANDFILL_STAGES)
+#define LANDFILL_CENTRE_OFFSET 4
 
 /* Parking garage and passenger station: 3x3 traffic blocks, tile IDs 1006-1023.
  * Both are appended to the sheet after landfill, so the IDs fit under LOMASK. */
@@ -492,7 +493,8 @@ extern int16_t STem[SmX][SmY];
 extern int16_t SMapX, SMapY;
 extern int16_t CChr, CChr9;
 extern int16_t RoadTotal, RailTotal, FirePop;
-extern int16_t ResPop, ComPop, IndPop, TotalPop, LastTotalPop;
+extern int32_t ResPop;
+extern int16_t ComPop, IndPop, TotalPop, LastTotalPop;
 extern int16_t ResZPop, ComZPop, IndZPop, TotalZPop;
 extern int16_t HospPop, ChurchPop, StadiumPop;
 extern int16_t PolicePop, FireStPop;
@@ -536,6 +538,8 @@ extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect, RecEffect;
 #define GARAGE_ZONES         9
 #define STATION_ZONES        18
 #define TRAF_ROADS_PER_ZONE  10
+/* Traffic news fires when this share of growing zones is unserviced (TrafProblemShare scale, 0-255). */
+#define TRAF_JAM_SHARE       26
 #define PORT_COST            25
 #define AIRPORT_COST         45
 #define PORT_SERVICE_ZONES   128
@@ -804,6 +808,7 @@ bool FireStationStats(int32_t x, int32_t y, int32_t *capacity, int32_t *assigned
 
 /* Traffic and Transportation: road capacity model, see s_traf.c */
 void TrafRushHour(void);
+void TrafResetCity(void);
 bool TrafZoneUnserviced(int32_t x, int32_t y);
 int32_t TrafProblemShare(void);
 float TrafServiceShare(void);

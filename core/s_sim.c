@@ -412,7 +412,7 @@ static void SetValves(void)
     float NormResPop, PjResPop, PjComPop, PjIndPop;
 
     MiscHis[1] = (int16_t)EMarket;
-    MiscHis[2] = ResPop;
+    MiscHis[2] = (int16_t)ResPop;
     MiscHis[3] = ComPop;
     MiscHis[4] = IndPop;
     MiscHis[5] = RValve;

@@ -21,7 +21,7 @@ int16_t RailTotal = 0;
 int16_t FirePop = 0;
 
 /* Demographic Counts */
-int16_t ResPop = 0;
+int32_t ResPop = 0;
 int16_t ComPop = 0;
 int16_t IndPop = 0;
 int16_t TotalPop = 0;

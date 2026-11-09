@@ -48,6 +48,8 @@ void ResetCityWorkingState(void)
     DisasterEvent = 0;
     TaxFlag       = 0;
 
+    TrafResetCity();
+
     for (int16_t x = 0; x < HWLDX; x++) {
         for (int16_t y = 0; y < HWLDY; y++) {
             PopDensity[x][y]   = 0;

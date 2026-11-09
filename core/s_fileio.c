@@ -32,6 +32,10 @@ extern void ClearMes(void);
 #define FUNDS_SAVE_TAG 0x4655
 #define FUNDS_SAVE_BASE 123
 #define FUNDS_SAVE_TAG_SLOT 139
+/* Marks that MiscHis[140..141] hold ResPop as an int32 hi/lo pair and a tag (142). MiscHis[2] keeps the low 16 bits. */
+#define RESPOP_SAVE_TAG 0x5250
+#define RESPOP_SAVE_BASE 140
+#define RESPOP_SAVE_TAG_SLOT 142
 
 /* Fixed on-disk size of a city image (header streams plus 120x100 map). */
 #define CITY_FILE_BYTES 27120
@@ -150,6 +154,8 @@ static void SyncMiscHis(void)
     PutI32Slots(FUNDS_SAVE_BASE + 12, LandfillFund);
     PutI32Slots(FUNDS_SAVE_BASE + 14, RoadFund);
     MiscHis[FUNDS_SAVE_TAG_SLOT] = FUNDS_SAVE_TAG;
+    PutI32Slots(RESPOP_SAVE_BASE, ResPop);
+    MiscHis[RESPOP_SAVE_TAG_SLOT] = RESPOP_SAVE_TAG;
     Neighbor_SyncMisc();
 }
 
@@ -341,7 +347,11 @@ static void RestoreSimState(void)
 {
     EMarket = (float)MiscHis[1];
     if (!EMarket) EMarket = 4.0f;
-    ResPop = MiscHis[2];
+    if (MiscHis[RESPOP_SAVE_TAG_SLOT] == RESPOP_SAVE_TAG) {
+        ResPop = GetI32Slots(RESPOP_SAVE_BASE);
+    } else {
+        ResPop = MiscHis[2];
+    }
     ComPop = MiscHis[3];
     IndPop = MiscHis[4];
     TotalPop = (int16_t)((ResPop / 8) + ComPop + IndPop);

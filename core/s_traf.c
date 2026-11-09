@@ -27,12 +27,17 @@ static int32_t TrafRotor = 0;
 static int32_t TrafProblemUnserviced = 0;
 static int32_t TrafProblemZones = 0;
 
-/* Fire, police, hospitals, power plants, ports, airports, stadiums, landfill, water towers, and parks. */
+/* Fire, police, hospitals, power plants, ports, airports, stadiums, landfill, water towers, and parks.
+ * Each building counts once: at its zone centre, landfill centre, water tower centre, or park tile.
+ */
 static bool IsPlaceableBuilding(uint16_t tile)
 {
     uint16_t id = tile & LOMASK;
     if (tile & ZONEBIT) return !IsGrowingZone(id);
-    return id == WATERTOWER + 4 || (id >= FOUNTAIN && id < FOUNTAIN + FOUNTAIN_FRAMES);
+    if (id == WATERTOWER + 4) return true;
+    if (id >= FOUNTAIN && id < FOUNTAIN + FOUNTAIN_FRAMES) return true;
+    return id >= LANDFILL && id < LANDFILL + LANDFILL_TILES &&
+           ((id - LANDFILL) % LANDFILL_STAGE_TILES) == LANDFILL_CENTRE_OFFSET;
 }
 
 /* Runs at each rush hour. The road grid is one pool: its capacity is the share of
@@ -82,6 +87,9 @@ void TrafRushHour(void)
     int32_t ordinal = 0;
     int32_t blocked = 0;
     bool roadFound = false;
+    bool jamFound = false;
+    int16_t roadX = 0, roadY = 0;
+    int16_t jamX = 0, jamY = 0;
 
     for (int16_t x = 0; x < HWLDX; x++) {
         for (int16_t y = 0; y < HWLDY; y++) {
@@ -98,8 +106,8 @@ void TrafRushHour(void)
             if (id >= ROADBASE && id <= LASTROAD) {
                 TrfDensity[x >> 1][y >> 1] = (Byte)level;
                 if (!roadFound) {
-                    TrafMaxX = (int16_t)(x << 4);
-                    TrafMaxY = (int16_t)(y << 4);
+                    roadX = (int16_t)x;
+                    roadY = (int16_t)y;
                     roadFound = true;
                 }
             } else if ((tile & ZONEBIT) && IsGrowingZone(id)) {
@@ -108,6 +116,11 @@ void TrafRushHour(void)
                 } else {
                     unserviced = ((ordinal - rotor + accessible) % accessible) < cut;
                     ordinal++;
+                    if (unserviced && !jamFound) {
+                        jamX = (int16_t)x;
+                        jamY = (int16_t)y;
+                        jamFound = true;
+                    }
                 }
             }
 
@@ -119,6 +132,20 @@ void TrafRushHour(void)
     TrafRotor = accessible > 0 ? (rotor + cut) % accessible : 0;
     TrafProblemUnserviced = blocked;
     TrafProblemZones = growing;
+    TrafMaxX = jamFound ? jamX : roadX;
+    TrafMaxY = jamFound ? jamY : roadY;
+}
+
+/* Clears rush-hour state so a new or loaded city does not inherit the previous city's jams. */
+void TrafResetCity(void)
+{
+    memset(TrafUnserviced, 0, sizeof TrafUnserviced);
+    TrafRotor = 0;
+    TrafProblemUnserviced = 0;
+    TrafProblemZones = 0;
+    TrafMaxX = 0;
+    TrafMaxY = 0;
+    TrafServicedResPop = 0;
 }
 
 bool TrafZoneUnserviced(int32_t x, int32_t y)

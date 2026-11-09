@@ -187,7 +187,9 @@ static void DoIndustrial(int16_t zone_pwr_flg)
     IndPop += tpop;
 
     if (TrafZoneUnserviced(SMapX, SMapY)) {
-        DoIndOut(tpop, Rand16() & 1);
+        if (!(Rand16() & 7)) {
+            DoIndOut(tpop, Rand16() & 1);
+        }
         return;
     }
 
@@ -220,8 +222,10 @@ static void DoCommercial(int16_t zone_pwr_flg)
     ComPop += tpop;
 
     if (TrafZoneUnserviced(SMapX, SMapY)) {
-        value = GetCRVal();
-        DoComOut(tpop, value);
+        if (!(Rand16() & 7)) {
+            value = GetCRVal();
+            DoComOut(tpop, value);
+        }
         return;
     }
 
@@ -268,8 +272,10 @@ static void DoResidential(int16_t zone_pwr_flg)
     }
 
     if (TrafZoneUnserviced(SMapX, SMapY)) {
-        value = GetCRVal();
-        DoResOut(tpop, value);
+        if (!(Rand16() & 7)) {
+            value = GetCRVal();
+            DoResOut(tpop, value);
+        }
         return;
     }
     TrafServicedResPop += tpop;

@@ -260,7 +260,7 @@ void SendMessages(void)
         Advisory(44, NEWS_EVENT_ADV_RIOTS, (TotalPop > 60) && (CrimeAverage > 150));
         break;
     case 63: {
-        bool congested = NewsCondition(12, TrafficAverage > 60);
+        bool congested = NewsCondition(12, TrafProblemShare() >= TRAF_JAM_SHARE);
         if (congested) {
             SendMesTickerAt(-12, 0, 0);
         }
