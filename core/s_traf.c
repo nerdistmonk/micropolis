@@ -26,6 +26,8 @@ static uint8_t TrafUnserviced[WORLD_X][WORLD_Y];
 static int32_t TrafRotor = 0;
 static int32_t TrafProblemUnserviced = 0;
 static int32_t TrafProblemZones = 0;
+/* Rush-hour load on the road network, percent of capacity, 0-100 */
+static int16_t TrafLoad = 0;
 
 /* Fire, police, hospitals, power plants, ports, airports, stadiums, landfill, water towers, and parks.
  * Each building counts once: at its zone centre, landfill centre, water tower centre, or park tile.
@@ -82,6 +84,8 @@ void TrafRushHour(void)
     int64_t full = (int64_t)capacity * TRAF_TRIPS_PER_ZONE;
     int32_t level = full > 0 ? (int32_t)(volume * 255 / full) : 0;
     if (level > 255) level = 255;
+    int64_t load = full > 0 ? volume * 100 / full : 0;
+    TrafLoad = (int16_t)(load > 100 ? 100 : load);
 
     int32_t rotor = accessible > 0 ? TrafRotor % accessible : 0;
     int32_t ordinal = 0;
@@ -146,6 +150,7 @@ void TrafResetCity(void)
     TrafMaxX = 0;
     TrafMaxY = 0;
     TrafServicedResPop = 0;
+    TrafLoad = 0;
 }
 
 bool TrafZoneUnserviced(int32_t x, int32_t y)
@@ -164,6 +169,11 @@ int32_t TrafProblemShare(void)
 {
     if (TrafProblemZones <= 0) return 0;
     return (int32_t)((int64_t)TrafProblemUnserviced * 255 / TrafProblemZones);
+}
+
+int16_t TrafRoadLoad(void)
+{
+    return TrafLoad;
 }
 
 bool RoadTest(int32_t tile)

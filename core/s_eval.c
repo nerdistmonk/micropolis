@@ -30,7 +30,6 @@ int32_t EvalChanged = 0;
 static void    DoPopNum(void);
 static void    DoProblems(void);
 static void    VoteProblems(void);
-static void UpdateTrafficAverage(void);
 static int16_t GetUnemployment(void);
 static int16_t GetFire(void);
 static void    GetScore(void);
@@ -153,7 +152,7 @@ static void DoProblems(void)
     ProblemTable[1] = PolluteAverage;                              /* Pollution */
     ProblemTable[2] = (int16_t)((float)LVAverage * 0.7f);          /* Housing */
     ProblemTable[3] = (int16_t)(GetAverageTaxRate() * 10);         /* Taxes */
-    UpdateTrafficAverage();
+    TrafficAverage = TrafRoadLoad();
     ProblemTable[4] = (int16_t)TrafProblemShare();                 /* Traffic */
     ProblemTable[5] = GetUnemployment();                           /* Unemployment */
     ProblemTable[6] = GetFire();                                   /* Fire */
@@ -208,23 +207,6 @@ static void VoteProblems(void)
         }
         count++;
     }
-}
-
-static void UpdateTrafficAverage(void)
-{
-    QUAD trf_total = 0;
-    int32_t count = 1;
-
-    for (int16_t x = 0; x < HWLDX; x++) {
-        for (int16_t y = 0; y < HWLDY; y++) {
-            if (LandValueMem[x][y]) {
-                trf_total += TrfDensity[x][y];
-                count++;
-            }
-        }
-    }
-
-    TrafficAverage = (int16_t)((trf_total / count) * 2.4);
 }
 
 static int16_t GetUnemployment(void)

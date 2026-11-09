@@ -811,6 +811,7 @@ void TrafRushHour(void);
 void TrafResetCity(void);
 bool TrafZoneUnserviced(int32_t x, int32_t y);
 int32_t TrafProblemShare(void);
+int16_t TrafRoadLoad(void);
 float TrafServiceShare(void);
 
 /* Network Auto-Tiling & Layout Operations */
