@@ -324,20 +324,24 @@ bool TrafAnimTileDue(int32_t x, int32_t y)
     return h % (uint32_t)TrafAnimEvery == 0;
 }
 
+/* Share of road tiles carrying traffic in each non-gridlocked state. */
+#define TRAF_SHARE_LIGHT      25
+#define TRAF_SHARE_NORMAL     50
+#define TRAF_SHARE_CONGESTED  75
+
 /* Traffic tier for road tile (x, y): 0 empty, 1 light, 2 heavy. Gridlock packs every road. Otherwise the
- * share of roads given by the rush-hour load percent carries traffic: light uses it as is, normal doubles
- * it, and congested quadruples it. A road that is busy at one load stays busy at higher loads. */
+ * share of roads given by the state (light, normal, congested) carries traffic. A road that is busy at one
+ * load stays busy at higher loads. */
 int32_t TrafRoadDensity(int32_t x, int32_t y)
 {
     if (TrafGridlocked()) return 2;
     if (TrafLoad <= 0) return 0;
-    int32_t share = TrafLoad;
+    int32_t share = TRAF_SHARE_LIGHT;
     if (TrafDemandZones >= TrafCapacityZones) {
-        share *= 4;
+        share = TRAF_SHARE_CONGESTED;
     } else if (2 * TrafDemandZones >= TrafCapacityZones) {
-        share *= 2;
+        share = TRAF_SHARE_NORMAL;
     }
-    if (share > 100) share = 100;
     if ((int32_t)(TrafMix((uint32_t)x, (uint32_t)y) % 100u) >= share) return 0;
     int32_t level = TrfDensity[x >> 1][y >> 1];
     return level >= 192 ? 2 : 1;
