@@ -160,6 +160,12 @@ bool IsTrafficRoadTile(uint16_t id)
     return (id >= LTRFBASE && id < LTRFBASE + 16) || (id >= HTRFBASE && id < HTRFBASE + 16);
 }
 
+/* Every traffic animation frame, light (LTRFBASE) through heavy (up to HTRFBASE + 64), follows the traffic speed. */
+static bool IsTrafficAnimFrame(uint16_t id)
+{
+    return id >= LTRFBASE && id < HTRFBASE + 64;
+}
+
 void AnimateTiles(void)
 {
     if (!DoAnimation) return;
@@ -179,7 +185,7 @@ void AnimateTiles(void)
                 uint16_t flags = tile & ALLBITS;
                 uint16_t id = tile & LOMASK;
 
-                if (IsTrafficRoadTile(id) && !TrafAnimTileDue(x, y)) continue;
+                if (IsTrafficAnimFrame(id) && !TrafAnimTileDue(x, y)) continue;
 
                 if (id < 1024) {
                     id = (uint16_t)aniTile[id];

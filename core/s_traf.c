@@ -24,9 +24,8 @@
 #define TRAF_ABSORBED_ZONES      3
 #define TRAF_GRIDLOCK_ZONES      (TRAF_ABSORBED_ZONES + 1)
 
-/* AnimateTiles passes per traffic animation step: fastest with spare capacity, slowest at capacity and beyond.
- * The fastest is 2, so no tile is due on every pass and the traffic never moves in lockstep. */
-#define TRAF_ANIM_FASTEST        2
+/* AnimateTiles passes per traffic animation step: fastest with spare capacity, slowest at capacity and beyond. */
+#define TRAF_ANIM_FASTEST        1
 #define TRAF_ANIM_SLOWEST        8
 
 /* Pollution per traffic road tile, by congestion tier. */
@@ -274,9 +273,46 @@ void TrafAnimBeginPass(void)
     TrafAnimPass++;
 }
 
+/* Roving gaps: a run of 3 to 5 consecutive road tiles holds still. Each road line gets its own pattern,
+ * and the pattern drifts one tile every TRAF_GAP_ROVE passes. */
+#define TRAF_GAP_PERIOD  20
+#define TRAF_GAP_ROVE    4
+
+static uint32_t TrafMix(uint32_t a, uint32_t b)
+{
+    uint32_t h = a * 0x9E3779B1u + b * 0x85EBCA77u;
+    h ^= h >> 15;
+    h *= 0xC2B2AE3Du;
+    h ^= h >> 13;
+    return h;
+}
+
+static bool TrafRoadAt(int32_t x, int32_t y)
+{
+    return x >= 0 && y >= 0 && x < WORLD_X && y < WORLD_Y && RoadTest(Map[x][y]);
+}
+
+/* A tile belongs to an east-west line when a road links it east or west, otherwise to a north-south line. */
+static bool TrafInRovingGap(int32_t x, int32_t y)
+{
+    bool eastWest = TrafRoadAt(x - 1, y) || TrafRoadAt(x + 1, y);
+    bool northSouth = TrafRoadAt(x, y - 1) || TrafRoadAt(x, y + 1);
+    bool horizontal = eastWest || !northSouth;
+    uint32_t along = (uint32_t)(horizontal ? x : y);
+    uint32_t line = (uint32_t)(horizontal ? y : x);
+    uint32_t q = along + TrafAnimPass / TRAF_GAP_ROVE;
+    uint32_t r = q % TRAF_GAP_PERIOD;
+    uint32_t g = TrafMix(line, q / TRAF_GAP_PERIOD);
+    if (g % 3 == 0) return false;
+    uint32_t len = 3 + (g / 3) % 3;
+    uint32_t start = (g / 9) % (TRAF_GAP_PERIOD - len + 1);
+    return r >= start && r < start + len;
+}
+
 /* True when traffic tile (x, y) advances this pass. The hash mixes the tile and pass, so tiles drift out of step. */
 bool TrafAnimTileDue(int32_t x, int32_t y)
 {
+    if (TrafInRovingGap(x, y)) return false;
     uint32_t h = (uint32_t)x * 0x9E3779B1u + (uint32_t)y * 0x85EBCA77u + TrafAnimPass * 0xC2B2AE3Du;
     h ^= h >> 16;
     h *= 0x85EBCA6Bu;
