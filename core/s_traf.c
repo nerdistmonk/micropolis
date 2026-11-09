@@ -43,6 +43,8 @@ static int32_t TrafProblemUnserviced = 0;
 static int32_t TrafProblemZones = 0;
 /* Rush-hour load on the road network, percent of capacity, 0-100 */
 static int16_t TrafLoad = 0;
+/* True when at least one serviced resident commutes. Load can round to 0% while residents still commute. */
+static bool TrafHasCommuters = false;
 /* Demand and capacity at the last rush hour, in zones. */
 static int32_t TrafDemandZones = 0;
 static int32_t TrafCapacityZones = 0;
@@ -146,6 +148,7 @@ void TrafRushHour(void)
     if (level > 255) level = 255;
     int64_t load = full > 0 ? volume * 100 / full : 0;
     TrafLoad = (int16_t)(load > 100 ? 100 : load);
+    TrafHasCommuters = volume > 0;
     TrafDemandZones = demand;
     TrafCapacityZones = capacity;
     TrafAnimEvery = TrafAnimInterval(demand, capacity);
@@ -214,6 +217,7 @@ void TrafResetCity(void)
     TrafMaxY = 0;
     TrafServicedResPop = 0;
     TrafLoad = 0;
+    TrafHasCommuters = false;
     TrafDemandZones = 0;
     TrafCapacityZones = 0;
     TrafAnimEvery = TRAF_ANIM_FASTEST;
@@ -335,7 +339,7 @@ bool TrafAnimTileDue(int32_t x, int32_t y)
 int32_t TrafRoadDensity(int32_t x, int32_t y)
 {
     if (TrafGridlocked()) return 2;
-    if (TrafLoad <= 0) return 0;
+    if (!TrafHasCommuters) return 0;
     int32_t share = TRAF_SHARE_LIGHT;
     if (TrafDemandZones >= TrafCapacityZones) {
         share = TRAF_SHARE_CONGESTED;
