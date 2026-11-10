@@ -240,11 +240,6 @@ void GUI_OpenNewsModal(void)
   GUI_Dialogs_OpenNews();
 }
 
-void GUI_CloseModal(void)
-{
-  GUI_Dialogs_Close();
-}
-
 OverlayViewMode GUI_GetActiveOverlayMode(void)
 {
   return GUI_Dialogs_GetActiveOverlay();

@@ -178,11 +178,6 @@ const char *Settings_GetSoundLevelName(void)
     return sound_level_names[sound_level];
 }
 
-MusicVolume Settings_GetMusicVolume(void)
-{
-    return music_volume;
-}
-
 void Settings_CycleMusicVolume(void)
 {
     music_volume = (MusicVolume)(((int)music_volume + 1) % (int)MUSIC_VOLUME_COUNT);

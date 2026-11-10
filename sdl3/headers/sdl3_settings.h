@@ -49,7 +49,6 @@ typedef enum {
     MUSIC_ORDER_COUNT
 } MusicOrder;
 
-MusicVolume Settings_GetMusicVolume(void);
 void Settings_CycleMusicVolume(void);
 float Settings_GetMusicGain(void);
 const char *Settings_GetMusicVolumeName(void);

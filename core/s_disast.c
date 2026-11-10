@@ -8,8 +8,6 @@
 
 int16_t ShakeNow = 0;
 int16_t FloodCnt = 0;
-int16_t FloodX = 0;
-int16_t FloodY = 0;
 
 extern void FireZone(int32_t xloc, int32_t yloc, int32_t ch);
 extern void DoMeltdown(int32_t sx, int32_t sy);
@@ -89,8 +87,6 @@ void MakeFlood(void)
                     if (target == DIRT || ((target & BULLBIT) && (target & BURNBIT))) {
                         Map[xx][yy] = FLOOD;
                         FloodCnt = 30;
-                        FloodX = (int16_t)xx;
-                        FloodY = (int16_t)yy;
                         SendMesAt(-42, (int16_t)xx, (int16_t)yy);
                         return;
                     }

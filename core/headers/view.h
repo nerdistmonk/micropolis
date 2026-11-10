@@ -289,11 +289,6 @@ typedef struct SimSprite {
 } SimSprite;
 
 
-#ifdef CAM
-#include "cam.h"
-#endif
-
-
 typedef struct Person {
   int id;
   char *name;
@@ -311,10 +306,6 @@ typedef struct Sim {
   SimDate *date;
   int sprites;
   SimSprite *sprite;
-#ifdef CAM
-  int scams;
-  SimCam *scam;
-#endif
   Ink *overlay;
 } Sim;
 

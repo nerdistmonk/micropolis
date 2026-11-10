@@ -38,7 +38,6 @@ void GUI_ShowStatus(const char *text);
 int32_t GUI_CityPopDisplay(void);
 void GUI_OpenDisastersModal(void);
 void GUI_OpenNewsModal(void);
-void GUI_CloseModal(void);
 
 /* Overlay mode query */
 OverlayViewMode GUI_GetActiveOverlayMode(void);

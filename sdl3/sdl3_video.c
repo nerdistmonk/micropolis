@@ -251,8 +251,7 @@ static void LoadSpriteTextures(SDL_Renderer *renderer)
     [SHI] = 8,
     [GOD] = 16,
     [TOR] = 3,
-    [EXP] = 6,
-    [BUS] = 4
+    [EXP] = 6
   };
 
   for (int type = 1; type < OBJN; type++) {
