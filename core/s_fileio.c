@@ -386,6 +386,7 @@ static void RestoreSimState(void)
     }
     ComPop = MiscHis[3];
     IndPop = MiscHis[4];
+    SimRestartCensusCycle();
     TotalPop = (int16_t)((ResPop / 8) + ComPop + IndPop);
     RValve = MiscHis[5];
     CValve = MiscHis[6];

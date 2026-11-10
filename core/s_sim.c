@@ -381,6 +381,12 @@ static void DecROGMem(void)
     }
 }
 
+/* Fcycle is pre-incremented, so 15 makes the next step case 0, which runs ClearCensus before any map scan tallies. */
+void SimRestartCensusCycle(void)
+{
+    Fcycle = 15;
+}
+
 void ClearCensus(void)
 {
     PwrdZCnt = 0;

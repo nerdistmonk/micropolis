@@ -673,6 +673,7 @@ void ResetMapState(void);
 void ResetEditorState(void);
 void AnimateTiles(void);
 void ClearCensus(void);
+void SimRestartCensusCycle(void);
 void ResetBudgetForNewCity(void);
 
 /* Map Generation */
