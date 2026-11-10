@@ -201,7 +201,7 @@ static void MakeLakes(void)
         for (int16_t z = 0; z < lim2; z++) {
             MapX = (int16_t)(x - 6 + Rand(12));
             MapY = (int16_t)(y - 6 + Rand(12));
-            if (Rand(4)) {
+            if (Rand(3)) {
                 SRivPlop();
             } else {
                 BRivPlop();
