@@ -91,6 +91,7 @@ void GenerateMap(int32_t seed)
     }
 
     if (island) {
+        Water_ClearPipes();
         MakeNakedIsland();
     } else {
         ClearMap();
