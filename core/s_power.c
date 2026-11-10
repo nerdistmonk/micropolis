@@ -218,6 +218,24 @@ static void ExplodePlant(int32_t sx, int32_t sy)
     }
 }
 
+/* Footprints span anchor-1..anchor+2, so an anchor is a candidate when x-2..x+1 contains it. */
+bool PlantCaughtFire(int32_t x, int32_t y)
+{
+    for (int32_t ax = x - 2; ax <= x + 1; ax++) {
+        for (int32_t ay = y - 2; ay <= y + 1; ay++) {
+            if (!TestBounds(ax, ay)) continue;
+            uint16_t c = Map[ax][ay];
+            if (!(c & ZONEBIT)) continue;
+            uint16_t low = c & LOMASK;
+            if (low == POWERPLANT || low == NUCLEAR) {
+                ExplodePlant(ax, ay);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void DoPowerScan(void)
 {
     int32_t plants = 0;

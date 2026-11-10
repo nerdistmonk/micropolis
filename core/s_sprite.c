@@ -537,6 +537,7 @@ static void StartFire(int32_t px, int32_t py)
     uint16_t t = z & LOMASK;
     if (!(z & BURNBIT) && t != 0) return;
     if (z & ZONEBIT) return;
+    PlantCaughtFire(tx, ty);
     Map[tx][ty] = (uint16_t)(FIRE + (Rand16() & 3) + ANIMBIT);
 }
 
@@ -755,12 +756,13 @@ static void StepExplosion(SimSprite *s)
     }
 
     if (s->frame > 6) {
-        s->frame = 0;
+        /* Free the slot last: StartFire can detonate a plant, and its explosions must not reuse this slot. */
         StartFire(s->x + 40, s->y + 16);
         StartFire(s->x + 24, s->y);
         StartFire(s->x + 56, s->y);
         StartFire(s->x + 24, s->y + 32);
         StartFire(s->x + 56, s->y + 32);
+        s->frame = 0;
     }
 }
 

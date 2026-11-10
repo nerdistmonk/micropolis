@@ -762,6 +762,7 @@ int32_t Neighbor_LandValueBonusPercent(void);
 bool Neighbor_Connect(int32_t x, int32_t y);
 void FireZone(int32_t xloc, int32_t yloc, int32_t ch);
 void DoMeltdown(int32_t sx, int32_t sy);
+bool PlantCaughtFire(int32_t x, int32_t y);
 
 /* Zone Population Helpers */
 int16_t RZPop(int32_t ch9);

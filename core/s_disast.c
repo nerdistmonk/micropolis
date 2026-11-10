@@ -40,6 +40,7 @@ void SetFire(void)
     if (!(z & ZONEBIT)) {
         uint16_t low = z & LOMASK;
         if (low > LHTHR && low < LASTZONE) {
+            PlantCaughtFire(x, y);
             Map[x][y] = (uint16_t)(FIRE + ANIMBIT + (Rand16() & 7));
             CrashX = (int16_t)x;
             CrashY = (int16_t)y;
@@ -58,6 +59,7 @@ void MakeFire(void)
         if (!(z & ZONEBIT) && (z & BURNBIT)) {
             uint16_t low = z & LOMASK;
             if (low > 21 && low < LASTZONE) {
+                PlantCaughtFire(x, y);
                 Map[x][y] = (uint16_t)(FIRE + ANIMBIT + (Rand16() & 7));
                 SendMesAt(20, (int16_t)x, (int16_t)y);
                 return;
@@ -145,6 +147,7 @@ void MakeEarthquake(void)
             if (z & 0x03) {
                 Map[x][y] = (uint16_t)(RUBBLE + BULLBIT + (Rand16() & 3));
             } else {
+                PlantCaughtFire(x, y);
                 Map[x][y] = (uint16_t)(FIRE + ANIMBIT + (Rand16() & 7));
             }
         }

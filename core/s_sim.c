@@ -978,9 +978,10 @@ static void DoFire(void)
             if (TestBounds(Xtem, Ytem)) {
                 uint16_t c = Map[Xtem][Ytem];
                 if (c & BURNBIT) {
+                    bool detonated = PlantCaughtFire(Xtem, Ytem);
                     if (c & ZONEBIT) {
                         FireZone(Xtem, Ytem, (int32_t)c);
-                        if ((c & LOMASK) > IZB) {
+                        if (!detonated && (c & LOMASK) > IZB) {
                             MakeExplosionAt((Xtem << 4) + 8, (Ytem << 4) + 8);
                         }
                     }
