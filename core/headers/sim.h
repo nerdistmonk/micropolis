@@ -459,6 +459,9 @@ typedef struct SimCallbacks {
 #define NEWS_EVENT_ADV_PARKS_FUNDING 129
 #define NEWS_EVENT_ADV_PORT_CAPACITY 130
 
+/* Newspaper-only: a job surplus has no ticker counterpart. */
+#define NEWS_EVENT_JOBS_BOOM        131
+
 /* Engine Global Variables */
 extern uint16_t *Map[WORLD_X];
 extern Byte *PopDensity[HWLDX];

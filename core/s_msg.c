@@ -214,6 +214,11 @@ void SendMessages(void)
         Advisory(15, NEWS_EVENT_ADV_BLACKOUT,
                  total_zones > 0.0f && ((float)PwrdZCnt / total_zones) < 0.7f);
         break;
+    case 33: {
+        int32_t jobs = 8 * ((int32_t)ComPop + IndPop);
+        NewsCondition(NEWS_EVENT_JOBS_BOOM, (TotalPop > 60) && (ResPop > 0) && (2 * jobs >= 3 * ResPop));
+        break;
+    }
     case 35: {
         bool polluted = NewsCondition(10, PolluteAverage > 60);
         NewsCondition(NEWS_EVENT_POLLUTION_LOW, TotalPop > 60 && PolluteAverage < 15);
