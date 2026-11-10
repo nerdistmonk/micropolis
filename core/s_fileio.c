@@ -448,8 +448,6 @@ void CityRescan(void)
         }
     }
 
-    RoadFund = CalcRoadFund(GameLevel);
-    RoadSpend = (int32_t)((float)RoadFund * roadPercent);
     PoliceFund = PolicePop * POLICE_STATION_COST;
     PoliceSpend = (int32_t)((float)PoliceFund * policePercent);
     FireFund = FireStPop * FIRE_STATION_COST;
@@ -469,6 +467,11 @@ void CityRescan(void)
     FireAnalysis();
     HealthAnalysis();
     RecAnalysis();
+
+    /* CalcRoadFund reads the port and airport counts that the zone census sets. */
+    SeedZoneCensus();
+    RoadFund = CalcRoadFund(GameLevel);
+    RoadSpend = (int32_t)((float)RoadFund * roadPercent);
 }
 
 /* Stored 16.16 percents round-trip slightly low (0.20 -> 0.19999695), so round to 0.001

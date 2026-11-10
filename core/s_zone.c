@@ -124,6 +124,89 @@ void SeedServicedResPop(void)
     }
 }
 
+/* Counts one zone building the way DoZone's handlers do, without their growth, repairs, or map edits. */
+static void CountZoneBuilding(void)
+{
+    CountZoneLoad();
+
+    if (CChr9 > PORTBASE) {
+        if (CChr9 == STADIUM || CChr9 == FULLSTADIUM) StadiumPop++;
+        else if (CChr9 == AIRPORT) APortPop++;
+        else if (CChr9 == PORT) PortPop++;
+        return;
+    }
+    if (CChr9 < HOSPITAL) {
+        int16_t tpop = (CChr9 == FREEZ) ? DoFreePop() : RZPop(CChr9);
+        ResZPop++;
+        ResTaxPop += HealthAdjustedPop(tpop, SMapX, SMapY);
+        if (!HealthIsCovered(SMapX, SMapY)) ResUncoveredPop += tpop;
+        if (!RecIsCovered(SMapX, SMapY)) ResUnrecPop += tpop;
+        return;
+    }
+    if (CChr9 < COMBASE) {
+        if (CChr9 == HOSPITAL) HospPop++;
+        else if (CChr9 == CHURCH) ChurchPop++;
+        return;
+    }
+    if (CChr9 < INDBASE) {
+        ComZPop++;
+        return;
+    }
+    IndZPop++;
+}
+
+/* A load has no sweep to tally the zone census, so this recounts it with MapScan's dispatch. It must run after the
+   coverage scans, since residential counts depend on them. */
+void SeedZoneCensus(void)
+{
+    PwrdZCnt = 0;
+    unPwrdZCnt = 0;
+    UnwateredZCnt = 0;
+    FirePop = 0;
+    ResTaxPop = 0;
+    ResUncoveredPop = 0;
+    ResUnrecPop = 0;
+    ResZPop = 0;
+    ComZPop = 0;
+    IndZPop = 0;
+    HospPop = 0;
+    ChurchPop = 0;
+    StadiumPop = 0;
+    PortPop = 0;
+    APortPop = 0;
+
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            CChr = (int16_t)Map[x][y];
+            if (CChr == 0) continue;
+            CChr9 = CChr & LOMASK;
+            if (CChr9 < FLOOD) continue;
+            SMapX = (int16_t)x;
+            SMapY = (int16_t)y;
+
+            if (CChr9 < ROADBASE) {
+                if (CChr9 >= FIREBASE) FirePop++;
+                continue;
+            }
+            if (CChr9 < POWERBASE) continue;
+
+            if (TILE_IS_TRAFFIC_BLOCK(CChr9)) {
+                if (CChr & ZONEBIT) CountZoneLoad();
+                continue;
+            }
+            if (CChr & ZONEBIT) {
+                CountZoneBuilding();
+                continue;
+            }
+            if (CChr9 == WATERTOWER) {
+                CountWaterTowerPower();
+            } else if (TILE_IS_PARK(CChr9)) {
+                CountParkWater();
+            }
+        }
+    }
+}
+
 void DoZone(void)
 {
     int16_t zone_pwr_flg = CountZoneLoad();
