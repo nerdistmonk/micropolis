@@ -617,7 +617,6 @@ extern int32_t CensusChanged;
 extern int32_t EvalChanged;
 extern int16_t NewMap;
 extern int16_t NewMapFlags[NMAPS];
-extern QUAD DonDither;
 
 extern int32_t OverRide;
 extern int32_t PendingTool;

@@ -19,7 +19,6 @@ int16_t  PolMaxX = 0;
 int16_t  PolMaxY = 0;
 int16_t  CrimeMaxX = 0;
 int16_t  CrimeMaxY = 0;
-QUAD     DonDither = 0;
 
 /* Forward Declarations of Internal Functions */
 static int16_t GetPDen(int32_t ch9);
@@ -422,10 +421,8 @@ static int32_t GetPValue(int32_t loc)
 {
     if (loc < POWERBASE) {
         if (IsTrafficRoadTile((uint16_t)loc)) return TrafRoadPollution();
-        if (loc >= HTRFBASE) return 75;
-        if (loc >= LTRFBASE) return 50;
         if (loc < ROADBASE) {
-            if (loc > FIREBASE) return 90;
+            if (loc >= FIREBASE && loc <= LASTFIRE) return 90;
             if (loc >= RADTILE) return 255;
         }
         return 0;
@@ -494,107 +491,46 @@ void CrimeScan(void)
 
 static void SmoothTerrain(void)
 {
-    if (DonDither & 1) {
-        int32_t y = 0;
-        int32_t z = 0;
-        int32_t dir = 1;
-
-        for (int32_t x = 0; x < QWX; x++) {
-            for (; y != QWY && y != -1; y += dir) {
-                z += Qtem[(x == 0) ? x : (x - 1)][y] +
-                     Qtem[(x == (QWX - 1)) ? x : (x + 1)][y] +
-                     Qtem[x][(y == 0) ? 0 : (y - 1)] +
-                     Qtem[x][(y == (QWY - 1)) ? y : (y + 1)] +
-                     (Qtem[x][y] << 2);
-
-                TerrainMem[x][y] = (Byte)(((uint32_t)z) >> 3);
-                z &= 0x7;
-            }
-            dir = -dir;
-            y += dir;
-        }
-    } else {
-        for (int16_t x = 0; x < QWX; x++) {
-            for (int16_t y = 0; y < QWY; y++) {
-                int32_t z = 0;
-                if (x > 0)          z += Qtem[x - 1][y];
-                if (x < (QWX - 1))  z += Qtem[x + 1][y];
-                if (y > 0)          z += Qtem[x][y - 1];
-                if (y < (QWY - 1))  z += Qtem[x][y + 1];
-                TerrainMem[x][y] = (Byte)(((z >> 2) + Qtem[x][y]) & 0xFF) >> 1;
-            }
+    for (int16_t x = 0; x < QWX; x++) {
+        for (int16_t y = 0; y < QWY; y++) {
+            int32_t z = 0;
+            if (x > 0)          z += Qtem[x - 1][y];
+            if (x < (QWX - 1))  z += Qtem[x + 1][y];
+            if (y > 0)          z += Qtem[x][y - 1];
+            if (y < (QWY - 1))  z += Qtem[x][y + 1];
+            TerrainMem[x][y] = (Byte)(((z >> 2) + Qtem[x][y]) & 0xFF) >> 1;
         }
     }
 }
 
 static void DoSmooth(void)
 {
-    if (DonDither & 2) {
-        int32_t y = 0;
-        int32_t z = 0;
-        int32_t dir = 1;
-
-        for (int32_t x = 0; x < HWLDX; x++) {
-            for (; y != HWLDY && y != -1; y += dir) {
-                z += tem[(x == 0) ? x : (x - 1)][y] +
-                     tem[(x == (HWLDX - 1)) ? x : (x + 1)][y] +
-                     tem[x][(y == 0) ? 0 : (y - 1)] +
-                     tem[x][(y == (HWLDY - 1)) ? y : (y + 1)] +
-                     tem[x][y];
-                tem2[x][y] = (Byte)(((uint32_t)z) >> 2);
-                z &= 3;
-            }
-            dir = -dir;
-            y += dir;
-        }
-    } else {
-        for (int16_t x = 0; x < HWLDX; x++) {
-            for (int16_t y = 0; y < HWLDY; y++) {
-                int32_t z = 0;
-                if (x > 0)          z += tem[x - 1][y];
-                if (x < (HWLDX - 1))z += tem[x + 1][y];
-                if (y > 0)          z += tem[x][y - 1];
-                if (y < (HWLDY - 1))z += tem[x][y + 1];
-                z = (z + tem[x][y]) >> 2;
-                if (z > 255) z = 255;
-                tem2[x][y] = (Byte)z;
-            }
+    for (int16_t x = 0; x < HWLDX; x++) {
+        for (int16_t y = 0; y < HWLDY; y++) {
+            int32_t z = 0;
+            if (x > 0)          z += tem[x - 1][y];
+            if (x < (HWLDX - 1))z += tem[x + 1][y];
+            if (y > 0)          z += tem[x][y - 1];
+            if (y < (HWLDY - 1))z += tem[x][y + 1];
+            z = (z + tem[x][y]) >> 2;
+            if (z > 255) z = 255;
+            tem2[x][y] = (Byte)z;
         }
     }
 }
 
 static void DoSmooth2(void)
 {
-    if (DonDither & 4) {
-        int32_t y = 0;
-        int32_t z = 0;
-        int32_t dir = 1;
-
-        for (int32_t x = 0; x < HWLDX; x++) {
-            for (; y != HWLDY && y != -1; y += dir) {
-                z += tem2[(x == 0) ? x : (x - 1)][y] +
-                     tem2[(x == (HWLDX - 1)) ? x : (x + 1)][y] +
-                     tem2[x][(y == 0) ? 0 : (y - 1)] +
-                     tem2[x][(y == (HWLDY - 1)) ? y : (y + 1)] +
-                     tem2[x][y];
-                tem[x][y] = (Byte)((Byte)z >> 2);
-                z &= 3;
-            }
-            dir = -dir;
-            y += dir;
-        }
-    } else {
-        for (int16_t x = 0; x < HWLDX; x++) {
-            for (int16_t y = 0; y < HWLDY; y++) {
-                int32_t z = 0;
-                if (x > 0)          z += tem2[x - 1][y];
-                if (x < (HWLDX - 1))z += tem2[x + 1][y];
-                if (y > 0)          z += tem2[x][y - 1];
-                if (y < (HWLDY - 1))z += tem2[x][y + 1];
-                z = (z + tem2[x][y]) >> 2;
-                if (z > 255) z = 255;
-                tem[x][y] = (Byte)z;
-            }
+    for (int16_t x = 0; x < HWLDX; x++) {
+        for (int16_t y = 0; y < HWLDY; y++) {
+            int32_t z = 0;
+            if (x > 0)          z += tem2[x - 1][y];
+            if (x < (HWLDX - 1))z += tem2[x + 1][y];
+            if (y > 0)          z += tem2[x][y - 1];
+            if (y < (HWLDY - 1))z += tem2[x][y + 1];
+            z = (z + tem2[x][y]) >> 2;
+            if (z > 255) z = 255;
+            tem[x][y] = (Byte)z;
         }
     }
 }
