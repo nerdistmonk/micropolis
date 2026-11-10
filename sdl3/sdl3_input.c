@@ -50,11 +50,13 @@ typedef struct {
 static DragConstraint tool_constraint;
 static DragConstraint pan_constraint;
 
-/* Mirrors Unix X/Z wand cycling order (w_x.c), without chalk, eraser, and network */
+/* X/Z cycle order, sorted by tool state. Chalk, eraser, and network are not implemented in this game. */
 static const int16_t cycle_tools[] = {
     residentialState, commercialState, industrialState, fireState, queryState,
     policeState, wireState, dozeState, rrState, roadState,
-    stadiumState, parkState, seaportState, powerState, nuclearState, airportState
+    stadiumState, parkState, seaportState, powerState, nuclearState, airportState,
+    waterTowerState, pipeState, hospitalState, landfillState, connectState,
+    garageState, stationState
 };
 #define CYCLE_TOOL_COUNT ((int32_t)(sizeof(cycle_tools) / sizeof(cycle_tools[0])))
 
@@ -93,9 +95,22 @@ static void EndToolHold(void)
 
 static void CycleTool(int32_t step)
 {
-    int32_t index = 0;
+    int32_t index = -1;
     for (int32_t i = 0; i < CYCLE_TOOL_COUNT; i++) {
         if (cycle_tools[i] == active_tool) index = i;
+    }
+    if (index < 0) {
+        /* Tool is not in the cycle: land on the nearest listed tool in the direction of travel, wrapping at the ends */
+        int32_t target = (step > 0) ? 0 : CYCLE_TOOL_COUNT - 1;
+        for (int32_t i = 0; i < CYCLE_TOOL_COUNT; i++) {
+            if (step > 0 && cycle_tools[i] > active_tool) {
+                target = i;
+                break;
+            }
+            if (step < 0 && cycle_tools[i] < active_tool) target = i;
+        }
+        SetActiveTool(cycle_tools[target]);
+        return;
     }
     index = (index + step + CYCLE_TOOL_COUNT) % CYCLE_TOOL_COUNT;
     SetActiveTool(cycle_tools[index]);
