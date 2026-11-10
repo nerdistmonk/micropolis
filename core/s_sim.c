@@ -20,7 +20,7 @@ int16_t IValve = 0;
 int16_t ResCap = 0;
 int16_t ComCap = 0;
 int16_t IndCap = 0;
-int16_t CashFlow = 0;
+int32_t CashFlow = 0;
 float EMarket = 4.0f;
 int16_t DisasterEvent = 0;
 int16_t DisasterWait = 0;
@@ -602,7 +602,7 @@ void ApplyBudgetCommit(void)
     LandfillSpend = (int32_t)((float)LandfillFund * landfillPercent);
 
     if (TotalPop) {
-        CashFlow = (int16_t)(TaxFund - (PoliceSpend + FireSpend + RoadSpend + HealthSpend + RecSpend + LandfillSpend));
+        CashFlow = TaxFund - (PoliceSpend + FireSpend + RoadSpend + HealthSpend + RecSpend + LandfillSpend);
         DoBudget();
     } else {
         UpdateFundEffects();
