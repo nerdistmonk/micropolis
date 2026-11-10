@@ -81,11 +81,12 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         strncpy(inspect_title, "Rail Transit Line", sizeof(inspect_title));
     } else if (low >= POWERBASE && low <= LASTPOWER) {
         strncpy(inspect_title, "High-Voltage Power Line", sizeof(inspect_title));
-    } else if (low >= RESBASE && low < HOSPITAL) {
+    } else if (low >= RESBASE && low < HOSPITAL - 4) {
         strncpy(inspect_title, "Residential Zone", sizeof(inspect_title));
-    } else if (low == HOSPITAL) {
+    } else if (low >= HOSPITAL - 4 && low <= HOSPITAL + 4) {
+        /* The hospital is a 3x3 block; only its centre is HOSPITAL. */
         strncpy(inspect_title, "Municipal Hospital", sizeof(inspect_title));
-    } else if (low == CHURCH) {
+    } else if (low >= CHURCH - 4 && low <= CHURCH + 4) {
         strncpy(inspect_title, "Parish Church", sizeof(inspect_title));
     } else if (low >= COMBASE && low < INDBASE) {
         strncpy(inspect_title, "Commercial Zone", sizeof(inspect_title));
@@ -187,7 +188,7 @@ void Dialog_Inspector_Show(int32_t tile_x, int32_t tile_y)
         FireSystemStats(&capacity, &demand);
         snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Fire Capacity: %d buildings | Demand: %d buildings (citywide)",
                  (int)capacity, (int)demand);
-    } else if (low >= HOSPITAL && low < CHURCH) {
+    } else if (low >= HOSPITAL - 4 && low <= HOSPITAL + 4) {
         HospitalSystemStats(&capacity, &demand);
         snprintf(inspect_stat_supply, sizeof(inspect_stat_supply), "Hospital Capacity: %d buildings | Demand: %d buildings (citywide)",
                  (int)capacity, (int)demand);
