@@ -407,7 +407,7 @@ bool Video_Init(int width, int height)
   );
   minimap_pixels = (uint32_t *)calloc((size_t)(WORLD_X * WORLD_Y), sizeof(uint32_t));
 
-  Tiles_Init();
+  if (!Tiles_Init()) return false;
   LoadSpriteTextures(video_renderer);
   return true;
 }
