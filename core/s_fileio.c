@@ -462,6 +462,7 @@ void CityRescan(void)
     DoPowerScan();
     DoWaterScan();
     DoNilPower();
+    SeedServicedResPop();
     PTLScan();
     CrimeScan();
     PopDenScan();

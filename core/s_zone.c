@@ -107,6 +107,23 @@ int16_t CountZoneLoad(void)
     return zone_pwr_flg && watered;
 }
 
+/* Serviced population normally builds up during the map scan. A load has no sweep behind it, so this sums the residential
+   population the first sweep would add. Traffic has not marked anything unserviced yet at that point, so every zone counts. */
+void SeedServicedResPop(void)
+{
+    TrafServicedResPop = 0;
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            uint16_t tile = Map[x][y];
+            uint16_t low = tile & LOMASK;
+            if (!(tile & ZONEBIT) || low < RESBASE || low >= HOSPITAL) continue;
+            SMapX = (int16_t)x;
+            SMapY = (int16_t)y;
+            TrafServicedResPop += (low == FREEZ) ? DoFreePop() : RZPop(low);
+        }
+    }
+}
+
 void DoZone(void)
 {
     int16_t zone_pwr_flg = CountZoneLoad();
