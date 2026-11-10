@@ -593,8 +593,6 @@ int32_t LoadCity(const char *filename)
     Neighbor_LoadMisc();
     RestoreSimState();
 
-    ScenarioID = 0;
-    ScoreType = 0;
     InitSimLoad = 1;
     DoInitialEval = 0;
 
@@ -896,10 +894,6 @@ int32_t Scenario_LoadFile(const char *path)
     TotalFunds = def.funds;
     NoDisasters = def.disasters ? 0 : 1;
     RestoreSimState();
-
-    ScenarioID = 0;
-    ScoreType = 0;
-    ScoreWait = 0;
 
     snprintf(CityName, sizeof(CityName), "%s", def.name);
     free(CityFileName);

@@ -518,7 +518,6 @@ extern int16_t StartingYear;
 extern int32_t CityTime;
 extern int16_t GameLevel;
 extern int16_t Cycle;
-extern int16_t ScenarioID;
 extern int16_t ShakeNow;
 
 extern int16_t *ResHis;
@@ -590,7 +589,6 @@ extern int16_t RValve, CValve, IValve;
 extern int16_t PwrdZCnt, unPwrdZCnt, UnwateredZCnt;
 
 extern int16_t CityScore, deltaCityScore;
-extern int16_t ScoreType, ScoreWait;
 extern int16_t CityClass;
 extern int32_t PowerStackNum;
 extern int16_t TrafficAverage;

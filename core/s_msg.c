@@ -93,7 +93,6 @@ static void Advisory(int16_t mnum, int16_t news_id, bool need)
 static void CheckGrowth(void);
 static void CheckTreasury(void);
 static void CheckTrash(void);
-static void DoScenarioScore(int32_t type);
 static void DoAutoGoto(int16_t x, int16_t y, const char *msg);
 static const char *GetMessageText(int16_t id);
 
@@ -166,13 +165,6 @@ void SendMessages(void)
 {
     int16_t power_pop;
     float total_zones;
-
-    if (ScenarioID && ScoreType && ScoreWait) {
-        ScoreWait--;
-        if (!ScoreWait) {
-            DoScenarioScore(ScoreType);
-        }
-    }
 
     Scenario_CheckEvents();
     Scenario_CheckYear();
@@ -379,41 +371,6 @@ void News_ResetSession(void)
     memset(news_cond_active, 0, sizeof(news_cond_active));
     for (size_t i = 0; i < NEWS_COND_SLOTS; i++) news_last_tick[i] = -NEWS_THROTTLE_TICKS;
     if (EngineCallbacks.news_reset) EngineCallbacks.news_reset();
-}
-
-static void DoScenarioScore(int32_t type)
-{
-    int16_t z = -200; /* Defeat threshold */
-
-    switch (type) {
-    case 1: /* Dullsville */
-    case 2: /* San Francisco */
-    case 3: /* Hamburg */
-        if (CityClass >= 4) z = -100;
-        break;
-    case 4: /* Bern */
-        if (TrafficAverage < 80) z = -100;
-        break;
-    case 5: /* Tokyo */
-    case 7: /* Boston */
-    case 8: /* Rio de Janeiro */
-        if (CityScore > 500) z = -100;
-        break;
-    case 6: /* Detroit */
-        if (CrimeAverage < 60) z = -100;
-        break;
-    default:
-        break;
-    }
-
-    ClearMes();
-    SendMes(z);
-
-    if (z == -200) {
-        DoLoseGame();
-    } else if (z == -100) {
-        DoWinGame();
-    }
 }
 
 void ResetMilestoneState(void)

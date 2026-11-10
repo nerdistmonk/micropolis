@@ -57,7 +57,6 @@ void GenerateSomeCity(int32_t seed)
 
     GenerateMap(seed);
 
-    ScenarioID    = 0;
     CityTime      = 0;
     InitSimLoad   = 2;
     DoInitialEval = 0;

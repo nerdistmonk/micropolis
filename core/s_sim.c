@@ -22,8 +22,6 @@ int16_t ComCap = 0;
 int16_t IndCap = 0;
 int32_t CashFlow = 0;
 float EMarket = 4.0f;
-int16_t ScoreType = 0;
-int16_t ScoreWait = 0;
 int16_t PwrdZCnt = 0;
 int16_t unPwrdZCnt = 0;
 int16_t UnwateredZCnt = 0;
@@ -46,7 +44,6 @@ int16_t autoBudget = 1;
 int16_t autoGo = 1;
 int16_t UserSoundOn = 1;
 int16_t InitSimLoad = 0;
-int16_t ScenarioID = 0;
 
 int32_t MustUpdateFunds = 0;
 int32_t MustUpdateOptions = 0;
@@ -1309,7 +1306,6 @@ void Sim_InitEngine(void)
     IndCap = 0;
 
     EMarket = 6.0f;
-    ScoreType = 0;
     PowerStackNum = 0;
 
     SetValves();
