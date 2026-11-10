@@ -613,7 +613,6 @@ static bool IsTileFilterOverlay(OverlayViewMode mode)
 static bool FilterViewHidesTile(OverlayViewMode mode, uint16_t raw_tile)
 {
   uint16_t tile = raw_tile & LOMASK;
-  if (tile >= TILE_COUNT) return true;
 
   switch (mode) {
   case OVERLAY_VIEW_RES_ZONE:
@@ -624,7 +623,8 @@ static bool FilterViewHidesTile(OverlayViewMode mode, uint16_t raw_tile)
     return (tile >= 240 && tile <= 611) || (tile >= 693 && tile <= 851) ||
            (tile >= 860 && tile <= 883) || (tile >= 932);
   case OVERLAY_VIEW_TRANSPORT:
-    return (tile >= 240) || (tile >= 207 && tile <= 220) || (tile == 223);
+    /* Garage and station (GARAGE onward) are transport buildings and stay visible */
+    return (tile >= 240 && tile < GARAGE) || (tile >= 207 && tile <= 220) || (tile == 223);
   default:
     return false;
   }

@@ -305,8 +305,6 @@ typedef int32_t QUAD;
 #define VBRDG2 950
 #define VBRDG3 951
 
-#define TILE_COUNT 960
-
 /* Water tower: 3x3 block of tiles 960-968 from images/water_tower.xpm, row-major from top-left */
 #define WATERTOWER 960
 #define WATERTOWER_TILES 9
