@@ -85,7 +85,7 @@ const char *Scenario_DisasterName(int32_t type);
 int32_t Scenario_MetricValue(int32_t metric);
 
 /* Active scenario: checked once per in-game year while a custom scenario is running. */
-/* CityTime value for the first tick of a year (matches the historical scenarios' +2 offset). */
+/* CityTime value for the first tick of a year, including a +2 tick offset. */
 int32_t Scenario_StartTicks(int32_t year);
 void Scenario_Activate(const ScenarioDef *def);
 void Scenario_Deactivate(void);
