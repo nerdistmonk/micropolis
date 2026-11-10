@@ -13,6 +13,12 @@ static char city_name_input_buffer[64] = {0};
 #define CITY_TAB_W   87.0f
 #define CITY_TAB_GAP 6.0f
 #define DEALS_STEP_ZONES 1 /* zones added or removed per +/- click on the deals tab */
+#define DEALS_SELL_LABEL "Sell -" /* "-" lowers units, i.e. sells */
+#define DEALS_BUY_LABEL  "Buy +"  /* "+" raises units, i.e. buys */
+#define DEALS_BTN_X 140.0f /* left edge of the buttons, under the Market price */
+#define DEALS_BTN_GAP 6.0f
+#define DEALS_BTN_PAD 8.0f
+#define DEALS_BTN_H 22.0f
 
 static const char *const city_tab_labels[CITY_TAB_COUNT] = {
     "Budget", "Taxes", "Deals", "Evaluation", "Graphs", "City Info"
@@ -102,7 +108,14 @@ static SDL_FRect DealsSideRect(float dx, float dy, int32_t s)
 
 static SDL_FRect DealsAdjustRect(float dx, float dy, int32_t g, bool up)
 {
-    SDL_FRect r = { dx + (up ? 266.0f : 230.0f), dy + 204.0f + (float)g * 54.0f + 24.0f, 28.0f, 22.0f };
+    float sell_w = GUI_ButtonWidth(DEALS_SELL_LABEL, DEALS_BTN_PAD);
+    float x = dx + DEALS_BTN_X;
+    float w = sell_w;
+    if (up) {
+        x += sell_w + DEALS_BTN_GAP;
+        w = GUI_ButtonWidth(DEALS_BUY_LABEL, DEALS_BTN_PAD);
+    }
+    SDL_FRect r = { x, dy + 204.0f + (float)g * 54.0f + 24.0f, w, DEALS_BTN_H };
     return r;
 }
 
@@ -708,8 +721,8 @@ void Dialog_City_Render(SDL_Renderer *renderer)
             int32_t sell = Neighbor_SellPrice(deals_side, g);
 
             GUI_DrawText(renderer, cx, ry, goods_names[g], col_white);
-            snprintf(buf, sizeof(buf), "Market $%d   Buy $%d   Sell $%d per zone/mo",
-                     Neighbor_MidPrice(deals_side, g), buy, sell);
+            snprintf(buf, sizeof(buf), "Market $%d   Sell $%d   Buy $%d per zone/mo",
+                     Neighbor_MidPrice(deals_side, g), sell, buy);
             GUI_DrawText(renderer, cx + 110, ry, buf, col_gray);
 
             SDL_FRect dn = DealsAdjustRect(dx, dy, g, false);
@@ -717,8 +730,8 @@ void Dialog_City_Render(SDL_Renderer *renderer)
             SDL_SetRenderDrawColor(renderer, 40, 50, 70, 255);
             SDL_RenderFillRect(renderer, &dn);
             SDL_RenderFillRect(renderer, &up);
-            GUI_DrawTextCentered(renderer, dn, "-", col_white);
-            GUI_DrawTextCentered(renderer, up, "+", col_white);
+            GUI_DrawTextCentered(renderer, dn, DEALS_SELL_LABEL, col_white);
+            GUI_DrawTextCentered(renderer, up, DEALS_BUY_LABEL, col_white);
 
             int sx = (int)dx + 304;
             if (cap == 0) {
