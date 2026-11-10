@@ -218,6 +218,7 @@ static int16_t GetUnemployment(void)
     int32_t result = (int32_t)((r - 1.0f) * 255.0f);
 
     if (result > 255) result = 255;
+    if (result < 0) result = 0;
 
     return (int16_t)result;
 }
