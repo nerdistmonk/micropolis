@@ -675,7 +675,6 @@ void GenerateSomeCity(int32_t seed);
 void GenerateMap(int32_t seed);
 void ClearMap(void);
 void ClearUnnatural(void);
-void MakeIsland(void);
 void MakeNakedIsland(void);
 void SmoothWater(void);
 

@@ -85,14 +85,12 @@ void GenerateMap(int32_t seed)
 {
     SeedRand(seed);
 
-    if (CreateIsland < 0) {
-        if (Rand(100) < 10) { /* 10% chance for an island */
-            MakeIsland();
-            return;
-        }
+    bool island = CreateIsland == 1;
+    if (CreateIsland < 0 && Rand(100) < 10) { /* 10% chance for an island */
+        island = true;
     }
 
-    if (CreateIsland == 1) {
+    if (island) {
         MakeNakedIsland();
     } else {
         ClearMap();
@@ -174,13 +172,6 @@ void MakeNakedIsland(void)
         MapX = (int16_t)(WORLD_X - 6);
         SRivPlop();
     }
-}
-
-void MakeIsland(void)
-{
-    MakeNakedIsland();
-    SmoothRiver();
-    DoTrees();
 }
 
 static void MakeLakes(void)
