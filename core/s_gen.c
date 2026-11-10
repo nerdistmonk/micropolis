@@ -23,7 +23,7 @@ int16_t Dir = 0;
 int16_t LastDir = 0;
 int32_t TreeLevel = -1;    /* < 0: default random, 0: none, > 0: count */
 int32_t LakeLevel = -1;    /* < 0: default random, 0: none, > 0: count */
-int32_t CurveLevel = -1;   /* < 0: default random, 0: straight, > 0: curviness */
+int32_t CurveLevel = -1;   /* < 0: default random, 0: no rivers, > 0: curviness (1 = straight) */
 int32_t CreateIsland = -1; /* -1: 10% chance, 0: never, 1: always */
 
 /* Forward Declarations of Internal Functions */
@@ -369,7 +369,7 @@ static void DoRivers(void)
 static void DoBRiv(void)
 {
     int16_t r1 = (CurveLevel < 0) ? 100 : (int16_t)(CurveLevel + 10);
-    int16_t r2 = (CurveLevel < 0) ? 200 : (int16_t)(CurveLevel + 100);
+    int16_t r2 = (CurveLevel < 0) ? 95 : (int16_t)(CurveLevel + 100);
 
     while (TestBounds(MapX + 4, MapY + 4)) {
         BRivPlop();
@@ -386,7 +386,7 @@ static void DoBRiv(void)
 static void DoSRiv(void)
 {
     int16_t r1 = (CurveLevel < 0) ? 100 : (int16_t)(CurveLevel + 10);
-    int16_t r2 = (CurveLevel < 0) ? 200 : (int16_t)(CurveLevel + 100);
+    int16_t r2 = (CurveLevel < 0) ? 95 : (int16_t)(CurveLevel + 100);
 
     while (TestBounds(MapX + 3, MapY + 3)) {
         SRivPlop();
