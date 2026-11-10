@@ -1,7 +1,8 @@
 #!/bin/sh
-mkdir .build
-rm -rf .build/*
-cd .build
+set -e
+mkdir -p release
+rm -rf release/*
+cd release
 cmake ..
 cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build . -j 4
