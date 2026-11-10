@@ -23,7 +23,7 @@ int16_t Dir = 0;
 int16_t LastDir = 0;
 int32_t TreeLevel = -1;    /* < 0: default random, 0: none, > 0: count */
 int32_t LakeLevel = -1;    /* < 0: default random, 0: none, > 0: count */
-int32_t CurveLevel = -1;   /* < 0: default random, 0: no rivers, > 0: curviness (1 = straight) */
+int32_t CurveLevel = -1;   /* < 0: default random, 0: no rivers, > 0: curviness */
 int32_t CreateIsland = -1; /* -1: 10% chance, 0: never, 1: always */
 
 /* Forward Declarations of Internal Functions */

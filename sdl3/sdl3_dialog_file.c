@@ -27,7 +27,7 @@ static const char *const terrain_opt_labels[TERRAIN_OPT_COUNT][TERRAIN_OPT_VALUE
 static const int32_t terrain_opt_values[TERRAIN_OPT_COUNT][TERRAIN_OPT_VALUES] = {
     { -1, 0, 35, 100 },
     { -1, 0, 4, 20 },
-    { -1, 0, 1, 50 },
+    { -1, 0, 5, 50 },
     { -1, 0, 1, 0 }
 };
 static const int terrain_opt_count[TERRAIN_OPT_COUNT] = { 4, 4, 4, 3 };
