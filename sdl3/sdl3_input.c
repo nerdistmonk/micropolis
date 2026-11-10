@@ -380,6 +380,11 @@ void Input_ProcessEvents(void)
 
         case SDL_EVENT_WINDOW_FOCUS_LOST:
             EndToolHold();
+            is_dragging = false;
+            left_tool_held = false;
+            right_doze_held = false;
+            last_drag_tile_x = -1;
+            last_drag_tile_y = -1;
             break;
 
         case SDL_EVENT_KEY_DOWN:
@@ -491,7 +496,7 @@ void Input_ProcessEvents(void)
                 if (SDL_GetModState() & SDL_KMOD_SHIFT) {
                     int32_t tx, ty;
                     tool_constraint.active = false;
-                    if (Video_ScreenToTile(event.button.x, event.button.y, &tx, &ty)) {
+                    if (!Help_IsModeActive() && Video_ScreenToTile(event.button.x, event.button.y, &tx, &ty)) {
                         ApplyTool(dozeState, tx, ty, true);
                         last_drag_tile_x = tx;
                         last_drag_tile_y = ty;
