@@ -31,6 +31,8 @@ int16_t unPwrdZCnt = 0;
 int16_t UnwateredZCnt = 0;
 int16_t NewPower = 0;
 int16_t AvCityTax = 0;
+/* Average tax rate of the last completed tax year; -1 until the first year completes. */
+int16_t TaxRateLastYear = -1;
 int16_t Scycle = 0;
 int16_t Fcycle = 0;
 int16_t Spdcycle = 0;
@@ -646,6 +648,10 @@ int32_t CalcTaxFund(void)
 void CollectTax(void)
 {
     if (!TaxFlag) {
+        /* The first collect of a new city runs at tick 0, before any sample exists, so it must not record a year. */
+        if (CityTime >= TAXFREQ) {
+            TaxRateLastYear = (int16_t)(AvCityTax / TAXFREQ);
+        }
         AvCityTax = 0;
         PoliceFund = PolicePop * POLICE_STATION_COST;
         FireFund = FireStPop * FIRE_STATION_COST;
@@ -1234,6 +1240,8 @@ static void SetCommonInits(void)
     LandfillResetCity();
     TaxFlag = 0;
     TaxFund = 0;
+    AvCityTax = 0;
+    TaxRateLastYear = -1;
     DealsIncome = 0;
 }
 

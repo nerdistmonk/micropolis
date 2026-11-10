@@ -779,6 +779,13 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         snprintf(buf, sizeof(buf), "Overall City Score: %d / 1000", CityScore);
         GUI_DrawText(renderer, cx, cy + 55, buf, col_gold);
 
+        if (TaxRateLastYear < 0) {
+            GUI_DrawText(renderer, cx, cy + 75, "Average Tax Collected Prior Year: n/a", col_white);
+        } else {
+            snprintf(buf, sizeof(buf), "Average Tax Collected Prior Year: %d%%", TaxRateLastYear);
+            GUI_DrawText(renderer, cx, cy + 75, buf, col_white);
+        }
+
         GUI_DrawText(renderer, cx, cy + 95, "Key Citizen Grievances:", col_cyan);
 
         static const char *problem_names[] = {

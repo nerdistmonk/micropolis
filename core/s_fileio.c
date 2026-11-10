@@ -26,6 +26,8 @@ extern void ClearMes(void);
 #define HEALTH_SAVE_TAG 0x4854
 /* Marks that MiscHis[72..76] hold landfill funding (72..73), a tag (74), and the stored trash total (75..76). */
 #define LANDFILL_SAVE_TAG 0x4C46
+/* Marks that MiscHis[143..145] hold the tax-year tag (143), the prior-year average tax rate (144, -1 before the first full year), and the running tax sum (145). */
+#define TAXYEAR_SAVE_TAG 0x5459
 /* Marks that MiscHis[118..119] hold recreation funding (118..119) and a tag (120). */
 #define REC_SAVE_TAG 0x5243
 /* Marks that MiscHis[123..138] hold the budget snapshot as eight int32 hi/lo pairs and a tag (139). */
@@ -152,6 +154,10 @@ static void SyncMiscHis(void)
     MiscHis[118] = (int16_t)((rc >> 16) & 0xFFFFu);
     MiscHis[119] = (int16_t)(rc & 0xFFFFu);
     MiscHis[120] = REC_SAVE_TAG;
+
+    MiscHis[143] = TAXYEAR_SAVE_TAG;
+    MiscHis[144] = TaxRateLastYear;
+    MiscHis[145] = AvCityTax;
 
     PutI32Slots(FUNDS_SAVE_BASE + 0, TaxFund);
     PutI32Slots(FUNDS_SAVE_BASE + 2, DealsIncome);
@@ -404,10 +410,17 @@ static void RestoreSimState(void)
     CityScore = MiscHis[17];
     if (CityScore > 999 || CityScore < 1) CityScore = 500;
 
+    if (MiscHis[143] == TAXYEAR_SAVE_TAG) {
+        TaxRateLastYear = MiscHis[144];
+        AvCityTax = MiscHis[145];
+    } else {
+        /* Older images: the year is unknown, so the running sum is seeded from the saved average rate. */
+        TaxRateLastYear = -1;
+        AvCityTax = (int16_t)((CityTime % TAXFREQ) * MiscHis[56]);
+    }
     ResCap = 0;
     ComCap = 0;
     IndCap = 0;
-    AvCityTax = (CityTime % 48) * 7;
 }
 
 /* The power stack is only filled by the map scan, so a load starts with it empty and the first power scan finds no plant. */
