@@ -1237,6 +1237,9 @@ static void SetCommonInits(void)
     firePercent = 1.0f;
     healthPercent = 1.0f;
     recreationPercent = 1.0f;
+    ResTax = 7;
+    ComTax = 7;
+    IndTax = 7;
     LandfillResetCity();
     TaxFlag = 0;
     TaxFund = 0;
