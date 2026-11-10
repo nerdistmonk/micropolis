@@ -408,6 +408,23 @@ static void RestoreSimState(void)
     AvCityTax = (CityTime % 48) * 7;
 }
 
+/* The power stack is only filled by the map scan, so a load starts with it empty and the first power scan finds no plant. */
+static void SeedPowerStackFromWatered(void)
+{
+    PowerStackNum = 0;
+    for (int32_t x = 0; x < WORLD_X; x++) {
+        for (int32_t y = 0; y < WORLD_Y; y++) {
+            uint16_t tile = Map[x][y];
+            uint16_t low = tile & LOMASK;
+            if (!(tile & ZONEBIT) || (low != POWERPLANT && low != NUCLEAR)) continue;
+            if (!WaterPlantSupplied(x, y)) continue;
+            SMapX = (int16_t)x;
+            SMapY = (int16_t)y;
+            PushPowerStack();
+        }
+    }
+}
+
 /* Recounts infrastructure and reruns the derived scans. The loaders set RoadEffect, PoliceEffect, and FireEffect themselves. */
 void CityRescan(void)
 {
@@ -439,6 +456,9 @@ void CityRescan(void)
     FireSpend = (int32_t)((float)FireFund * firePercent);
     LandfillRescan();
 
+    /* Mirrors one sweep: water, then the watered plants seed the power scan, then water again with towers powered. */
+    DoWaterScan();
+    SeedPowerStackFromWatered();
     DoPowerScan();
     DoWaterScan();
     DoNilPower();

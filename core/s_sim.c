@@ -1212,6 +1212,7 @@ void DoNilPower(void)
                 SMapX = x;
                 SMapY = y;
                 CChr = (int16_t)z;
+                CChr9 = (int16_t)(z & LOMASK);
                 SetZPower();
             }
         }
