@@ -32,11 +32,11 @@ static void    DoProblems(void);
 static void    VoteProblems(void);
 static int16_t GetUnemployment(void);
 static int16_t GetFire(void);
-static void    GetScore(void);
+static void    GetScore(bool settle_score);
 static void    DoVotes(void);
 static void    CountParks(void);
 
-void CityEvaluation(void)
+static void EvaluateCity(bool settle_score)
 {
     EvalValid = 0;
     if (TotalPop) {
@@ -44,7 +44,7 @@ void CityEvaluation(void)
         GetAssValue();
         DoPopNum();
         DoProblems();
-        GetScore();
+        GetScore(settle_score);
         DoVotes();
         EvalChanged = 1;
     } else {
@@ -52,6 +52,17 @@ void CityEvaluation(void)
         EvalChanged = 1;
     }
     EvalValid = 1;
+}
+
+void CityEvaluation(void)
+{
+    EvaluateCity(true);
+}
+
+/* A save already holds the settled CityScore. Averaging it again on load would pull it toward the current target. */
+void CityEvaluationAfterLoad(void)
+{
+    EvaluateCity(false);
 }
 
 void EvalInit(void)
@@ -230,7 +241,7 @@ static int16_t GetFire(void)
     return (int16_t)z;
 }
 
-static void GetScore(void)
+static void GetScore(bool settle_score)
 {
     int16_t old_city_score = CityScore;
     int32_t x = 0;
@@ -292,8 +303,12 @@ static void GetScore(void)
     if (z > 1000) z = 1000;
     if (z < 0)    z = 0;
 
-    CityScore = (int16_t)((CityScore + z) / 2);
-    deltaCityScore = (int16_t)(CityScore - old_city_score);
+    if (settle_score) {
+        CityScore = (int16_t)((CityScore + z) / 2);
+        deltaCityScore = (int16_t)(CityScore - old_city_score);
+    } else {
+        deltaCityScore = 0;
+    }
 }
 
 static void DoVotes(void)

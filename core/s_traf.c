@@ -131,10 +131,10 @@ static int32_t TrafAnimInterval(int32_t demand, int32_t capacity)
  * road tiles plus the garages and stations that have road or rail access. Demand is
  * every growing zone plus every placeable building. Excess beyond TRAF_ABSORBED_ZONES
  * is cut from road-connected growing zones, and the cut window rotates at each rush hour.
+ * Returns the rotor for the next rush hour, starting from start_rotor.
  */
-void TrafRushHour(void)
+static int32_t TrafBuildRushState(int32_t start_rotor)
 {
-    TrafRushCount++;
     TrafTally t;
     TrafCountNetwork(&t);
     int32_t growing = t.growing;
@@ -156,7 +156,7 @@ void TrafRushHour(void)
     TrafCapacityZones = capacity;
     TrafAnimEvery = TrafAnimInterval(demand, capacity);
 
-    int32_t rotor = accessible > 0 ? TrafRotor % accessible : 0;
+    int32_t rotor = accessible > 0 ? start_rotor % accessible : 0;
     int32_t ordinal = 0;
     int32_t blocked = 0;
     bool roadFound = false;
@@ -202,11 +202,24 @@ void TrafRushHour(void)
         }
     }
 
-    TrafRotor = accessible > 0 ? (rotor + cut) % accessible : 0;
     TrafProblemUnserviced = blocked;
     TrafProblemZones = growing;
     TrafMaxX = jamFound ? jamX : roadX;
     TrafMaxY = jamFound ? jamY : roadY;
+    return accessible > 0 ? (rotor + cut) % accessible : 0;
+}
+
+/* Rush hour: advances the rotor and counts the rush. */
+void TrafRushHour(void)
+{
+    TrafRushCount++;
+    TrafRotor = TrafBuildRushState(TrafRotor);
+}
+
+/* Seeds the snapshot a loaded city's first rush would produce. TrafRotor and the rush count are not saved and reset on load, so this uses rotor 0 and leaves both alone. */
+void TrafSeedRushState(void)
+{
+    TrafBuildRushState(0);
 }
 
 /* Clears rush-hour state so a new or loaded city does not inherit the previous city's jams. */

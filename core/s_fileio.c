@@ -588,7 +588,9 @@ int32_t LoadCity(const char *filename)
 
     CityRescan();
     RestoreFundSnapshot();
-    CityEvaluation();
+    TrafSeedRushState();
+    CityEvaluationAfterLoad();
+    SeedZoningCaps();
 
     if (CityFileName) free(CityFileName);
     CityFileName = strdup(filename);
@@ -904,7 +906,9 @@ int32_t Scenario_LoadFile(const char *path)
 
     CityRescan();
     RestoreFundSnapshot();
-    CityEvaluation();
+    TrafSeedRushState();
+    CityEvaluationAfterLoad();
+    SeedZoningCaps();
 
     Scenario_Activate(&def);
     News_ResetSession();

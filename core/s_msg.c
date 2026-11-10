@@ -59,6 +59,29 @@ static bool ZonesOverPortCapacity(void)
     return demand > capacity;
 }
 
+static bool ResCapNeeded(void)
+{
+    return (ResPop > 500) && (StadiumPop == 0);
+}
+
+static bool IndCapNeeded(void)
+{
+    return (IndPop > 70) && (PortPop == 0 || ZonesOverPortCapacity());
+}
+
+static bool ComCapNeeded(void)
+{
+    return (ComPop > 100) && (APortPop == 0 || ZonesOverPortCapacity());
+}
+
+/* The cycle sets the caps at ticks 26/28/30, and a load resets them to 0. Load calls this to apply the same tests. */
+void SeedZoningCaps(void)
+{
+    ResCap = ResCapNeeded() ? 1 : 0;
+    IndCap = IndCapNeeded() ? 1 : 0;
+    ComCap = ComCapNeeded() ? 1 : 0;
+}
+
 /* Ticker advisory that repeats while `need` holds. The newspaper gets one story per rising edge. */
 static void Advisory(int16_t mnum, int16_t news_id, bool need)
 {
@@ -189,7 +212,7 @@ void SendMessages(void)
         Advisory(6, NEWS_EVENT_ADV_POWER, (TotalZPop > 10) && (power_pop == 0));
         break;
     case 26: {
-        bool need = (ResPop > 500) && (StadiumPop == 0);
+        bool need = ResCapNeeded();
         Advisory(7, NEWS_EVENT_ADV_STADIUM, need);
         ResCap = need ? 1 : 0;
         break;
@@ -197,7 +220,7 @@ void SendMessages(void)
     case 28: {
         bool need = (IndPop > 70) && (PortPop == 0);
         Advisory(8, NEWS_EVENT_ADV_SEAPORT, need);
-        IndCap = ((IndPop > 70) && (PortPop == 0 || ZonesOverPortCapacity())) ? 1 : 0;
+        IndCap = IndCapNeeded() ? 1 : 0;
         break;
     }
     case 29:
@@ -206,7 +229,7 @@ void SendMessages(void)
     case 30: {
         bool need = (ComPop > 100) && (APortPop == 0);
         Advisory(9, NEWS_EVENT_ADV_AIRPORT, need);
-        ComCap = ((ComPop > 100) && (APortPop == 0 || ZonesOverPortCapacity())) ? 1 : 0;
+        ComCap = ComCapNeeded() ? 1 : 0;
         break;
     }
     case 32:

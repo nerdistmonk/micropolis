@@ -823,6 +823,7 @@ void FireSystemStats(int32_t *capacity, int32_t *demand);
 /* Traffic and Transportation: road capacity model, see s_traf.c */
 int32_t TrafRushHourCount(void);
 void TrafRushHour(void);
+void TrafSeedRushState(void);
 enum { TRAF_LIGHT, TRAF_NORMAL, TRAF_CONGESTED, TRAF_OVERLOADED, TRAF_STATE_COUNT };
 int32_t TrafState(void);
 bool TrafCommuting(void);
@@ -859,6 +860,8 @@ int32_t CalcTaxFund(void);
 void DoBudget(void);
 void ApplyBudgetCommit(void);
 void CityEvaluation(void);
+void CityEvaluationAfterLoad(void);
+void SeedZoningCaps(void);
 void EvalInit(void);
 void GetAssValue(void);
 
