@@ -22,8 +22,6 @@ int16_t ComCap = 0;
 int16_t IndCap = 0;
 int32_t CashFlow = 0;
 float EMarket = 4.0f;
-int16_t DisasterEvent = 0;
-int16_t DisasterWait = 0;
 int16_t ScoreType = 0;
 int16_t ScoreWait = 0;
 int16_t PwrdZCnt = 0;
@@ -1311,7 +1309,6 @@ void Sim_InitEngine(void)
     IndCap = 0;
 
     EMarket = 6.0f;
-    DisasterEvent = 0;
     ScoreType = 0;
     PowerStackNum = 0;
 

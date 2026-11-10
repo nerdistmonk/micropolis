@@ -287,7 +287,6 @@ void Scenario_EditorBegin(void)
     CityTime = Scenario_StartTicks(editor_def.start_year);
     TotalFunds = editor_def.funds;
     NoDisasters = editor_def.disasters ? 0 : 1;
-    DisasterEvent = 0;
     ScenarioID = 0;
     ScoreType = 0;
     ScoreWait = 0;

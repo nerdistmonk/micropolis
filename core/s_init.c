@@ -45,7 +45,6 @@ void ResetCityWorkingState(void)
     MesNum        = 0;
     MessagePort   = 0;
     ValveFlag     = 1;
-    DisasterEvent = 0;
     FloodCnt      = 0;
     TaxFlag       = 0;
 

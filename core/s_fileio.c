@@ -594,7 +594,6 @@ int32_t LoadCity(const char *filename)
     RestoreSimState();
 
     ScenarioID = 0;
-    DisasterEvent = 0;
     ScoreType = 0;
     InitSimLoad = 1;
     DoInitialEval = 0;
@@ -899,7 +898,6 @@ int32_t Scenario_LoadFile(const char *path)
     RestoreSimState();
 
     ScenarioID = 0;
-    DisasterEvent = 0;
     ScoreType = 0;
     ScoreWait = 0;
 

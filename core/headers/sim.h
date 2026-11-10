@@ -584,8 +584,6 @@ extern int16_t autoBudget;
 extern int16_t autoGo;
 extern int16_t UserSoundOn;
 
-extern int16_t DisasterEvent;
-extern int16_t DisasterWait;
 extern int16_t FloodCnt;
 extern int16_t ResCap, ComCap, IndCap;
 extern int16_t RValve, CValve, IValve;

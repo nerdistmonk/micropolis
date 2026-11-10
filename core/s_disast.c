@@ -181,35 +181,6 @@ static void DropFireBombs(void)
     }
 }
 
-static void LegacyScenarioDisaster(void)
-{
-    switch (DisasterEvent) {
-    case 2: /* San Francisco */
-        if (DisasterWait == 1) MakeEarthquake();
-        break;
-    case 3: /* Hamburg */
-        DropFireBombs();
-        break;
-    case 5: /* Tokyo */
-        if (DisasterWait == 1) MakeMonster();
-        break;
-    case 7: /* Boston */
-        if (DisasterWait == 1) MakeMeltdown();
-        break;
-    case 8: /* Rio */
-        if ((DisasterWait % 24) == 0) MakeFlood();
-        break;
-    default:
-        break;
-    }
-
-    if (DisasterWait) {
-        DisasterWait--;
-    } else {
-        DisasterEvent = 0;
-    }
-}
-
 void TriggerDisaster(int32_t kind)
 {
     switch (kind) {
@@ -229,8 +200,6 @@ void DoDisasters(void)
     static const int16_t DisChance[3] = { 10 * 48, 5 * 48, 60 };
 
     if (FloodCnt > 0) FloodCnt--;
-
-    if (DisasterEvent) LegacyScenarioDisaster();
 
     int16_t lvl = GameLevel;
     if (lvl > 2 || lvl < 0) lvl = 0;
