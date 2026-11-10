@@ -5,9 +5,10 @@
  *
  * Modernized to C11 / C17 for headless execution and SDL3 integration.
  *
- * The road network is one pooled entity. Each road tile adds a tenth of a zone of
- * capacity, and each parking garage or passenger station adds more. Every zone and
- * placeable building adds demand. Up to TRAF_ABSORBED_ZONES over capacity only congests traffic.
+ * The road network is one pooled entity. Every ten road tiles add one zone of capacity,
+ * rounded down across the whole network, and each parking garage or passenger station
+ * adds more. Every zone and placeable building adds demand. Up to TRAF_ABSORBED_ZONES
+ * over capacity only congests traffic.
  * Beyond that, road-connected growing zones go unserviced, and that set rotates at each rush hour.
  * Other buildings keep working. Road pollution follows the congestion tier: negligible below
  * capacity, moderate at capacity, and worst once gridlocked.
