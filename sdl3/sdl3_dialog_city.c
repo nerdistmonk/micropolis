@@ -127,7 +127,7 @@ static void SnapshotBudgetState(void)
     for (int r = 0; r < 3; r++) budget_snap_tax[r] = *TaxRateForRow(r);
 }
 
-static void RestoreBudgetState(void)
+void Dialog_City_Cancel(void)
 {
     roadPercent = budget_snap_road_percent;
     policePercent = budget_snap_police_percent;
@@ -201,6 +201,7 @@ bool Dialog_City_HandleClick(float mx, float my)
 
     if (mx >= dx + dw - 32.0f && mx <= dx + dw - 8.0f &&
         my >= dy + 8.0f && my <= dy + 32.0f) {
+        Dialog_City_Cancel();
         GUI_Dialogs_Close();
         return true;
     }
@@ -297,7 +298,7 @@ bool Dialog_City_HandleClick(float mx, float my)
 
         SDL_FRect cancel_btn = BudgetCancelRect(dx, dy);
         if (CityRectHit(&cancel_btn, mx, my)) {
-            RestoreBudgetState();
+            Dialog_City_Cancel();
             GUI_Dialogs_Close();
             return true;
         }

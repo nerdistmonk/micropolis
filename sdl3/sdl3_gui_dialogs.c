@@ -156,6 +156,7 @@ bool GUI_Dialogs_HandleKeyDown(SDL_Keycode key)
     if (active_modal == GUI_MODAL_EDITOR && Dialog_Editor_HandleKeyDown(key)) return true;
 
     if (key == SDLK_ESCAPE) {
+        if (active_modal == GUI_MODAL_CITY_MGMT) Dialog_City_Cancel();
         GUI_Dialogs_Close();
         return true;
     }

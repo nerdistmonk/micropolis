@@ -605,11 +605,7 @@ void ApplyBudgetCommit(void)
         CashFlow = (int16_t)(TaxFund - (PoliceSpend + FireSpend + RoadSpend + HealthSpend + RecSpend + LandfillSpend));
         DoBudget();
     } else {
-        RoadEffect = 32;
-        PoliceEffect = 1000;
-        FireEffect = 1000;
-        HealthEffect = 1000;
-        RecEffect = 1000;
+        UpdateFundEffects();
     }
 }
 

@@ -39,6 +39,7 @@ static inline float DialogCenteredY(float height)
 /* City Management (Budget, Taxes, Evaluation, Graphs, City Info) */
 void Dialog_City_Open(CityMgmtTab tab);
 void Dialog_City_Reset(void);
+void Dialog_City_Cancel(void);
 bool Dialog_City_HandleClick(float mx, float my);
 bool Dialog_City_HandleKeyDown(SDL_Keycode key);
 bool Dialog_City_HandleTextInput(const char *text);
