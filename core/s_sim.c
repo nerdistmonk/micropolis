@@ -1196,6 +1196,8 @@ void DoMeltdown(int32_t sx, int32_t sy)
         uint16_t t = Map[x][y];
         if (t & ZONEBIT) continue;
         if ((t & BURNBIT) || (t == 0)) {
+            /* A plant footprint reached by radiation detonates first, so the tile burns instead of turning to radiation. */
+            if ((t & BURNBIT) && PlantCaughtFire(x, y)) continue;
             Map[x][y] = RADTILE;
         }
     }
