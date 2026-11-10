@@ -157,7 +157,7 @@ typedef int32_t QUAD;
 #define EXP 7
 #define BUS 8
 #define OBJN 9
-#define EXP_SLOTS 64
+#define EXP_SLOTS 256
 #define TRA_SLOTS 24
 /* Most trains one linked neighbour side can run at once, matching the largest per-side count in s_sprite.c. */
 #define NB_TRAINS_PER_SIDE 2
