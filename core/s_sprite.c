@@ -701,9 +701,9 @@ static void StepShip(SimSprite *s)
             return;
         }
 
-        int32_t tem = Rand16() & 7;
+        int32_t start_dir = Rand16() & 7;
         int32_t pem;
-        for (pem = tem; pem < tem + 8; pem++) {
+        for (pem = start_dir; pem < start_dir + 8; pem++) {
             int32_t z = (pem & 7) + 1;
             if (z == s->dir) continue;
 
@@ -721,7 +721,7 @@ static void StepShip(SimSprite *s)
                 }
             }
         }
-        if (pem == tem + 8) {
+        if (pem == start_dir + 8) {
             s->dir = 10;
             s->new_dir = (Rand16() & 7) + 1;
         }
