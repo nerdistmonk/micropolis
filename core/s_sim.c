@@ -68,7 +68,6 @@ static void DoFire(void);
 static void DrawStadium(int32_t z);
 static void DoAirport(void);
 static void CoalSmoke(int32_t mx, int32_t my);
-static void UpdateFundEffects(void);
 
 /* PRNG state */
 static uint32_t sim_next_rand = 1;
@@ -690,7 +689,7 @@ void DoBudget(void)
     UpdateFundEffects();
 }
 
-static void UpdateFundEffects(void)
+void UpdateFundEffects(void)
 {
     RoadEffect = RoadFund > 0
         ? (int16_t)(((float)RoadSpend / (float)RoadFund) * 32.0f)

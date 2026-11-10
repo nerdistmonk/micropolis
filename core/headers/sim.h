@@ -859,6 +859,7 @@ int16_t GetAverageTaxRate(void);
 int32_t CalcTaxFund(void);
 void DoBudget(void);
 void ApplyBudgetCommit(void);
+void UpdateFundEffects(void);
 void CityEvaluation(void);
 void CityEvaluationAfterLoad(void);
 void SeedZoningCaps(void);

@@ -366,6 +366,8 @@ static void RestoreFundSnapshot(void)
         ResetUncountedFunds();
     }
     RecomputeFundSpends();
+    /* Effects follow spend/fund as the live budget does. Percent-based values differ for zero funds. */
+    UpdateFundEffects();
 }
 
 /* A city built from nothing starts with no uncounted budget. The editor calls this so its saves do not carry the previous city's. */
