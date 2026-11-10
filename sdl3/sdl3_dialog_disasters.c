@@ -3,10 +3,6 @@
 
 #include "sdl3_dialog_common.h"
 
-void Dialog_Disasters_Open(void)
-{
-}
-
 bool Dialog_Disasters_HandleClick(float mx, float my)
 {
     float dw = 424.0f;

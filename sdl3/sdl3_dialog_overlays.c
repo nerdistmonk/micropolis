@@ -74,10 +74,6 @@ static const char *OverlayName(OverlayViewMode mode)
     return "Normal View";
 }
 
-void Dialog_Overlays_Open(void)
-{
-}
-
 bool Dialog_Overlays_HandleClick(float mx, float my)
 {
     float dw = OVERLAY_DLG_W;

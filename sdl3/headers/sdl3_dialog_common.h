@@ -96,12 +96,10 @@ bool Dialog_Editor_HandleTextInput(const char *text);
 void Dialog_Editor_Render(SDL_Renderer *renderer);
 
 /* Map Overlays */
-void Dialog_Overlays_Open(void);
 bool Dialog_Overlays_HandleClick(float mx, float my);
 void Dialog_Overlays_Render(SDL_Renderer *renderer);
 
 /* Disasters */
-void Dialog_Disasters_Open(void);
 bool Dialog_Disasters_HandleClick(float mx, float my);
 void Dialog_Disasters_Render(SDL_Renderer *renderer);
 

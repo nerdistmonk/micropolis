@@ -33,7 +33,6 @@ void GUI_Dialogs_OpenAnnualBudget(void)
 void GUI_Dialogs_OpenOverlays(void)
 {
     active_modal = GUI_MODAL_OVERLAYS;
-    Dialog_Overlays_Open();
 }
 
 void GUI_Dialogs_OpenFile(FileDialogTab initial_tab)
@@ -45,7 +44,6 @@ void GUI_Dialogs_OpenFile(FileDialogTab initial_tab)
 void GUI_Dialogs_OpenDisasters(void)
 {
     active_modal = GUI_MODAL_DISASTERS;
-    Dialog_Disasters_Open();
 }
 
 void GUI_Dialogs_OpenNews(void)
