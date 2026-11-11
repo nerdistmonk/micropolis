@@ -1,8 +1,6 @@
 # Micropolis Evolution
 
-Micropolis is a city simulation game. Zone land, lay roads, rail, power lines, and water pipes, provide services, and manage the growth, traffic, pollution, and disasters your decisions create.
-
-This is the devworks branch: a port of the original Micropolis Unix source from 1989 C to modern C. The simulation engine is kept separate from the frontend, which uses SDL3 on GNU/Linux.
+Micropolis Evolution is a city simulation game. Zone land, lay roads, rail, power lines, and water pipes, provide services, and manage the growth, traffic, pollution, and disasters your decisions create.
 
 ![Micropolis gameplay](shot.png)
 
