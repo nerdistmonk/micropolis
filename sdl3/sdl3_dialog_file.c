@@ -562,7 +562,7 @@ void Dialog_File_Render(SDL_Renderer *renderer)
         DrawOptionRow(renderer, cx, opt_x, (int)opt_y + 350, "Autumn Colors (Seasonal Trees)", Settings_GetAutumnColor());
     } else if (active_file_tab == FILE_TAB_ABOUT) {
         static const char *about_lines[] = {
-            "Micropolis Version 5.0 Copyright (C) 2026",
+            "Micropolis Version 7.0 Copyright (C) 1989-2026",
             "by Electronic Arts.",
             "",
             "Based on the original Micropolis concept and design",
@@ -576,7 +576,7 @@ void Dialog_File_Render(SDL_Renderer *renderer)
             "Licensed under the GNU General Public License,",
             "version 3, with additional conditions."
         };
-        GUI_DrawText(renderer, cx, cy, "ABOUT MICROPOLIS", col_gold);
+        GUI_DrawText(renderer, cx, cy, "ABOUT MICROPOLIS EVOLUTION", col_gold);
         for (size_t i = 0; i < sizeof(about_lines) / sizeof(about_lines[0]); i++) {
             GUI_DrawText(renderer, cx + 10, cy + 40 + (int)i * 22, about_lines[i], col_white);
         }
