@@ -1349,6 +1349,21 @@ static void ClearCityMemory(void)
     }
 }
 
+/* Empties the 10-year graph histories so an old city cannot leak into a new map or a scenario saved from one. */
+void ResetGraphHistory(void)
+{
+    for (int16_t x = 0; x < 240; x++) {
+        ResHis[x] = 0;
+        ComHis[x] = 0;
+        IndHis[x] = 0;
+        MoneyHis[x] = 128;
+        CrimeHis[x] = 0;
+        PollutionHis[x] = 0;
+        TrafDensHis[x] = 0;
+        PopDensHis[x] = 0;
+    }
+}
+
 void Sim_InitEngine(void)
 {
     AllocateMapBuffers();
@@ -1364,16 +1379,7 @@ void Sim_InitEngine(void)
     News_ResetSession();
     Neighbor_Reset();
 
-    for (int16_t x = 0; x < 240; x++) {
-        ResHis[x] = 0;
-        ComHis[x] = 0;
-        IndHis[x] = 0;
-        MoneyHis[x] = 128;
-        CrimeHis[x] = 0;
-        PollutionHis[x] = 0;
-        TrafDensHis[x] = 0;
-        PopDensHis[x] = 0;
-    }
+    ResetGraphHistory();
 
     CrimeRamp = 0;
     PolluteRamp = 0;

@@ -665,6 +665,7 @@ int16_t Rand16Signed(void);
 
 /* Lifecycle and Simulation Loop */
 void Sim_InitEngine(void);
+void ResetGraphHistory(void);
 void Sim_RegisterCallbacks(const SimCallbacks *cb);
 void News_ResetSession(void);
 void SimFrame(void);

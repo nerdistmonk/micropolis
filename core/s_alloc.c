@@ -52,7 +52,7 @@ int32_t CityTime = 0;
 int16_t StartingYear = 1900;
 int16_t GameLevel = 0;
 int16_t Cycle = 0;
-char *MicropolisVersion = "4.0";
+char *MicropolisVersion = "7.0";
 char CityName[64] = "Micropolis";
 char *CityFileName = NULL;
 

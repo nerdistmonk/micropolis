@@ -278,6 +278,8 @@ void Scenario_EditorBegin(void)
 
     ClearMap();
     ResetCityWorkingState();
+    ResetMilestoneState();
+    ResetGraphHistory();
 
     free(CityFileName);
     CityFileName = NULL;

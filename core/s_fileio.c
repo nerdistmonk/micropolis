@@ -662,6 +662,7 @@ int32_t LoadCity(const char *filename)
     SetGameLevel(level);
 
     ResetCityWorkingState();
+    ResetMilestoneState();
     Neighbor_LoadMisc();
     RestoreSimState();
 
@@ -972,6 +973,7 @@ int32_t Scenario_LoadFile(const char *path)
 
     SetGameLevel(0);
     ResetCityWorkingState();
+    ResetMilestoneState();
     Neighbor_LoadMisc();
     CityTime = Scenario_StartTicks(def.start_year);
     TotalFunds = def.funds;
