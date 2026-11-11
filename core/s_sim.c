@@ -594,6 +594,48 @@ static void Take2Census(void)
     CensusChanged = 1;
 }
 
+static int32_t LoanShare(void)
+{
+    return LoanPrincipal / LOAN_TERM_YEARS;
+}
+
+int32_t LoanPrincipalDue(void)
+{
+    int32_t share = LoanShare();
+    return LoanBalance < share ? LoanBalance : share;
+}
+
+int32_t LoanInterestDue(void)
+{
+    return LoanBalance > 0 ? LoanShare() : 0;
+}
+
+bool Loan_Take(int32_t amount)
+{
+    if (LoanBalance > 0 || amount < LOAN_STEP || amount > LOAN_MAX || amount % LOAN_STEP) return false;
+    LoanPrincipal = amount;
+    LoanBalance = amount;
+    TotalFunds += amount;
+    MustUpdateFunds = 1;
+    if (EngineCallbacks.update_funds) {
+        EngineCallbacks.update_funds(TotalFunds);
+    }
+    return true;
+}
+
+int32_t Loan_TakeInstallment(void)
+{
+    if (LoanBalance <= 0) return 0;
+    int32_t principal = LoanPrincipalDue();
+    int32_t interest = LoanInterestDue();
+    LoanBalance -= principal;
+    if (LoanBalance <= 0) {
+        LoanBalance = 0;
+        LoanPrincipal = 0;
+    }
+    return principal + interest;
+}
+
 void ApplyBudgetCommit(void)
 {
     RoadSpend = (int32_t)((float)RoadFund * roadPercent);
@@ -603,8 +645,16 @@ void ApplyBudgetCommit(void)
     RecSpend = (int32_t)((float)RecFund * recreationPercent);
     LandfillSpend = (int32_t)((float)LandfillFund * landfillPercent);
 
+    int32_t netCash = TotalPop
+        ? TaxFund - (PoliceSpend + FireSpend + RoadSpend + HealthSpend + RecSpend + LandfillSpend)
+        : 0;
+    int32_t due = LoanPrincipalDue() + LoanInterestDue();
+    int32_t installment = (due > 0 && TotalFunds + netCash >= due) ? Loan_TakeInstallment() : 0;
     if (TotalPop) {
-        CashFlow = TaxFund - (PoliceSpend + FireSpend + RoadSpend + HealthSpend + RecSpend + LandfillSpend);
+        CashFlow = netCash - installment;
+        DoBudget();
+    } else if (installment) {
+        CashFlow = -installment;
         DoBudget();
     } else {
         UpdateFundEffects();
@@ -1244,6 +1294,8 @@ static void SetCommonInits(void)
     AvCityTax = 0;
     TaxRateLastYear = -1;
     DealsIncome = 0;
+    LoanPrincipal = 0;
+    LoanBalance = 0;
 }
 
 static void ClearCityMemory(void)

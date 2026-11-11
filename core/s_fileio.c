@@ -38,6 +38,10 @@ extern void ClearMes(void);
 #define RESPOP_SAVE_TAG 0x5250
 #define RESPOP_SAVE_BASE 140
 #define RESPOP_SAVE_TAG_SLOT 142
+/* Marks that MiscHis[146..149] hold the loan amount (146..147) and principal still owed (148..149) as int32 hi/lo pairs, and a tag (150). */
+#define LOAN_SAVE_TAG 0x4C4E
+#define LOAN_SAVE_BASE 146
+#define LOAN_SAVE_TAG_SLOT 150
 
 /* A city image is the header streams, then the misc block, then the 120x100 map. Legacy images stored 120 misc slots. */
 #define CITY_IMAGE_BYTES(misc) (6 * (HISTLEN / 2) * sizeof(int16_t) + (misc) * sizeof(int16_t) + WORLD_X * WORLD_Y * sizeof(uint16_t))
@@ -170,6 +174,9 @@ static void SyncMiscHis(void)
     MiscHis[FUNDS_SAVE_TAG_SLOT] = FUNDS_SAVE_TAG;
     PutI32Slots(RESPOP_SAVE_BASE, ResPop);
     MiscHis[RESPOP_SAVE_TAG_SLOT] = RESPOP_SAVE_TAG;
+    PutI32Slots(LOAN_SAVE_BASE, LoanPrincipal);
+    PutI32Slots(LOAN_SAVE_BASE + 2, LoanBalance);
+    MiscHis[LOAN_SAVE_TAG_SLOT] = LOAN_SAVE_TAG;
     Neighbor_SyncMisc();
 }
 
@@ -376,17 +383,26 @@ static void RestoreFundSnapshot(void)
     UpdateFundEffects();
 }
 
-/* A city built from nothing starts with no uncounted budget. The editor calls this so its saves do not carry the previous city's. */
+/* A city built from nothing starts with no uncounted budget or loan. The editor calls this so its saves do not carry the previous city's. */
 void ResetBudgetForNewCity(void)
 {
     ResetUncountedFunds();
     RecomputeFundSpends();
+    LoanPrincipal = 0;
+    LoanBalance = 0;
 }
 
 static void RestoreSimState(void)
 {
     EMarket = (float)MiscHis[1];
     if (!EMarket) EMarket = 4.0f;
+    if (MiscHis[LOAN_SAVE_TAG_SLOT] == LOAN_SAVE_TAG) {
+        LoanPrincipal = GetI32Slots(LOAN_SAVE_BASE);
+        LoanBalance = GetI32Slots(LOAN_SAVE_BASE + 2);
+    } else {
+        LoanPrincipal = 0;
+        LoanBalance = 0;
+    }
     if (MiscHis[RESPOP_SAVE_TAG_SLOT] == RESPOP_SAVE_TAG) {
         ResPop = GetI32Slots(RESPOP_SAVE_BASE);
     } else {

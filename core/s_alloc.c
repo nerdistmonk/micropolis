@@ -115,6 +115,9 @@ int16_t HealthEffect = 1000;
 int16_t RecEffect = 1000;
 int32_t TaxFund = 0;
 int32_t DealsIncome = 0;
+/* LoanPrincipal is the amount borrowed and LoanBalance is the principal still owed. Both are 0 when there is no loan. */
+int32_t LoanPrincipal = 0;
+int32_t LoanBalance = 0;
 int16_t ResTax = 7;
 int16_t ComTax = 7;
 int16_t IndTax = 7;

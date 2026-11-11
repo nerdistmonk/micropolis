@@ -38,6 +38,7 @@ static int16_t budget_snap_health_effect;
 static float budget_snap_recreation_percent;
 static int16_t budget_snap_recreation_effect;
 static int16_t budget_snap_tax[3];
+static int32_t loan_amount = LOAN_MAX;
 
 static bool CityRectHit(const SDL_FRect *r, float x, float y)
 {
@@ -64,6 +65,18 @@ static SDL_FRect BudgetApplyRect(float dx, float dy)
 static SDL_FRect TaxButtonRect(float dx, float dy, int row, bool up)
 {
     SDL_FRect r = { dx + (up ? 300.0f : 240.0f), dy + 125.0f + ((float)row * 36.0f), 40.0f, 28.0f };
+    return r;
+}
+
+static SDL_FRect LoanAdjustRect(float dx, float dy, bool up)
+{
+    SDL_FRect r = { dx + (up ? 440.0f : 400.0f), dy + 381.0f, 30.0f, 22.0f };
+    return r;
+}
+
+static SDL_FRect LoanBorrowRect(float dx, float dy)
+{
+    SDL_FRect r = { dx + 480.0f, dy + 381.0f, 80.0f, 22.0f };
     return r;
 }
 
@@ -335,6 +348,22 @@ bool Dialog_City_HandleClick(float mx, float my)
                 if (*rate < 20) (*rate)++;
                 return true;
             }
+        }
+
+        SDL_FRect loan_dn = LoanAdjustRect(dx, dy, false);
+        SDL_FRect loan_up = LoanAdjustRect(dx, dy, true);
+        SDL_FRect loan_go = LoanBorrowRect(dx, dy);
+        if (CityRectHit(&loan_dn, mx, my)) {
+            if (loan_amount > LOAN_STEP) loan_amount -= LOAN_STEP;
+            return true;
+        }
+        if (CityRectHit(&loan_up, mx, my)) {
+            if (loan_amount < LOAN_MAX) loan_amount += LOAN_STEP;
+            return true;
+        }
+        if (CityRectHit(&loan_go, mx, my)) {
+            Loan_Take(loan_amount);
+            return true;
         }
     }
 
@@ -631,7 +660,8 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         GUI_DrawText(renderer, (int)rc_dn.x + 10, (int)rc_dn.y + 3, "-", col_white);
         GUI_DrawText(renderer, (int)rc_up.x + 10, (int)rc_up.y + 3, "+", col_white);
 
-        int32_t expenses = (int32_t)((float)RoadFund * roadPercent) + (int32_t)((float)PoliceFund * policePercent) + (int32_t)((float)FireFund * firePercent) + (int32_t)((float)HealthFund * healthPercent) + (int32_t)((float)RecFund * recreationPercent) + (int32_t)((float)LandfillFund * landfillPercent);
+        int32_t loan_due = LoanPrincipalDue() + LoanInterestDue();
+        int32_t expenses = (int32_t)((float)RoadFund * roadPercent) + (int32_t)((float)PoliceFund * policePercent) + (int32_t)((float)FireFund * firePercent) + (int32_t)((float)HealthFund * healthPercent) + (int32_t)((float)RecFund * recreationPercent) + (int32_t)((float)LandfillFund * landfillPercent) + loan_due;
         int32_t net = TaxFund + DealsIncome - expenses;
         snprintf(buf, sizeof(buf), "Tax Revenue: $%d  Deals: %+d", TaxFund, DealsIncome);
         GUI_DrawText(renderer, cx, cy + 330, buf, col_white);
@@ -682,6 +712,35 @@ void Dialog_City_Render(SDL_Renderer *renderer)
         } else {
             GUI_DrawText(renderer, cx, cy + 180, "Status: Balanced tax rate.", col_gray);
         }
+
+        GUI_DrawText(renderer, cx, cy + 216, "BANK LOAN", col_gold);
+        snprintf(buf, sizeof(buf), "Borrow up to $%d. Repay $%d a year: $%d principal, $%d interest.",
+                 LOAN_MAX, LOAN_MAX / 10, LOAN_MAX / 20, LOAN_MAX / 20);
+        GUI_DrawText(renderer, cx, cy + 242, buf, col_gray);
+
+        int32_t loan_next = LoanPrincipalDue() + LoanInterestDue();
+        if (LoanBalance > 0) {
+            snprintf(buf, sizeof(buf), "Owed: $%d. Next payment: $%d ($%d principal, $%d interest).",
+                     LoanBalance, loan_next, LoanPrincipalDue(), LoanInterestDue());
+            GUI_DrawText(renderer, cx, cy + 262, buf, col_white);
+        } else {
+            GUI_DrawText(renderer, cx, cy + 262, "No loan outstanding.", col_green);
+        }
+
+        bool loan_free = LoanBalance <= 0;
+        snprintf(buf, sizeof(buf), "Amount: $%d", loan_amount);
+        GUI_DrawText(renderer, cx, cy + 290, buf, col_white);
+        SDL_FRect loan_dn = LoanAdjustRect(dx, dy, false);
+        SDL_FRect loan_up = LoanAdjustRect(dx, dy, true);
+        SDL_FRect loan_go = LoanBorrowRect(dx, dy);
+        SDL_SetRenderDrawColor(renderer, 40, 50, 70, 255);
+        SDL_RenderFillRect(renderer, &loan_dn);
+        SDL_RenderFillRect(renderer, &loan_up);
+        GUI_DrawText(renderer, (int)loan_dn.x + 10, (int)loan_dn.y + 3, "-", col_white);
+        GUI_DrawText(renderer, (int)loan_up.x + 10, (int)loan_up.y + 3, "+", col_white);
+        SDL_SetRenderDrawColor(renderer, loan_free ? 40 : 30, loan_free ? 90 : 36, loan_free ? 70 : 44, 255);
+        SDL_RenderFillRect(renderer, &loan_go);
+        GUI_DrawTextCentered(renderer, loan_go, "Borrow", loan_free ? col_white : col_gray);
 
     } else if (active_city_tab == CITY_TAB_DEALS) {
         char buf[160];

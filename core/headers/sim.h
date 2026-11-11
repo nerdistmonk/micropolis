@@ -535,6 +535,7 @@ extern int16_t LandfillPop;
 extern bool LandfillAtCapacity;
 extern int32_t RoadSpend, PoliceSpend, FireSpend, HealthSpend, RecSpend;
 extern int32_t TaxFund, DealsIncome, RoadFund, PoliceFund, FireFund, HealthFund, RecFund;
+extern int32_t LoanPrincipal, LoanBalance;
 extern int16_t RoadEffect, PoliceEffect, FireEffect, HealthEffect, RecEffect;
 #define POLICE_STATION_COST 60
 #define FIRE_STATION_COST   60
@@ -853,6 +854,13 @@ int16_t GetAverageTaxRate(void);
 int32_t CalcTaxFund(void);
 void DoBudget(void);
 void ApplyBudgetCommit(void);
+#define LOAN_MAX 10000
+#define LOAN_STEP 1000
+#define LOAN_TERM_YEARS 20
+bool Loan_Take(int32_t amount);
+int32_t LoanPrincipalDue(void);
+int32_t LoanInterestDue(void);
+int32_t Loan_TakeInstallment(void);
 void UpdateFundEffects(void);
 void CityEvaluation(void);
 void CityEvaluationAfterLoad(void);
