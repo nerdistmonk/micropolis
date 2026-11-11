@@ -9,6 +9,7 @@
 #include "sdl3_settings.h"
 #include "sdl3_splash.h"
 #include "sdl3_audio.h"
+#include "sdl3_screenshot.h"
 #include "sim.h"
 #include "scenario.h"
 #include <SDL3/SDL.h>
@@ -449,6 +450,9 @@ void Input_ProcessEvents(void)
                     GUI_ShowStatus("Quickload failed: quicksave.cot missing or unreadable");
                     Audio_MakeSound("warning", "Sorry -speed 85");
                 }
+                break;
+            case SDLK_F12:
+                if (!event.key.repeat) Screenshot_Request();
                 break;
 
             case SDLK_LEFT:

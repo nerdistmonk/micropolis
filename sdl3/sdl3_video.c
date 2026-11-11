@@ -6,6 +6,7 @@
 #include "sdl3_season.h"
 #include "sdl3_gui.h"
 #include "sdl3_splash.h"
+#include "sdl3_screenshot.h"
 #include "sim.h"
 #include "sdl3_paths.h"
 #include <stdio.h>
@@ -1198,6 +1199,7 @@ static void PresentCanvas(void)
   float scale = 0.0f;
   ComputeLetterbox((float)out_pw, (float)out_ph, &dst, &scale);
   SDL_RenderTexture(video_renderer, canvas_texture, NULL, &dst);
+  Screenshot_CaptureIfRequested(video_renderer);
   SDL_RenderPresent(video_renderer);
 }
 

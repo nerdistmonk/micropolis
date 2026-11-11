@@ -40,6 +40,7 @@ If the requested file cannot be loaded, an error is printed to stderr and a gene
 | F1 | Toggle help mode |
 | F7 | Quick save to `quicksave.cot` |
 | F8 | Quick load from `quicksave.cot` |
+| F12 | Save a screenshot as `micropolis-YYYYMMDD-HHMMSS-mmm.png` in the working directory |
 | Esc | Quit (asks for confirmation) |
 
 ### Mouse
