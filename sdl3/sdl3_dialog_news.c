@@ -177,6 +177,11 @@ static const NewsGameHeadline game_headlines[] = {
     { NEWS_EVENT_ADV_HOSPITAL, "Citizens demand a hospital, and the sick have nowhere to go" },
     { NEWS_EVENT_ADV_PORT_CAPACITY, "Ports and airports overwhelmed as the city outgrows their capacity" },
     { NEWS_EVENT_JOBS_BOOM, "Employers struggle to fill jobs as the job market booms" },
+    { NEWS_EVENT_LEVEL_TOWN, "Village incorporates as a Town, council awards $1,000" },
+    { NEWS_EVENT_LEVEL_CITY, "Town grows into a City, council awards $2,000" },
+    { NEWS_EVENT_LEVEL_CAPITAL, "City named state Capital, council awards $3,000" },
+    { NEWS_EVENT_LEVEL_METROPOLIS, "City swells into a Metropolis, council awards $5,000" },
+    { NEWS_EVENT_LEVEL_MEGALOPOLIS, "Metropolis becomes a Megalopolis, council awards $10,000" },
 };
 
 typedef struct {

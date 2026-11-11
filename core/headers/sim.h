@@ -463,6 +463,13 @@ typedef struct SimCallbacks {
 /* Newspaper-only: a job surplus has no ticker counterpart. */
 #define NEWS_EVENT_JOBS_BOOM        131
 
+/* Newspaper-only: a city reaching a class for the first time. Village has no article. */
+#define NEWS_EVENT_LEVEL_TOWN        132
+#define NEWS_EVENT_LEVEL_CITY        133
+#define NEWS_EVENT_LEVEL_CAPITAL     134
+#define NEWS_EVENT_LEVEL_METROPOLIS  135
+#define NEWS_EVENT_LEVEL_MEGALOPOLIS 136
+
 /* Engine Global Variables */
 extern uint16_t *Map[WORLD_X];
 extern Byte *PopDensity[HWLDX];
@@ -594,6 +601,7 @@ extern int16_t PwrdZCnt, unPwrdZCnt, UnwateredZCnt;
 
 extern int16_t CityScore, deltaCityScore;
 extern int16_t CityClass;
+extern int16_t CityClassHigh;
 extern int32_t PowerStackNum;
 extern int16_t TrafficAverage;
 extern int32_t absDist;

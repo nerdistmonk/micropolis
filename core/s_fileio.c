@@ -42,6 +42,10 @@ extern void ClearMes(void);
 #define LOAN_SAVE_TAG 0x4C4E
 #define LOAN_SAVE_BASE 146
 #define LOAN_SAVE_TAG_SLOT 150
+/* Marks that MiscHis[151] holds the highest city class reached, which gates level-up rewards, and a tag (152). */
+#define CLASSHIGH_SAVE_TAG 0x4C56
+#define CLASSHIGH_SAVE_SLOT 151
+#define CLASSHIGH_SAVE_TAG_SLOT 152
 
 /* A city image is the header streams, then the misc block, then the 120x100 map. Legacy images stored 120 misc slots. */
 #define CITY_IMAGE_BYTES(misc) (6 * (HISTLEN / 2) * sizeof(int16_t) + (misc) * sizeof(int16_t) + WORLD_X * WORLD_Y * sizeof(uint16_t))
@@ -177,6 +181,8 @@ static void SyncMiscHis(void)
     PutI32Slots(LOAN_SAVE_BASE, LoanPrincipal);
     PutI32Slots(LOAN_SAVE_BASE + 2, LoanBalance);
     MiscHis[LOAN_SAVE_TAG_SLOT] = LOAN_SAVE_TAG;
+    MiscHis[CLASSHIGH_SAVE_SLOT] = CityClassHigh;
+    MiscHis[CLASSHIGH_SAVE_TAG_SLOT] = CLASSHIGH_SAVE_TAG;
     Neighbor_SyncMisc();
 }
 
@@ -423,6 +429,10 @@ static void RestoreSimState(void)
 
     CityClass = MiscHis[16];
     if (CityClass > 5 || CityClass < 0) CityClass = 0;
+    /* Saves without the tag (older builds) count the current class as already reached, so loading never pays past rewards. */
+    CityClassHigh = (MiscHis[CLASSHIGH_SAVE_TAG_SLOT] == CLASSHIGH_SAVE_TAG) ? MiscHis[CLASSHIGH_SAVE_SLOT] : 0;
+    if (CityClassHigh > 5 || CityClassHigh < 0) CityClassHigh = 0;
+    if (CityClassHigh < CityClass) CityClassHigh = CityClass;
     CityScore = MiscHis[17];
     if (CityScore > 999 || CityScore < 1) CityScore = 500;
 

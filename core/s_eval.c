@@ -21,6 +21,8 @@ QUAD    deltaCityPop = 0;
 QUAD    CityAssValue = 0;
 int16_t ParkPop = 0;
 int16_t CityClass = 0;
+/* Highest class this city has reached. Level-up rewards pay only for classes above it. */
+int16_t CityClassHigh = 0;
 int16_t CityScore = 500;
 int16_t deltaCityScore = 0;
 int16_t TrafficAverage = 0;

@@ -91,6 +91,7 @@ static void Advisory(int16_t mnum, int16_t news_id, bool need)
 
 /* Forward Declarations of Internal Functions */
 static void CheckGrowth(void);
+static void CheckLevelUp(void);
 static void CheckTreasury(void);
 static void CheckTrash(void);
 static void DoAutoGoto(int16_t x, int16_t y, const char *msg);
@@ -170,6 +171,7 @@ void SendMessages(void)
     Scenario_CheckYear();
 
     CheckGrowth();
+    CheckLevelUp();
     CheckTreasury();
     CheckTrash();
 
@@ -320,6 +322,23 @@ static void CheckGrowth(void)
     }
 }
 
+/* Indexed by CityClass. Village pays nothing and has no article. */
+static const int32_t LevelUpReward[6] = { 0, 1000, 2000, 3000, 5000, 10000 };
+static const int16_t LevelUpNews[6] = {
+    0, NEWS_EVENT_LEVEL_TOWN, NEWS_EVENT_LEVEL_CITY, NEWS_EVENT_LEVEL_CAPITAL,
+    NEWS_EVENT_LEVEL_METROPOLIS, NEWS_EVENT_LEVEL_MEGALOPOLIS
+};
+
+/* Loops so a city that jumps several classes at once is paid for each one. */
+static void CheckLevelUp(void)
+{
+    while (CityClassHigh < CityClass) {
+        CityClassHigh++;
+        TotalFunds += LevelUpReward[CityClassHigh];
+        if (EngineCallbacks.news_event) EngineCallbacks.news_event(LevelUpNews[CityClassHigh]);
+    }
+}
+
 /* Empty and nearly-busted headlines fire once per dip and re-arm after funds recover to TREASURY_REARM. The million headline fires on each upward crossing, as before. */
 static void CheckTreasury(void)
 {
@@ -377,6 +396,7 @@ void ResetMilestoneState(void)
 {
     LastCityPop = 0;
     LastCategory = 0;
+    CityClassHigh = 0;
 }
 
 void ClearMes(void)
