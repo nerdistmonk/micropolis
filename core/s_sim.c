@@ -951,9 +951,9 @@ static int32_t GetBoatDis(void)
     int32_t mx = (SMapX << 4) + 8;
     int32_t my = (SMapY << 4) + 8;
 
-    for (int32_t i = 0; i < OBJN; i++) {
-        SimSprite *sprite = GlobalSprites[i];
-        if (sprite && (sprite->type == SHI) && (sprite->frame != 0)) {
+    for (int32_t i = 0; i < SHI_SLOTS; i++) {
+        SimSprite *sprite = GetSpriteSlot(SHI, i);
+        if (sprite && (sprite->frame != 0)) {
             int32_t dx = sprite->x + sprite->x_hot - mx;
             int32_t dy = sprite->y + sprite->y_hot - my;
             if (dx < 0) dx = -dx;

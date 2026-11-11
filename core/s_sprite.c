@@ -9,7 +9,10 @@ extern void Audio_MakeSound(const char *channel, const char *sound_name);
 extern void ClearMes(void);
 extern void SendMesAt(int16_t msg, int16_t x, int16_t y);
 
+/* COP and SHI live in copters and ships, so their active_sprites entries are unused. */
 static SimSprite active_sprites[OBJN];
+static SimSprite copters[COP_SLOTS];
+static SimSprite ships[SHI_SLOTS];
 static SimSprite neighbor_trains[NB_SIDES][NB_TRAINS_PER_SIDE];
 static SimSprite city_trains[TRA_SLOTS];
 
@@ -67,13 +70,16 @@ static int16_t GetDir(int32_t orgX, int32_t orgY, int32_t desX, int32_t desY)
 void InitSprites(void)
 {
     memset(active_sprites, 0, sizeof(active_sprites));
+    memset(copters, 0, sizeof(copters));
+    memset(ships, 0, sizeof(ships));
     memset(neighbor_trains, 0, sizeof(neighbor_trains));
     memset(city_trains, 0, sizeof(city_trains));
     memset(explosions, 0, sizeof(explosions));
     for (int i = 0; i < OBJN; i++) {
         active_sprites[i].type = i;
-        GlobalSprites[i] = &active_sprites[i];
     }
+    for (int i = 0; i < COP_SLOTS; i++) copters[i].type = COP;
+    for (int i = 0; i < SHI_SLOTS; i++) ships[i].type = SHI;
     for (int i = 0; i < NB_SIDES; i++) {
         for (int k = 0; k < NB_TRAINS_PER_SIDE; k++) neighbor_trains[i][k].type = TRA;
     }
@@ -222,10 +228,26 @@ void DispatchTrains(void)
     }
 }
 
+/* Returns a free slot, or NULL when none is free or a live sprite already sits within a tile of (x, y).
+ * The second check stops two sprites from starting stacked on the same spawn point. */
+static SimSprite *FindSpawnSlot(SimSprite *slots, int32_t count, int32_t x, int32_t y)
+{
+    SimSprite *spare = NULL;
+    for (int32_t i = 0; i < count; i++) {
+        SimSprite *s = &slots[i];
+        if (s->frame == 0) {
+            if (spare == NULL) spare = s;
+        } else if (abs(s->x - x) < 16 && abs(s->y - y) < 16) {
+            return NULL;
+        }
+    }
+    return spare;
+}
+
 void GenerateCopter(int16_t x, int16_t y)
 {
-    SimSprite *s = &active_sprites[COP];
-    if (s->frame != 0) return;
+    SimSprite *s = FindSpawnSlot(copters, COP_SLOTS, (x << 4) + 40, (y << 4) + 22);
+    if (s == NULL) return;
 
     /* Unix MakeSprite(COP, x<<4, (y<<4)+30) and InitSprite orig = (x-30, y), in Unix logical space.
      * Converted to core space with the COP shift (40, -8). */
@@ -296,7 +318,8 @@ static void SpawnShip(int32_t tx, int32_t ty)
     else if (uy >= ((WORLD_Y - 4) << 4)) frame = 1;
     else frame = 3;
 
-    SimSprite *s = &active_sprites[SHI];
+    SimSprite *s = FindSpawnSlot(ships, SHI_SLOTS, ux + 48, uy);
+    if (s == NULL) return;
     s->type = SHI;
     s->frame = frame;
     s->new_dir = frame;
@@ -315,9 +338,6 @@ static void SpawnShip(int32_t tx, int32_t ty)
 
 void GenerateShip(void)
 {
-    SimSprite *s = &active_sprites[SHI];
-    if (s->frame != 0) return;
-
     /* Unix GenerateShip: each edge is tried with a 1-in-4 chance; the first channel tile found spawns a ship. */
     int32_t x, y;
     if (!(Rand16() & 3))
@@ -651,10 +671,14 @@ static void StepPlane(SimSprite *s)
         s->dest_y = (Rand(WORLD_Y * 16 + 100) - 50) + 16;
     }
 
-    if (!NoDisasters && CheckSpriteCollision(s, &active_sprites[COP])) {
-        ExplodeSprite(&active_sprites[COP]);
-        ExplodeSprite(s);
-        return;
+    if (!NoDisasters) {
+        for (int32_t i = 0; i < COP_SLOTS; i++) {
+            if (CheckSpriteCollision(s, &copters[i])) {
+                ExplodeSprite(&copters[i]);
+                ExplodeSprite(s);
+                return;
+            }
+        }
     }
 
     s->x += CDx[s->frame];
@@ -817,11 +841,12 @@ static void StepTornado(SimSprite *s)
     if (s->count > 0) s->count--;
     s->frame = z;
 
-    for (int32_t i = 0; i < OBJN; i++) {
-        SimSprite *other = &active_sprites[i];
-        if (other->frame == 0) continue;
-        if (other->type != AIR && other->type != COP && other->type != SHI) continue;
-        if (CheckSpriteCollision(s, other)) ExplodeSprite(other);
+    for (int32_t i = 0; i < COP_SLOTS; i++) {
+        if (CheckSpriteCollision(s, &copters[i])) ExplodeSprite(&copters[i]);
+    }
+    if (CheckSpriteCollision(s, &active_sprites[AIR])) ExplodeSprite(&active_sprites[AIR]);
+    for (int32_t i = 0; i < SHI_SLOTS; i++) {
+        if (CheckSpriteCollision(s, &ships[i])) ExplodeSprite(&ships[i]);
     }
 
     for (int32_t i = 0; i < TRA_SLOTS; i++) {
@@ -861,9 +886,13 @@ void MoveObjects(void)
             }
         }
     }
-    if (active_sprites[COP].frame) StepCopter(&active_sprites[COP]);
+    for (int32_t i = 0; i < COP_SLOTS; i++) {
+        if (copters[i].frame) StepCopter(&copters[i]);
+    }
     if (active_sprites[AIR].frame) StepPlane(&active_sprites[AIR]);
-    if (active_sprites[SHI].frame) StepShip(&active_sprites[SHI]);
+    for (int32_t i = 0; i < SHI_SLOTS; i++) {
+        if (ships[i].frame) StepShip(&ships[i]);
+    }
     for (int32_t i = 0; i < EXP_SLOTS; i++) {
         if (explosions[i].frame) StepExplosion(&explosions[i]);
     }
@@ -873,6 +902,8 @@ void MoveObjects(void)
 
 SimSprite *GetSprite(int32_t type)
 {
+    /* COP and SHI have several slots; reach them through GetSpriteSlot. */
+    if (type == COP || type == SHI) return NULL;
     if (type >= 0 && type < OBJN) {
         return &active_sprites[type];
     }
@@ -894,6 +925,14 @@ SimSprite *GetSpriteSlot(int32_t type, int32_t index)
     }
     if (type == TRA) {
         if (index >= 0 && index < TRA_SLOTS) return &city_trains[index];
+        return NULL;
+    }
+    if (type == COP) {
+        if (index >= 0 && index < COP_SLOTS) return &copters[index];
+        return NULL;
+    }
+    if (type == SHI) {
+        if (index >= 0 && index < SHI_SLOTS) return &ships[index];
         return NULL;
     }
     if (index == 0) return GetSprite(type);

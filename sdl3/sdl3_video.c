@@ -572,28 +572,27 @@ static void DrawSpriteSlot(SDL_Renderer *renderer, const SimSprite *s, int32_t c
   }
 }
 
+static void DrawSpriteSlots(SDL_Renderer *renderer, int32_t type, int32_t count, int32_t cam_pixel_x, int32_t cam_pixel_y)
+{
+  for (int32_t i = 0; i < count; i++) {
+    SimSprite *s = GetSpriteSlot(type, i);
+    if (!s || s->frame == 0) continue;
+    DrawSpriteSlot(renderer, s, cam_pixel_x, cam_pixel_y);
+  }
+}
+
 static void RenderSprites(SDL_Renderer *renderer)
 {
   int32_t cam_pixel_x = cam_x * TILE_PIXEL_SIZE;
   int32_t cam_pixel_y = cam_y * TILE_PIXEL_SIZE;
 
-  for (int32_t i = 1; i < OBJN; i++) {
-    SimSprite *s = GetSprite(i);
-    if (!s || s->frame == 0) continue;
-    DrawSpriteSlot(renderer, s, cam_pixel_x, cam_pixel_y);
-  }
-
-  for (int32_t i = 0; i < TRA_SLOTS; i++) {
-    SimSprite *s = GetSpriteSlot(TRA, i);
-    if (!s || s->frame == 0) continue;
-    DrawSpriteSlot(renderer, s, cam_pixel_x, cam_pixel_y);
-  }
-
-  for (int32_t i = 0; i < EXP_SLOTS; i++) {
-    SimSprite *s = GetSpriteSlot(EXP, i);
-    if (!s || s->frame == 0) continue;
-    DrawSpriteSlot(renderer, s, cam_pixel_x, cam_pixel_y);
-  }
+  DrawSpriteSlots(renderer, COP, COP_SLOTS, cam_pixel_x, cam_pixel_y);
+  DrawSpriteSlots(renderer, AIR, 1, cam_pixel_x, cam_pixel_y);
+  DrawSpriteSlots(renderer, SHI, SHI_SLOTS, cam_pixel_x, cam_pixel_y);
+  DrawSpriteSlots(renderer, GOD, 1, cam_pixel_x, cam_pixel_y);
+  DrawSpriteSlots(renderer, TOR, 1, cam_pixel_x, cam_pixel_y);
+  DrawSpriteSlots(renderer, TRA, TRA_SLOTS, cam_pixel_x, cam_pixel_y);
+  DrawSpriteSlots(renderer, EXP, EXP_SLOTS, cam_pixel_x, cam_pixel_y);
 
   for (int32_t side = 0; side < NB_SIDES; side++) {
     for (int32_t i = 0; i < NB_TRAINS_PER_SIDE; i++) {

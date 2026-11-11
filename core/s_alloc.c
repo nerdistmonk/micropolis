@@ -76,9 +76,6 @@ int16_t CrashX = 0;
 int16_t CrashY = 0;
 int32_t absDist = 0;
 
-/* Sprite Slot State */
-SimSprite *GlobalSprites[OBJN] = { NULL };
-
 /* Message Dispatch Variables */
 int16_t MessagePort = 0;
 int16_t MesNum = 0;

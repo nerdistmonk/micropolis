@@ -159,6 +159,9 @@ typedef int32_t QUAD;
 #define OBJN 9
 #define EXP_SLOTS 256
 #define TRA_SLOTS 24
+/* Helicopters and ships on the map at once. */
+#define COP_SLOTS 2
+#define SHI_SLOTS 2
 /* Most trains one linked neighbour side can run at once, matching the largest per-side count in s_sprite.c. */
 #define NB_TRAINS_PER_SIDE 2
 
@@ -634,7 +637,6 @@ extern uint32_t MessageSerial;
 extern int16_t MessageTargetX;
 extern int16_t MessageTargetY;
 
-extern SimSprite *GlobalSprites[OBJN];
 extern SimCallbacks EngineCallbacks;
 
 /* Explicit Function Prototypes */
