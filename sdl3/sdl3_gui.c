@@ -301,10 +301,36 @@ static bool TickerVisible(void)
   return MessageSerial != 0 && MessageSerial != ticker_dismissed_serial && LastMessage[0];
 }
 
+static void CycleSimSpeed(int step)
+{
+  static const int16_t speed_cycle[] = {
+    SIM_SPEED_PAUSED, SIM_SPEED_SUPER_SLOW, SIM_SPEED_SLOW,
+    SIM_SPEED_MED, SIM_SPEED_FAST, SIM_SPEED_SUPER_FAST
+  };
+  const int cycle_len = (int)(sizeof(speed_cycle) / sizeof(speed_cycle[0]));
+  int cur = 0;
+  for (int i = 0; i < cycle_len; i++) {
+    if (speed_cycle[i] == SimSpeed) cur = i;
+  }
+  SetSimSpeed(speed_cycle[(cur + step + cycle_len) % cycle_len]);
+  Audio_PlayRunningSound(SimSpeed);
+}
+
 bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
 {
-  if (button != SDL_BUTTON_LEFT) return false;
+  if (button != SDL_BUTTON_LEFT && button != SDL_BUTTON_RIGHT) return false;
   UpdateLayout();
+
+  /* Right-click on the Speed button steps backward; other right-clicks fall through to map panning */
+  if (button == SDL_BUTTON_RIGHT) {
+    if (GUI_IsModalOpen() || Help_IsModeActive()) return false;
+    if (mouse_y <= (float)STATUS_BAR_HEIGHT &&
+        mouse_x >= rect_speed_btn.x && mouse_x <= (rect_speed_btn.x + rect_speed_btn.w)) {
+      CycleSimSpeed(-1);
+      return true;
+    }
+    return false;
+  }
 
   if (GUI_Dialogs_HandleClick(mouse_x, mouse_y)) {
     return true;
@@ -355,17 +381,7 @@ bool GUI_HandleClick(float mouse_x, float mouse_y, uint8_t button)
       return true;
     }
     if (mouse_x >= rect_speed_btn.x && mouse_x <= (rect_speed_btn.x + rect_speed_btn.w)) {
-      static const int16_t speed_cycle[] = {
-        SIM_SPEED_PAUSED, SIM_SPEED_SUPER_SLOW, SIM_SPEED_SLOW,
-        SIM_SPEED_MED, SIM_SPEED_FAST, SIM_SPEED_SUPER_FAST
-      };
-      size_t cycle_len = sizeof(speed_cycle) / sizeof(speed_cycle[0]);
-      size_t cur = 0;
-      for (size_t i = 0; i < cycle_len; i++) {
-        if (speed_cycle[i] == SimSpeed) cur = i;
-      }
-      SetSimSpeed(speed_cycle[(cur + 1) % cycle_len]);
-      Audio_PlayRunningSound(SimSpeed);
+      CycleSimSpeed(1);
       return true;
     }
     return true;

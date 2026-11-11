@@ -49,6 +49,7 @@ If the requested file cannot be loaded, an error is printed to stderr and a gene
 | --- | --- |
 | Left click | Use the selected tool on a tile |
 | Left drag | Use the selected tool along a line |
+| Right click on Speed button | Step back to the previous speed setting |
 | Right drag | Pan the map |
 | Shift + right click | Bulldoze the tile |
 
