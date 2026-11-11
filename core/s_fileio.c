@@ -597,6 +597,22 @@ static void RestorePolicyFromMisc(void)
     RecEffect = (int16_t)(recreationPercent * 1000.0f);
 }
 
+void CityName_FromFile(const char *filename)
+{
+    if (!filename) return;
+
+    const char *base = filename;
+    for (const char *p = filename; *p != '\0'; p++) {
+        if (*p == '/' || *p == '\\') base = p + 1;
+    }
+    snprintf(CityName, sizeof(CityName), "%s", base);
+
+    size_t len = strlen(CityName);
+    if (len > 4 && (strcmp(CityName + len - 4, ".cot") == 0 || strcmp(CityName + len - 4, ".cty") == 0)) {
+        CityName[len - 4] = '\0';
+    }
+}
+
 int32_t LoadCity(const char *filename)
 {
     if (!filename) return 0;

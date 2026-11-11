@@ -305,6 +305,7 @@ static void CityListConfirmed(int32_t index)
 
     char msg[CITY_FILE_BYTES + 64];
     if (LoadCity(path)) {
+        CityName_FromFile(path);
         snprintf(msg, sizeof(msg), "Loaded %s", e->label);
     } else {
         snprintf(msg, sizeof(msg), "Failed to load %s", e->label);

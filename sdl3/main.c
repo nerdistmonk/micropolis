@@ -66,6 +66,7 @@ static bool LoadStartupFile(void)
             fprintf(stderr, "micropolis: could not load city '%s'\n", cli_city_path);
             return false;
         }
+        CityName_FromFile(cli_city_path);
         return true;
     }
     return false;

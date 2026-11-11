@@ -917,6 +917,8 @@ void DoWinGame(void);
 /* Directory holding scenarios/ and cities/ (the executable's directory). */
 void SetDataRoot(const char *root);
 int32_t LoadCity(const char *filename);
+/* City files store no name, so a loaded city takes its name from the file. */
+void CityName_FromFile(const char *filename);
 int32_t SaveCity(const char *filename);
 /* Recounts infrastructure and reruns the power, crime, pop-density, and fire scans after the map changes. */
 void CityRescan(void);

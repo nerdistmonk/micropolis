@@ -54,6 +54,7 @@ void GenerateSomeCity(int32_t seed)
         free(CityFileName);
         CityFileName = NULL;
     }
+    snprintf(CityName, sizeof(CityName), "%s", "Micropolis");
 
     GenerateMap(seed);
 
