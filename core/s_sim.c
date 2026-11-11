@@ -537,6 +537,21 @@ static void SetValves(void)
     ValveFlag = 1;
 }
 
+static int16_t DensityMean(Byte **grid)
+{
+    int32_t sum = 0;
+    int32_t count = 0;
+    for (int32_t x = 0; x < HWLDX; x++) {
+        for (int32_t y = 0; y < HWLDY; y++) {
+            if (grid[x][y]) {
+                sum += grid[x][y];
+                count++;
+            }
+        }
+    }
+    return count ? (int16_t)(sum / count) : 0;
+}
+
 static void TakeCensus(void)
 {
     for (int16_t x = 118; x >= 0; x--) {
@@ -546,11 +561,15 @@ static void TakeCensus(void)
         CrimeHis[x + 1] = CrimeHis[x];
         PollutionHis[x + 1] = PollutionHis[x];
         MoneyHis[x + 1] = MoneyHis[x];
+        TrafDensHis[x + 1] = TrafDensHis[x];
+        PopDensHis[x + 1] = PopDensHis[x];
     }
 
     ResHis[0] = ResPop / 8;
     ComHis[0] = ComPop;
     IndHis[0] = IndPop;
+    TrafDensHis[0] = DensityMean(TrfDensity);
+    PopDensHis[0] = DensityMean(PopDensity);
 
     CrimeRamp += (int16_t)((CrimeAverage - CrimeRamp) / 4);
     CrimeHis[0] = CrimeRamp;
@@ -582,6 +601,8 @@ static void Take2Census(void)
         CrimeHis[x + 1] = CrimeHis[x];
         PollutionHis[x + 1] = PollutionHis[x];
         MoneyHis[x + 1] = MoneyHis[x];
+        TrafDensHis[x + 1] = TrafDensHis[x];
+        PopDensHis[x + 1] = PopDensHis[x];
     }
 
     ResHis[120] = ResPop / 8;
@@ -590,6 +611,8 @@ static void Take2Census(void)
     CrimeHis[120] = CrimeHis[0];
     PollutionHis[120] = PollutionHis[0];
     MoneyHis[120] = MoneyHis[0];
+    TrafDensHis[120] = TrafDensHis[0];
+    PopDensHis[120] = PopDensHis[0];
 
     CensusChanged = 1;
 }
@@ -1348,6 +1371,8 @@ void Sim_InitEngine(void)
         MoneyHis[x] = 128;
         CrimeHis[x] = 0;
         PollutionHis[x] = 0;
+        TrafDensHis[x] = 0;
+        PopDensHis[x] = 0;
     }
 
     CrimeRamp = 0;

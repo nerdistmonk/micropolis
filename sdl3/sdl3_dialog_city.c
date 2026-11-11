@@ -5,7 +5,7 @@
 
 static CityMgmtTab active_city_tab = CITY_TAB_BUDGET;
 static bool graph_120_year_mode = false;
-static bool graph_metric_visible[HISTORIES] = { true, true, true, true, true, true };
+static bool graph_metric_visible[HISTORIES] = { true, true, true, true, true, true, true, true, true };
 static bool is_editing_city_name = false;
 static char city_name_input_buffer[64] = {0};
 
@@ -436,6 +436,45 @@ bool Dialog_City_HandleClick(float mx, float my)
     return true;
 }
 
+static int32_t GraphTotalPop(int idx)
+{
+    return (int32_t)ResHis[idx] + (int32_t)ComHis[idx] + (int32_t)IndHis[idx];
+}
+
+/* Percent change in total population from the previous (older) point to point p. */
+static bool GraphGrowthAt(int base, int p, float *out)
+{
+    /* The oldest point in the window has no older sample to compare against. */
+    if (p <= 0) return false;
+    int idx = base + (GRAPH_POINTS - 1 - p);
+    int32_t older = GraphTotalPop(idx + 1);
+    if (older <= 0) return false;
+    *out = 100.0f * (float)(GraphTotalPop(idx) - older) / (float)older;
+    return true;
+}
+
+static float GraphGrowthPeak(int base)
+{
+    float peak = 5.0f;
+    for (int p = 1; p < GRAPH_POINTS; p++) {
+        float g;
+        if (!GraphGrowthAt(base, p, &g)) continue;
+        float mag = (g < 0.0f) ? -g : g;
+        if (mag > peak) peak = mag;
+    }
+    return peak;
+}
+
+/* The floor keeps a quiet city's small values from being stretched to fill the graph. */
+static float GraphDensityPeak(const int16_t *series, int base)
+{
+    float peak = 32.0f;
+    for (int p = 0; p < GRAPH_POINTS; p++) {
+        if ((float)series[base + p] > peak) peak = (float)series[base + p];
+    }
+    return peak;
+}
+
 static void RenderGraphsTab(SDL_Renderer *renderer, float dx, float dy, float dw, float dh)
 {
     (void)dw;
@@ -477,7 +516,8 @@ static void RenderGraphsTab(SDL_Renderer *renderer, float dx, float dy, float dw
     }
 
     static const char *metric_labels[HISTORIES] = {
-        "Residential", "Commercial", "Industrial", "Cash/Funds", "Crime", "Pollution"
+        "Residential", "Commercial", "Industrial", "Cash/Funds", "Crime", "Pollution",
+        "Traffic dens.", "Pop density", "Growth %"
     };
     static const SDL_Color metric_colors[HISTORIES] = {
         { 245, 215, 60, 255 },
@@ -485,11 +525,14 @@ static void RenderGraphsTab(SDL_Renderer *renderer, float dx, float dy, float dw
         { 255, 140, 50, 255 },
         { 80, 240, 120, 255 },
         { 240, 60, 60, 255 },
-        { 180, 100, 240, 255 }
+        { 180, 100, 240, 255 },
+        { 60, 220, 220, 255 },
+        { 255, 110, 180, 255 },
+        { 255, 255, 255, 255 }
     };
 
     const int base = graph_120_year_mode ? 120 : 0;
-    const int16_t *series[HISTORIES] = { ResHis, ComHis, IndHis, MoneyHis, CrimeHis, PollutionHis };
+    const int16_t *series[HISTORIES] = { ResHis, ComHis, IndHis, MoneyHis, CrimeHis, PollutionHis, TrafDensHis, PopDensHis, NULL };
 
     int16_t people_peak = 0;
     for (int m = 0; m < 3; m++) {
@@ -500,26 +543,46 @@ static void RenderGraphsTab(SDL_Renderer *renderer, float dx, float dy, float dw
     }
     float people_scale = (people_peak > 128) ? 128.0f / (float)people_peak : 1.0f;
 
+    float growth_peak = GraphGrowthPeak(base);
+    float traf_dens_peak = GraphDensityPeak(TrafDensHis, base);
+    float pop_dens_peak = GraphDensityPeak(PopDensHis, base);
+
     for (int m = 0; m < HISTORIES; m++) {
-        if (!graph_metric_visible[m] || !series[m]) continue;
+        if (!graph_metric_visible[m]) continue;
+        if (m != GROWTH_HIST && !series[m]) continue;
 
         float scale = (m < 3) ? people_scale : 1.0f;
+        if (m == TRFDENS_HIST) scale = 255.0f / traf_dens_peak;
+        if (m == POPDENS_HIST) scale = 255.0f / pop_dens_peak;
         SDL_SetRenderDrawColor(renderer, metric_colors[m].r, metric_colors[m].g, metric_colors[m].b, metric_colors[m].a);
 
         float prev_px = gx;
         float prev_py = gy + gh;
+        bool prev_ok = false;
 
         for (int p = 0; p < GRAPH_POINTS; p++) {
-            float v = (float)series[m][base + (GRAPH_POINTS - 1 - p)] * scale;
+            float v;
+            if (m == GROWTH_HIST) {
+                float g;
+                if (!GraphGrowthAt(base, p, &g)) {
+                    prev_ok = false;
+                    continue;
+                }
+                /* Auto-scaled so the largest change in view reaches the top or bottom; the middle is 0%. */
+                v = 127.5f + g * (127.5f / growth_peak);
+            } else {
+                v = (float)series[m][base + (GRAPH_POINTS - 1 - p)] * scale;
+            }
             if (v < 0.0f) v = 0.0f;
             if (v > 255.0f) v = 255.0f;
 
             float cur_px = gx + ((float)p / (float)(GRAPH_POINTS - 1)) * gw;
             float cur_py = gy + gh - (v / 255.0f) * gh;
 
-            if (p > 0) SDL_RenderLine(renderer, prev_px, prev_py, cur_px, cur_py);
+            if (prev_ok) SDL_RenderLine(renderer, prev_px, prev_py, cur_px, cur_py);
             prev_px = cur_px;
             prev_py = cur_py;
+            prev_ok = true;
         }
     }
 
@@ -542,7 +605,11 @@ static void RenderGraphsTab(SDL_Renderer *renderer, float dx, float dy, float dw
         GUI_DrawText(renderer, (int)leg_x + 22, (int)m_btn.y + 4, metric_labels[m], on ? col_white : col_gray);
     }
 
-    GUI_DrawText(renderer, (int)gx, (int)gy + (int)gh + 8, "Res/Com/Ind share one scale (peak at half height if above 128). Others 0-255.", col_gray);
+    int foot_y = (int)(dy + 382.0f);
+    int foot_lh = GUI_GetLineHeight();
+    GUI_DrawText(renderer, (int)dx + 30, foot_y, "Res/Com/Ind share one scale (peak at half height if above 128).", col_gray);
+    GUI_DrawText(renderer, (int)dx + 30, foot_y + foot_lh, "Traffic and population density: auto-scaled (average of nonzero cells).", col_gray);
+    GUI_DrawText(renderer, (int)dx + 30, foot_y + 2 * foot_lh, "Growth %: change from the previous point, auto-scaled; center line = 0%.", col_gray);
 }
 
 void Dialog_City_Render(SDL_Renderer *renderer)

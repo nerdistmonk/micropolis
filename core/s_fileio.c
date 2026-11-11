@@ -53,6 +53,8 @@ extern void ClearMes(void);
 #define CITY_MISC_SLOTS MISCHISTLEN
 #define CITY_FILE_BYTES_LEGACY CITY_IMAGE_BYTES(CITY_MISC_SLOTS_LEGACY)
 #define CITY_FILE_BYTES CITY_IMAGE_BYTES(CITY_MISC_SLOTS)
+/* Traffic and population density histories, stored after the landfill fill block. */
+#define DENS_BLOCK_BYTES (2 * (HISTLEN / 2) * sizeof(int16_t))
 
 static float ClampPercent(float v)
 {
@@ -237,6 +239,26 @@ static void EncodeCityBlob(uint8_t *blob)
     }
 }
 
+static void EncodeDensityTail(uint8_t *dst)
+{
+    const size_t count = HISTLEN / 2;
+    EncodeShortStream(dst, TrafDensHis, count);
+    EncodeShortStream(dst + count * sizeof(int16_t), PopDensHis, count);
+}
+
+/* A null src means the file predates the density tail, so both histories start empty. */
+static void DecodeDensityTail(const uint8_t *src)
+{
+    const size_t count = HISTLEN / 2;
+    if (!src) {
+        memset(TrafDensHis, 0, count * sizeof(int16_t));
+        memset(PopDensHis, 0, count * sizeof(int16_t));
+        return;
+    }
+    DecodeShortStream(TrafDensHis, src, count);
+    DecodeShortStream(PopDensHis, src + count * sizeof(int16_t), count);
+}
+
 /* Writes to <path>.tmp, syncs, then renames over <path>, so a failed write never clobbers the existing file. */
 static int32_t WriteFileAtomic(const char *path, const uint8_t *data, size_t len)
 {
@@ -276,9 +298,12 @@ static size_t CityMiscSlotsForSize(long size)
 {
     const long pipes = (long)Water_PipeBlockBytes();
     const long fill = (long)LANDFILL_FILL_BYTES;
+    const long dens = (long)DENS_BLOCK_BYTES;
     const long current = (long)CITY_FILE_BYTES;
     const long legacy = (long)CITY_FILE_BYTES_LEGACY;
-    if (size == current || size == current + pipes || size == current + pipes + fill) return CITY_MISC_SLOTS;
+    if (size == current || size == current + pipes || size == current + pipes + fill || size == current + pipes + fill + dens) {
+        return CITY_MISC_SLOTS;
+    }
     if (size == legacy || size == 99120 || size == 219120 || size == legacy + pipes || size == legacy + pipes + fill) {
         return CITY_MISC_SLOTS_LEGACY;
     }
@@ -328,9 +353,13 @@ static int32_t LoadFileInternal(const char *filename)
     const size_t image = CITY_IMAGE_BYTES(misc_slots);
     const size_t pipe_end = image + Water_PipeBlockBytes();
     const size_t fill_end = pipe_end + LANDFILL_FILL_BYTES;
+    const size_t dens_end = fill_end + DENS_BLOCK_BYTES;
 
     /* Read the whole image before touching any globals, so a short read leaves the current city intact. */
-    size_t want = (size == (long)fill_end) ? fill_end : (size == (long)pipe_end) ? pipe_end : image;
+    size_t want = (size == (long)dens_end) ? dens_end
+                : (size == (long)fill_end) ? fill_end
+                : (size == (long)pipe_end) ? pipe_end
+                : image;
     uint8_t *blob = (uint8_t *)malloc(want);
     if (!blob) {
         fclose(f);
@@ -345,7 +374,8 @@ static int32_t LoadFileInternal(const char *filename)
 
     ParseCityBlob(blob, misc_slots);
     if (want > image) Water_LoadPipes(blob + image);
-    LandfillDecodeFill(want == fill_end ? blob + pipe_end : NULL);
+    LandfillDecodeFill(want >= fill_end ? blob + pipe_end : NULL);
+    DecodeDensityTail(want == dens_end ? blob + fill_end : NULL);
     free(blob);
     return 1;
 }
@@ -647,12 +677,13 @@ int32_t SaveCity(const char *filename)
         filename = CityFileName;
     }
 
-    size_t total = CITY_FILE_BYTES + Water_PipeBlockBytes() + LANDFILL_FILL_BYTES;
+    size_t total = CITY_FILE_BYTES + Water_PipeBlockBytes() + LANDFILL_FILL_BYTES + DENS_BLOCK_BYTES;
     uint8_t *blob = (uint8_t *)malloc(total);
     if (!blob) return 0;
     EncodeCityBlob(blob);
     Water_CopyPipes(blob + CITY_FILE_BYTES);
     LandfillEncodeFill(blob + CITY_FILE_BYTES + Water_PipeBlockBytes());
+    EncodeDensityTail(blob + CITY_FILE_BYTES + Water_PipeBlockBytes() + LANDFILL_FILL_BYTES);
     int32_t ok = WriteFileAtomic(filename, blob, total);
     free(blob);
     if (!ok) return 0;
@@ -668,12 +699,14 @@ int32_t SaveCity(const char *filename)
 }
 
 /* .scn layout: a 376-byte little-endian header, then a city image as in .cot files.
- * Version 3 uses the current image. Versions 1 and 2 use the legacy image, which stores 120 misc slots.
- * Versions 2 and 3 append the water pipe block and the landfill fill block. Version 1 has neither and still loads. */
+ * Version 4 uses the current image and appends the pipe block, the fill block and the density tail.
+ * Version 3 is the same without the density tail. Version 2 uses the legacy image with pipes and fill.
+ * Version 1 uses the legacy image with neither, and still loads. */
 #define SCN_HEADER_BYTES   376
 #define SCN_VERSION_CITY   1
 #define SCN_VERSION_LEGACY 2
-#define SCN_VERSION        3
+#define SCN_VERSION_CURRENT 3
+#define SCN_VERSION        4
 #define SCN_OFF_VERSION    4
 #define SCN_OFF_FLAGS      6
 #define SCN_OFF_NAME       8
@@ -801,7 +834,7 @@ static int32_t DecodeScenarioHeader(const uint8_t *h, ScenarioDef *def)
 {
     if (memcmp(h, "MCSN", 4) != 0) return 0;
     uint16_t ver = GetU16LE(h + SCN_OFF_VERSION);
-    if (ver != SCN_VERSION_CITY && ver != SCN_VERSION_LEGACY && ver != SCN_VERSION) return 0;
+    if (ver != SCN_VERSION_CITY && ver != SCN_VERSION_LEGACY && ver != SCN_VERSION_CURRENT && ver != SCN_VERSION) return 0;
 
     uint16_t flags = GetU16LE(h + SCN_OFF_FLAGS);
     if (flags & (uint16_t)~SCN_FLAG_KNOWN) return 0;
@@ -833,7 +866,7 @@ static int32_t DecodeScenarioHeader(const uint8_t *h, ScenarioDef *def)
 /* Misc slots carried by a scenario version's city image. */
 static size_t ScnMiscSlots(uint16_t version)
 {
-    return version == SCN_VERSION ? CITY_MISC_SLOTS : CITY_MISC_SLOTS_LEGACY;
+    return version >= SCN_VERSION_CURRENT ? CITY_MISC_SLOTS : CITY_MISC_SLOTS_LEGACY;
 }
 
 /* Offset just past the header and city image. Pipe and fill blocks follow it. */
@@ -842,11 +875,18 @@ static size_t ScnCityEnd(uint16_t version)
     return SCN_HEADER_BYTES + CITY_IMAGE_BYTES(ScnMiscSlots(version));
 }
 
-/* Total file size for each version, including the pipe and fill blocks for versions 2 and 3. */
+/* Offset just past the pipe and fill blocks. The density tail, if the version has one, starts here. */
+static size_t ScnInfraEnd(uint16_t version)
+{
+    return ScnCityEnd(version) + Water_PipeBlockBytes() + LANDFILL_FILL_BYTES;
+}
+
+/* Total file size for each version, including the pipe and fill blocks for versions 2 to 4. */
 static size_t ScnTotalBytes(uint16_t version)
 {
     if (version == SCN_VERSION_CITY) return ScnCityEnd(version);
-    return ScnCityEnd(version) + Water_PipeBlockBytes() + LANDFILL_FILL_BYTES;
+    if (version == SCN_VERSION) return ScnInfraEnd(version) + DENS_BLOCK_BYTES;
+    return ScnInfraEnd(version);
 }
 
 /* Returns the version whose layout matches the file size, or 0 if none does. */
@@ -854,6 +894,7 @@ static uint16_t ScnVersionForSize(long size)
 {
     if (size == (long)ScnTotalBytes(SCN_VERSION_CITY)) return SCN_VERSION_CITY;
     if (size == (long)ScnTotalBytes(SCN_VERSION_LEGACY)) return SCN_VERSION_LEGACY;
+    if (size == (long)ScnTotalBytes(SCN_VERSION_CURRENT)) return SCN_VERSION_CURRENT;
     if (size == (long)ScnTotalBytes(SCN_VERSION)) return SCN_VERSION;
     return 0;
 }
@@ -929,6 +970,7 @@ int32_t Scenario_LoadFile(const char *path)
     LandfillResetCity();
     /* Must follow LandfillResetCity, which clears the fill. */
     LandfillDecodeFill(has_infrastructure ? blob + ScnCityEnd(version) + Water_PipeBlockBytes() : NULL);
+    DecodeDensityTail(version == SCN_VERSION ? blob + ScnInfraEnd(version) : NULL);
     free(blob);
     /* Must follow LandfillResetCity, which resets landfillPercent. */
     RestorePolicyFromMisc();
@@ -985,6 +1027,7 @@ int32_t Scenario_SaveToDirectory(const ScenarioDef *def, char *saved_path, size_
     EncodeCityBlob(blob + SCN_HEADER_BYTES);
     Water_CopyPipes(blob + ScnCityEnd(SCN_VERSION));
     LandfillEncodeFill(blob + ScnCityEnd(SCN_VERSION) + Water_PipeBlockBytes());
+    EncodeDensityTail(blob + ScnInfraEnd(SCN_VERSION));
     int32_t ok = WriteFileAtomic(path, blob, total);
     free(blob);
     if (!ok) return 0;

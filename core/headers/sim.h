@@ -172,7 +172,11 @@ typedef int32_t QUAD;
 #define MONEY_HIST 3
 #define CRIME_HIST 4
 #define POLLUTION_HIST 5
-#define HISTORIES 6
+#define TRFDENS_HIST 6
+#define POPDENS_HIST 7
+/* Growth is not stored. The graph works it out from the population histories. */
+#define GROWTH_HIST 8
+#define HISTORIES 9
 #define ALL_HISTORIES ((1 << HISTORIES) - 1)
 
 /* Simulation Tile IDs */
@@ -534,6 +538,7 @@ extern int16_t *ResHis;
 extern int16_t *ComHis;
 extern int16_t *IndHis;
 extern int16_t *MoneyHis, *CrimeHis, *PollutionHis, *MiscHis;
+extern int16_t *TrafDensHis, *PopDensHis;
 extern uint16_t *PowerMap;
 
 extern float roadPercent, policePercent, firePercent, healthPercent, landfillPercent, recreationPercent;

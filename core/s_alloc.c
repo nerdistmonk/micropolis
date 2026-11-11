@@ -69,6 +69,8 @@ int16_t *MoneyHis = NULL;
 int16_t *PollutionHis = NULL;
 int16_t *CrimeHis = NULL;
 int16_t *MiscHis = NULL;
+int16_t *TrafDensHis = NULL;
+int16_t *PopDensHis = NULL;
 uint16_t *PowerMap = NULL;
 
 /* Incident & Crash Coordinates */
@@ -276,6 +278,8 @@ void AllocateMapBuffers(void)
     PollutionHis = (int16_t *)calloc(HISTLEN, sizeof(int16_t));
     CrimeHis = (int16_t *)calloc(HISTLEN, sizeof(int16_t));
     MiscHis = (int16_t *)calloc(MISCHISTLEN, sizeof(int16_t));
+    TrafDensHis = (int16_t *)calloc(HISTLEN, sizeof(int16_t));
+    PopDensHis = (int16_t *)calloc(HISTLEN, sizeof(int16_t));
 
     PowerMap = (uint16_t *)calloc(PWRMAPSIZE, sizeof(uint16_t));
 }
@@ -300,6 +304,8 @@ void FreeMapBuffers(void)
     if (PollutionHis) { free(PollutionHis); PollutionHis = NULL; }
     if (CrimeHis) { free(CrimeHis); CrimeHis = NULL; }
     if (MiscHis) { free(MiscHis); MiscHis = NULL; }
+    if (TrafDensHis) { free(TrafDensHis); TrafDensHis = NULL; }
+    if (PopDensHis) { free(PopDensHis); PopDensHis = NULL; }
 
     if (PowerMap) { free(PowerMap); PowerMap = NULL; }
     if (CityFileName) { free(CityFileName); CityFileName = NULL; }
